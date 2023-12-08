@@ -1,7 +1,8 @@
 #include "mujoco_simulator.h"
-#include "mjpc/planners/ilqg/planner.h"
-
 #include <iostream>
+
+// Define the task outisde the class function.
+mjpc::QuadrupedFlat* task_;
 
 MujocoSimulator::MujocoSimulator(const char* modelFile) :
     model(nullptr),
@@ -15,12 +16,6 @@ MujocoSimulator::MujocoSimulator(const char* modelFile) :
         std::cerr << "Error loading Mujoco model: " << loadError << std::endl;
     }
 
-    // Define reference joint configuration
-    // q0_ = {0.0, 0.9, 0.3,   // Joint 1
-    //         0.0, 0.9, 0.3,   // Joint 2
-    //         0.0, 0.9, 0.3,   // Joint 3
-    //         0.0, 0.9, 0.3};  // Joint 4
-
     // Access the simulation options
     mjOption* options = &model->opt;
      // Set opt->integrator to mjINT_RK4
@@ -31,8 +26,6 @@ MujocoSimulator::MujocoSimulator(const char* modelFile) :
     options->timestep = 0.002;
     options->iterations = 100;
     options->tolerance = 1e-8;
-
-    int steps_ = 120;
 
     // options->jacobian = "Auto";
     // {mjITEM_SELECT,    "Solver",        2, &(opt->solver),            "PGS\nCG\nNewton"},
@@ -66,11 +59,14 @@ MujocoSimulator::MujocoSimulator(const char* modelFile) :
     //     {mjITEM_END}
     //   };
 
-    // if (loadError[0]) std::cerr << "load error: " << loadError << '\n';
-
     // Initialize Mujoco simulation
     data = mj_makeData(model);
-    // Assign values to data->qpos
+
+    // Define reference joint configuration and assign values to data->qpos
+    // q0_ = {0.0, 0.9, 0.3,   // Joint 1
+    //         0.0, 0.9, 0.3,   // Joint 2
+    //         0.0, 0.9, 0.3,   // Joint 3
+    //         0.0, 0.9, 0.3};  // Joint 4
     q0_ = {0., -0., 0.3, 1.,0.,0.,0., 0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
 
     for (int i = 0; i < model->nv; ++i) {
@@ -96,33 +92,54 @@ MujocoSimulator::MujocoSimulator(const char* modelFile) :
     mjv_makeScene(model, &scn, 1000);
     mjr_makeContext(model, &con, mjFONTSCALE_100);
 
-    model_i = mj_copyModel(NULL, model);
-    data_i = mj_copyData(NULL, model_i, data);
-
-    // Setup the planner.
-
     // ----- iLQG planner ----- //
     mjpc::iLQGPlanner planner;
 
     // Params
     double horizon_ = 0.5;
     double timestep_ = 1.0e-2;
+    int kMaxTrajectoryHorizon = 128;
 
     // planning steps
     steps_ = horizon_ / timestep_ + 1;
+    task_ = new mjpc::QuadrupedFlat();
+    task_->Reset(model);
+
+    // Initialize State.
+    state_.Initialize(model);
+    state_.Allocate(model);
+    state_.Reset();
+    state_.Set(model, data);
+
+    // Initialise planner.
+    planner.Initialize(model, *task_);
+    planner.Allocate();
+    planner.Reset(kMaxTrajectoryHorizon);
+
+    mjpc::ThreadPool planner_pool(1);
+        // ---- -settings ----- //
+    std::atomic<bool> exitrequest(false);
+    std::atomic<int> uiloadrequest(0);
+
+    // main loop
+    // while (!exitrequest.load()) {
+    //     if (model_ && uiloadrequest.load() == 0) {
+    //     PlanIteration(&planner_pool);
+    //     }
+    // }  // exitrequest sent -- stop planning
 }
 
 MujocoSimulator::~MujocoSimulator() {
     if (model) mj_deleteModel(model);
     if (data) mj_deleteData(data);
-    // mj_deactivate();
 }
 
 // simple controller applying damping to each dof
 void mycontroller(const mjModel* m, mjData* d)
 {
-  if( m->nu==m->nv )
+  if( m->nu==m->nv ){
     mju_scl(d->ctrl, d->qvel, -0.8, m->nv);
+  }
 }
 
 // sensor
@@ -131,7 +148,7 @@ void sensor(const mjModel* m, mjData* d, int stage);
 }
 
 // sensor callback
-void sensor(const mjModel* model, mjData* data, int stage) {
+void MujocoSimulator::sensor(const mjModel* model, mjData* data, int stage) {
 //   if (stage == mjSTAGE_ACC) {
 //     if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0) {
 //       if (sim->agent->IsPlanningModel(model)) {
@@ -147,9 +164,10 @@ void sensor(const mjModel* model, mjData* data, int stage) {
 //       }
 //     }
 //   }
+    if (stage == mjSTAGE_ACC) {
+      task_->Residual(model, data, data->sensordata);
+    }
 
-    // Use to update the residual.
-    std::cout << "Sensor time : " << data->time << std::endl;
 }
 
 void MujocoSimulator::initialize() {
@@ -157,32 +175,12 @@ void MujocoSimulator::initialize() {
 }
 
 void MujocoSimulator::runSimulation(int numSteps) {
-    // Log joint positions for each step
-    // install control callback
-    mjcb_control = mycontroller;
+    // Set control callback
+    // mjcb_control = mycontroller;
 
-    //   // set control callback
-    // mjcb_control = controller;
+    // Set sensor callback
+    mjcb_sensor = &MujocoSimulator::sensor;
 
-    // set sensor callback
-    mjcb_sensor = sensor;
-
-    // for (int i = 0; i < numSteps; ++i) {
-    //     // Log joint positions
-    //     std::vector<double> jointPositions;
-    //     for (int j = 0; j < model->nq; ++j) {
-    //         jointPositions.push_back(data->qpos[j]);
-    //     }
-    //     jointPositionsLog.push_back(jointPositions);
-
-    //     // Perform simulation step
-    //     mju_zero(data->ctrl, model->nu);
-    //     mju_zero(data->qfrc_applied, model->nv);
-    //     mju_zero(data->xfrc_applied, 6*model->nbody);
-    //     // data->ctrl[11] = 50;
-    //     mj_step(model, data);
-    // }
-    // run main loop, target real-time simulation and 60 fps rendering
     mj_step(model, data);
     while( !glfwWindowShouldClose(window) ) {
         // advance interactive simulation for 1/60 sec
@@ -191,7 +189,6 @@ void MujocoSimulator::runSimulation(int numSteps) {
         //  Otherwise add a cpu timer and exit this loop when it is time to render.
         mjtNum simstart = data->time;
         while( data->time - simstart < 1.0/60.0 ){
-            // mj_forward(model, data);
             if (data->time > 0.){
                 mju_zero(data->ctrl, model->nu);
                 mju_zero(data->qfrc_applied, model->nv);
@@ -203,15 +200,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
                     double control_signal = kp_ * error - kd_ * vel_error;
 
                     // Apply control signal to actuators or joints
-                    // You may need to adapt this based on your MuJoCo model
                     data->ctrl[i] = control_signal;
-                    // std::cout << "\n -- " << std::endl;
-                    // std::cout << "error : " << error << std::endl;
-                    // std::cout << "data->ctrl[" << i << "] : " << data->ctrl[i] << std::endl;
-                    // std::cout << "data->qpos[" << i << "] : " << data->qpos[i+7] << std::endl;
                 }
             }
-            std::cout << "Control : " << data->time << std::endl;
             mj_step(model, data);
         }
 
