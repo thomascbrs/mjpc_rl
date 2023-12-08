@@ -70,7 +70,7 @@ set(INSTALL_DIR "/home/thomas_cbrs/install")
 ###################################################################
 
 # Add the source files to the project
-add_library(mjpc_rl_cpp src/mujoco_simualtor.cpp
+add_library(mjpc_rl_cpp src/mujoco_simulator.cpp
     src/mujoco_simulator.h)
 
 # Link libmjpc, glfw (graphic UI), mujoco, threadpool (necessary for the executable).
