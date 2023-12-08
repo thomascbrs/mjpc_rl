@@ -1,3 +1,6 @@
+# Mujoco stuff
+MUJOCO_LOG.TXT
+
 # Python stuff
 *.py[cod]
 
