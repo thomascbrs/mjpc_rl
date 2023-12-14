@@ -70,8 +70,11 @@ set(INSTALL_DIR "/home/thomas_cbrs/install")
 ###################################################################
 
 # Add the source files to the project
-add_library(mjpc_rl_cpp src/mujoco_simulator.cpp
-    src/mujoco_simulator.h)
+add_library(mjpc_rl_cpp
+    src/mujoco_simulator.h
+    src/quadruped_task.h
+    src/mujoco_simulator.cpp
+    src/quadruped_task.cc)
 
 # Link libmjpc, glfw (graphic UI), mujoco, threadpool (necessary for the executable).
 # Warning : mujoco in Release mode only, undefined reference to `__muloti4' error otherwise, clang12 ?
@@ -80,6 +83,8 @@ target_link_libraries(mjpc_rl_cpp
     ${MJPC_DIR_DEBUG}/lib/libmjpc.a
     ${MJPC_DIR_DEBUG}/lib/libglfw3.a
     ${MJPC_DIR_DEBUG}/lib/libthreadpool.a
+    ${MJPC_DIR_DEBUG}/lib/libprotobufd.a
+    ${MJPC_DIR_DEBUG}/lib/libagent_state_proto_lib.a
     ${MJPC_DIR_RELEASE}/lib/libmujoco.so)
 target_include_directories(mjpc_rl_cpp
     PUBLIC
