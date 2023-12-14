@@ -19,47 +19,16 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
 
   // Access the simulation options
   mjOption *options = &model->opt;
-  // Set opt->integrator to mjINT_RK4
-  options->integrator = mjINT_EULER;
-  options->cone = mjCONE_PYRAMIDAL;
+  options->integrator = mjINT_EULER; // mjINT_RK4
+  options->cone = mjCONE_ELLIPTIC;
   options->jacobian = mjJAC_AUTO;
   options->solver = mjSOL_NEWTON;
   options->timestep = 0.002;
   options->iterations = 100;
   options->tolerance = 1e-8;
-
-  // options->jacobian = "Auto";
-  // {mjITEM_SELECT,    "Solver",        2, &(opt->solver), "PGS\nCG\nNewton"},
-  // {mjITEM_SEPARATOR, "Algorithmic Parameters", 1},
-  // {mjITEM_EDITNUM,   "Timestep",      2, &(opt->timestep),          "1 0 1"},
-  // {mjITEM_EDITINT,   "Iterations",    2, &(opt->iterations),        "1 0
-  // 1000"}, {mjITEM_EDITNUM,   "Tolerance",     2, &(opt->tolerance), "1 0 1"},
-  // {mjITEM_EDITINT,   "LS Iter",       2, &(opt->ls_iterations),     "1 0
-  // 100"}, {mjITEM_EDITNUM,   "LS Tol",        2, &(opt->ls_tolerance),      "1
-  // 0 0.1"}, {mjITEM_EDITINT,   "Noslip Iter",   2, &(opt->noslip_iterations),
-  // "1 0 1000"}, {mjITEM_EDITNUM,   "Noslip Tol",    2,
-  // &(opt->noslip_tolerance),  "1 0 1"}, {mjITEM_EDITINT,   "MPR Iter",      2,
-  // &(opt->mpr_iterations),    "1 0 1000"}, {mjITEM_EDITNUM,   "MPR Tol", 2,
-  // &(opt->mpr_tolerance),     "1 0 1"}, {mjITEM_EDITNUM,   "API Rate",      2,
-  // &(opt->apirate),           "1 0 1000"}, {mjITEM_EDITINT,   "SDF Iter", 2,
-  // &(opt->sdf_iterations),    "1 1 20"}, {mjITEM_EDITINT,   "SDF Init", 2,
-  // &(opt->sdf_initpoints),    "1 1 100"}, {mjITEM_SEPARATOR, "Physical
-  // Parameters", 1}, {mjITEM_EDITNUM,   "Gravity",       2, opt->gravity, "3"},
-  // {mjITEM_EDITNUM,   "Wind",          2, opt->wind,                 "3"},
-  // {mjITEM_EDITNUM,   "Magnetic",      2, opt->magnetic,             "3"},
-  // {mjITEM_EDITNUM,   "Density",       2, &(opt->density),           "1"},
-  // {mjITEM_EDITNUM,   "Viscosity",     2, &(opt->viscosity),         "1"},
-  // {mjITEM_EDITNUM,   "Imp Ratio",     2, &(opt->impratio),          "1"},
-
-  // options->gravity[2] = -1.8; // Set gravity in the z-direction (negative
-  // value indicates downward)
-  //       mjuiDef defOverride[] = {
-  //     {mjITEM_SEPARATOR, "Contact Override", 1},
-  //     {mjITEM_EDITNUM,   "Margin",        2, &(opt->o_margin),          "1"},
-  //     {mjITEM_EDITNUM,   "Sol Imp",       2, &(opt->o_solimp),          "5"},
-  //     {mjITEM_EDITNUM,   "Sol Ref",       2, &(opt->o_solref),          "2"},
-  //     {mjITEM_END}
-  //   };
+  options->noslip_tolerance = 1e-6;
+  options->noslip_iterations = 2;
+  options->mpr_tolerance = 1e-6;
 
   // Initialize Mujoco simulation
   data = mj_makeData(model);
