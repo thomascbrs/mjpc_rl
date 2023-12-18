@@ -35,7 +35,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   options->iterations = 100;
   options->tolerance = 1e-8;
   options->noslip_tolerance = 1e-6;
-  options->noslip_iterations = 2;
+  options->noslip_iterations = 3;
   options->mpr_tolerance = 1e-6;
 
   // Initialize Mujoco simulation
@@ -402,6 +402,14 @@ void MujocoSimulator::runSimulation(int numSteps) {
       }
       double timestep_simu = 0.002;
       model->opt.timestep = timestep_simu;
+
+      // Monitoring real values of the sensors from data and datasensors.
+      // double* FR = mjpc::SensorByName(model, data, "FR_vel");
+      // int siteId = mj_name2id(model, mjOBJ_SITE, "FR_vel");
+      // const double* sitePos = data->site_xpos + 3 * siteId;
+      // std::cout << "FR (sensor) : " << FR[2] << std::endl;
+      // std::cout << "FR (data)   : " << sitePos[2] << std::endl;
+
       mj_step(model, data);
     }
 
