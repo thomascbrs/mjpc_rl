@@ -75,7 +75,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Adjust camera distance
   cam.azimuth = 90.0;  // Set azimuth angle
   cam.elevation = -20.0;  // Set elevation angle
-  cam.distance = 2.;  // Set camera distance to 1.0
+  cam.distance = 2.5;  // Set camera distance to 1.0
 
   // Params
   double horizon_ = 0.35;
