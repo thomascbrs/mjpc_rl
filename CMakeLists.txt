@@ -63,7 +63,7 @@ findorfetch(
 # Setting path variables, from already compiled library in libmjpc.
 set(MJPC_DIR_RELEASE "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build")
 set(MJPC_DIR_DEBUG "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug")
-set(INSTALL_DIR "/home/thomas_cbrs/install")
+set(INSTALL_DIR "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug/mjpc")
 
 ###################################################################
 # Create a first libray for the mujoco_simulator wrapper class.
