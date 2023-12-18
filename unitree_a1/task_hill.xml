@@ -80,16 +80,23 @@
     <user name="Body Pos." dim="3" user="0 5.0 0.0 100.0" />
     <user name="Body Rot." dim="9" user="0 1.0 0.0 10.0" />
     <user name="Control" dim="12" user="0 0.25 0.0 1.0" />
+    <user name="Fly-hight" dim="12" user="9 0.0 0.0 1.0 90." />
     <framepos      name="trace0" objtype="body" objname="trunk"/>
     <framepos      name="position" objtype="body" objname="trunk"/>
     <framequat     name="orientation" objtype="xbody" objname="trunk"/>
     <subtreecom    name="torso_subtreecom" body="trunk"/>
     <subtreelinvel name="torso_subtreelinvel" body="trunk"/>
     <framezaxis    name="torso_zaxis" objtype="xbody" objname="trunk"/>
-    <framepos      name="FR" objtype="site" objname="FR"/>
-    <framepos      name="FL" objtype="site" objname="FL"/>
-    <framepos      name="RR" objtype="site" objname="RR"/>
-    <framepos      name="RL" objtype="site" objname="RL"/>
+
+    <framepos      name="FR" objtype="site" objname="FR" reftype="world" refname="world"/>
+    <framepos      name="FL" objtype="site" objname="FL" reftype="world" refname="world"/>
+    <framepos      name="RR" objtype="site" objname="RR" reftype="world" refname="world"/>
+    <framepos      name="RL" objtype="site" objname="RL" reftype="world" refname="world"/>
+
+    <framelinvel   name="FR_vel" objtype="site" objname="FR" reftype="world" refname="world"/>
+    <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
+    <framelinvel   name="RR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
+    <framelinvel   name="RL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
   </sensor>
 
   <keyframe>
