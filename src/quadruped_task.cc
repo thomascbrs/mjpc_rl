@@ -32,6 +32,7 @@ std::string QuadrupedTask::Name() const { return "Quadruped Task"; }
 //     Residual (1): position - goal_position
 //     Residual (2): orientation - goal_orientation
 //     Residual (3): control
+//     Residual (4): Fly-hight cost
 //   Number of parameters: 1
 //     Parameter (1): height_goal
 // -----------------------------------------------------------------------
@@ -79,6 +80,36 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
 
   // ---------- Residual (3) ----------
   mju_copy(residual + 13, data->ctrl, model->nu);
+
+  // ---------- Residual (4) ----------
+  double* FR = mjpc::SensorByName(model, data, "FR");
+  double* FL = mjpc::SensorByName(model, data, "FL");
+  double* RR = mjpc::SensorByName(model, data, "RR");
+  double* RL = mjpc::SensorByName(model, data, "RL");
+  double* FR_vel = mjpc::SensorByName(model, data, "FR_vel");
+  double* FL_vel = mjpc::SensorByName(model, data, "FL_vel");
+  double* RR_vel = mjpc::SensorByName(model, data, "RR_vel");
+  double* RL_vel = mjpc::SensorByName(model, data, "RL_vel");
+  double feet_position[12];
+
+  feet_position[0] = FR_vel[0];
+  feet_position[1] = FR_vel[1];
+  feet_position[2] = FR[2];
+
+  feet_position[3] = FL_vel[0];
+  feet_position[4] = FL_vel[1];
+  feet_position[5] = FL[2];
+
+  feet_position[6] = RR_vel[0];
+  feet_position[7] = RR_vel[1];
+  feet_position[8] = RR[2];
+
+  feet_position[9] = RL_vel[0];
+  feet_position[10] = RL_vel[1];
+  feet_position[11] = RL[2];
+
+  // Copy in the residual.
+  mju_copy(residual + 25, feet_position, 12);
 }
 
 // -------- Transition for quadruped task --------
