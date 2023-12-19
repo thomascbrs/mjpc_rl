@@ -80,7 +80,7 @@
     <user name="Body Pos." dim="3" user="0 5.0 0.0 100.0" />
     <user name="Body Rot." dim="9" user="0 1.0 0.0 10.0" />
     <user name="Control" dim="12" user="0 0.25 0.0 1.0" />
-    <user name="Fly-hight" dim="12" user="9 0.0 0.0 1.0 90." />
+    <user name="Fly-high" dim="12" user="9 0.01 0.0 1.0 90." />
     <framepos      name="trace0" objtype="body" objname="trunk"/>
     <framepos      name="position" objtype="body" objname="trunk"/>
     <framequat     name="orientation" objtype="xbody" objname="trunk"/>
