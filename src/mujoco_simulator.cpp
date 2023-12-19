@@ -14,12 +14,10 @@ mjpc::iLQGPlanner planner;
 
 MujocoSimulator::MujocoSimulator(const char *modelFile)
     : model(nullptr), data(nullptr) {
+
   // Load Mujoco model
   char loadError[1024] = "";
   constexpr int kErrorLength = 1024;
-  // mjModel* model =
-  // mj_loadXML("/home/thomas_cbrs/Desktop/edin_23/mujoco_rl/unitree_a1/a1.xml",
-  // nullptr, loadError, kErrorLength);
   model = mj_loadXML(modelFile, nullptr, loadError, kErrorLength);
   if (!model) {
     std::cerr << "Error loading Mujoco model: " << loadError << std::endl;
@@ -30,8 +28,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   options->integrator = mjINT_EULER; // mjINT_RK4
   options->cone = mjCONE_ELLIPTIC;
   options->jacobian = mjJAC_AUTO;
-  options->solver = mjSOL_NEWTON;
-  options->timestep = 0.002;
+  options->solver = mjSOL_NEWTON; // mjSOL_CG, mjSOL_PGS
   options->iterations = 100;
   options->tolerance = 1e-8;
   options->noslip_tolerance = 1e-6;
@@ -78,14 +75,13 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   cam.distance = 2.5;  // Set camera distance to 1.0
 
   // Params
-  double horizon_ = 0.35;
-  double timestep_ = 1.0e-2;
-  double timestep_simu = 0.002;
-  int kMaxTrajectoryHorizon = 128;
-  // model->opt.timestep = timestep_;
-
-  // planning steps
-  steps_ = horizon_ / timestep_ + 1;
+  planner_threads_ = 5;
+  horizon_ = 0.35;
+  timestep_planner_ = 1.0e-2;
+  timestep_ = 0.002;
+  options->timestep = timestep_;
+  kMaxTrajectoryHorizon_ = 128;
+  steps_ = horizon_ / timestep_planner_ + 1; // planning steps
 
   // Define tasks.
   // task_ = new mjpc::QuadrupedFlat();
@@ -106,11 +102,11 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Initialise planner.
   planner.Initialize(model, *task_);
   planner.Allocate();
-  planner.Reset(kMaxTrajectoryHorizon);
+  planner.Reset(kMaxTrajectoryHorizon_);
   planner.settings.verbose = 1;
 
   // cost
-  terms_.resize(task_->num_term * kMaxTrajectoryHorizon);
+  terms_.resize(task_->num_term * kMaxTrajectoryHorizon_);
   std::fill(terms_.begin(), terms_.end(), 0.0);
   allocate_enabled = false;
   plan_enabled = true;
@@ -288,7 +284,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
   // Start planner in separate thread.
   std::atomic<bool> exitrequest(false);
   std::atomic<int> uiloadrequest(0);
-  mjpc::ThreadPool plan_pool(4);
+  mjpc::ThreadPool plan_pool(planner_threads_);
   // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() { Plan(exitrequest, uiloadrequest); });
 
   // Set control callback
@@ -353,14 +349,8 @@ void MujocoSimulator::runSimulation(int numSteps) {
           task_->risk = 0.;
           // planner policy
           for (int i = 0;i <= 1; i++){
-              double horizon_ = 0.35;
-              // Params
-              double timestep_ = 1.0e-2;
-              int kMaxTrajectoryHorizon = 128;
-
-              // planning steps
-              steps_ = horizon_ / timestep_ + 1;
-              model->opt.timestep = timestep_;
+              // Setup model timestep.
+              model->opt.timestep = timestep_planner_;
               planner.OptimizePolicy(steps_, plan_pool);
               // planner.NominalTrajectory(steps_, plan_pool);
 
@@ -400,8 +390,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // data->ctrl[7] = 5.;
         counter_wbc += 1;
       }
-      double timestep_simu = 0.002;
-      model->opt.timestep = timestep_simu;
+      model->opt.timestep = timestep_;
 
       // Monitoring real values of the sensors from data and datasensors.
       // double* FR = mjpc::SensorByName(model, data, "FR_vel");

@@ -41,13 +41,19 @@ private:
   double kp_ = 5.;  // Proportional gain
   double kd_ = 0.2; // Derivative gain
   std::vector<double> q0_;
-  int steps_;
   std::vector<double> terms_;
   bool allocate_enabled;
   bool plan_enabled;
   int count_;
   double agent_compute_time_ = 0.;
-  int planner_threads_ = 2;
+
+  // Simulation parameters.
+  int planner_threads_;
+  double horizon_;
+  double timestep_; // simulation timestep.
+  double timestep_planner_; // planner timestep.
+  int kMaxTrajectoryHorizon_; // maximum lenght trajectory.
+  int steps_;
 
   std::vector<double> original_friction_values;
   std::vector<double> original_solref_values;
