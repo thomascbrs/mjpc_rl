@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 project(MujocoExample)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_COMPILER /usr/bin/clang++-12)
-set(CMAKE_C_COMPILER /usr/bin/clang-12)
+# Cannot run this directly. The configuration re-run in a loop fachion.
+# Needs to be modified manually.
+# set(CMAKE_CXX_COMPILER /usr/bin/clang++-12)
+# set(CMAKE_C_COMPILER /usr/bin/clang-12)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
