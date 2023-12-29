@@ -121,6 +121,11 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
   // position error
   mju_sub3(residual + 37, vel_trunk, vel_ref);
 
+  // ---------- Residual (6) ---------
+  // Angular velocity trunk error
+  double* ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
+  const double* ang_ref = new double[3]{0., 0., 0.};
+  mju_sub3(residual + 40, ang_vel_trunk, ang_ref);
 }
 
 // -------- Transition for quadruped task --------

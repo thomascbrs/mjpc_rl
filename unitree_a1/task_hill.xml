@@ -102,6 +102,7 @@
     <framelinvel   name="RL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
 
     <framelinvel   name="velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
+    <frameangvel   name="ang_velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
   </sensor>
 
   <keyframe>
