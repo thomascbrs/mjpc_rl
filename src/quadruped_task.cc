@@ -110,6 +110,17 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
 
   // Copy in the residual.
   mju_copy(residual + 25, feet_position, 12);
+
+  // ---------- Residual (5) ----------
+  double* vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
+  const double* vel_ref = new double[3]{1.2, 0.0, 0.};
+  // vel_ref[0] = 0.2;
+  // vel_ref[1] = 0.;
+  // vel_ref[2] = 0.;
+
+  // position error
+  mju_sub3(residual + 37, vel_trunk, vel_ref);
+
 }
 
 // -------- Transition for quadruped task --------
