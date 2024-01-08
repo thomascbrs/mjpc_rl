@@ -402,6 +402,13 @@ void MujocoSimulator::runSimulation(int numSteps) {
       mj_step(model, data);
     }
 
+    // Get trunk posiiton and update the camera position.
+    int trunkBodyId = mj_name2id(model, mjOBJ_BODY, "trunk");
+    // Adjust the camera position based on the trunk body position
+    cam.lookat[0] = data->xpos[trunkBodyId * 3];
+    cam.lookat[1] = data->xpos[trunkBodyId * 3 + 1];
+    // scn.cam.lookat[2] = data->xpos[trunkBodyId * 3 + 2];
+
     // get framebuffer viewport
     mjrRect viewport = {0, 0, 0, 0};
     glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
