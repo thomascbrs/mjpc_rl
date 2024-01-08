@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "mjpc/planners/ilqg/planner.h"
+#include "mjpc/planners/sampling/planner.h"
+#include "mjpc/planners/gradient/planner.h"
 #include "mjpc/states/state.h"
 // #include "mjpc/tasks/quadruped/quadruped.h"
 // #include "mjpc/tasks/cartpole/cartpole.h"

@@ -11,6 +11,8 @@ QuadrupedTask *task_;
 // State and planner.
 mjpc::State state_;
 mjpc::iLQGPlanner planner;
+// mjpc::SamplingPlanner planner;
+// mjpc::GradientPlanner planner;
 
 MujocoSimulator::MujocoSimulator(const char *modelFile)
     : model(nullptr), data(nullptr) {
@@ -76,7 +78,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
 
   // Params
   planner_threads_ = 5;
-  horizon_ = 0.35;
+  horizon_ = 0.4;
   timestep_planner_ = 1.0e-2;
   timestep_ = 0.002;
   options->timestep = timestep_;
@@ -103,7 +105,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   planner.Initialize(model, *task_);
   planner.Allocate();
   planner.Reset(kMaxTrajectoryHorizon_);
-  planner.settings.verbose = 1;
+  // planner.settings.verbose = 1;
 
   // cost
   terms_.resize(task_->num_term * kMaxTrajectoryHorizon_);
@@ -323,7 +325,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         }
       }
       else{
-        data->mocap_pos[0] = 0.8;
+        data->mocap_pos[0] = 1.2;
         data->mocap_pos[1] = 0.;
         data->mocap_pos[2] = 0.25;
         data->mocap_quat[0] = 1.;
