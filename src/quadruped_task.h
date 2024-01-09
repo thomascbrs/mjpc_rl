@@ -15,6 +15,7 @@
 #include <string>
 #include <mujoco/mujoco.h>
 #include "mjpc/task.h"
+#include "ndcurves/bezier_curve.h"
 
 class QuadrupedTask : public mjpc::Task {
  public:

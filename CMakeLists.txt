@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_COMPILER /usr/bin/clang++-12)
 # set(CMAKE_C_COMPILER /usr/bin/clang-12)
 
+set(PYTHON_EXECUTABLE "/usr/bin/python")
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -30,6 +32,7 @@ find_package(Python COMPONENTS Development)
 include_directories(${Python_INCLUDE_DIRS})
 find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(ndcurves REQUIRED)
 
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 
@@ -82,6 +85,7 @@ add_library(mjpc_rl_cpp
 # Warning : mujoco in Release mode only, undefined reference to `__muloti4' error otherwise, clang12 ?
 target_link_libraries(mjpc_rl_cpp
     PUBLIC
+    ndcurves::ndcurves
     ${MJPC_DIR_DEBUG}/lib/libmjpc.a
     ${MJPC_DIR_DEBUG}/lib/libglfw3.a
     ${MJPC_DIR_DEBUG}/lib/libthreadpool.a
