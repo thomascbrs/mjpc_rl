@@ -72,9 +72,9 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   mjr_makeContext(model, &con, mjFONTSCALE_100);
 
   // Adjust camera distance
-  cam.azimuth = 90.0;  // Set azimuth angle
-  cam.elevation = -20.0;  // Set elevation angle
-  cam.distance = 3.5;  // Set camera distance to 1.0
+  cam.azimuth = 90.0;    // Set azimuth angle
+  cam.elevation = -20.0; // Set elevation angle
+  cam.distance = 3.5;    // Set camera distance to 1.0
 
   // Params
   planner_threads_ = 5;
@@ -123,8 +123,8 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
     original_solref_values.resize(model->ngeom * 3);
     // Save the original properties for later restoration
     for (int geom_idx = 0; geom_idx < model->ngeom; ++geom_idx) {
-        original_friction_values[geom_idx] = model->geom_friction[geom_idx];
-        original_solref_values[geom_idx * 3] = model->geom_solref[geom_idx * 3];
+      original_friction_values[geom_idx] = model->geom_friction[geom_idx];
+      original_solref_values[geom_idx * 3] = model->geom_solref[geom_idx * 3];
     }
   }
 
@@ -138,7 +138,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
     // Determine the length of the geom name
     size_t name_length = 0;
     while (model->names[geom_name_ptr + name_length] != '\0') {
-        ++name_length;
+      ++name_length;
     }
 
     // Convert the char to a string
@@ -159,33 +159,34 @@ MujocoSimulator::~MujocoSimulator() {
     mj_deleteData(data);
 }
 
-// Function to disable interaction for specific geoms during Jacobian computation
-void MujocoSimulator::disableInteractionForGeoms(mjModel* m) {
-    // Iterate over the geoms you want to disable
-    for (int geom_idx = 0; geom_idx < m->ngeom; ++geom_idx) {
-        // Modify relevant geom properties (friction, solref, etc.)
-        m->geom_friction[geom_idx] = 1e9;
-        m->geom_solref[geom_idx * 3] = 1e9;
-        // You may need to adjust other properties based on your specific requirements
-    }
+// Function to disable interaction for specific geoms during Jacobian
+// computation
+void MujocoSimulator::disableInteractionForGeoms(mjModel *m) {
+  // Iterate over the geoms you want to disable
+  for (int geom_idx = 0; geom_idx < m->ngeom; ++geom_idx) {
+    // Modify relevant geom properties (friction, solref, etc.)
+    m->geom_friction[geom_idx] = 1e9;
+    m->geom_solref[geom_idx * 3] = 1e9;
+    // You may need to adjust other properties based on your specific
+    // requirements
+  }
 }
 
 // Function to enable interaction for specific geoms after Jacobian computation
-void MujocoSimulator::enableInteractionForGeoms(mjModel* m) {
-    // Iterate over the geoms you disabled
-    for (int geom_idx = 0; geom_idx < m->ngeom; ++geom_idx) {
-        // Restore original geom properties
-        m->geom_friction[geom_idx] = original_friction_values[geom_idx];
-        m->geom_solref[geom_idx * 3] = original_solref_values[geom_idx];
-        // Restore other properties if necessary
-    }
+void MujocoSimulator::enableInteractionForGeoms(mjModel *m) {
+  // Iterate over the geoms you disabled
+  for (int geom_idx = 0; geom_idx < m->ngeom; ++geom_idx) {
+    // Restore original geom properties
+    m->geom_friction[geom_idx] = original_friction_values[geom_idx];
+    m->geom_solref[geom_idx * 3] = original_solref_values[geom_idx];
+    // Restore other properties if necessary
+  }
 }
-
 
 // simple controller applying damping to each dof
 void mycontroller(const mjModel *m, mjData *d) {
   // if (m->nu == m->nv) {
-    // mju_scl(d->ctrl, d->qvel, -0.8, m->nv);
+  // mju_scl(d->ctrl, d->qvel, -0.8, m->nv);
   // }
   // planner.ActionFromPolicy(
   //       d->ctrl, &state_.state()[0],state_.time());
@@ -220,7 +221,7 @@ void MujocoSimulator::sensor(const mjModel *model, mjData *data, int stage) {
   // }
 }
 
-void MujocoSimulator::PlanIteration(mjpc::ThreadPool* pool) {
+void MujocoSimulator::PlanIteration(mjpc::ThreadPool *pool) {
   // start agent timer
   auto agent_start = std::chrono::steady_clock::now();
 
@@ -264,8 +265,8 @@ void MujocoSimulator::PlanIteration(mjpc::ThreadPool* pool) {
 }
 
 // call planner to update nominal policy
-void MujocoSimulator::Plan(std::atomic<bool>& exitrequest,
-                 std::atomic<int>& uiloadrequest) {
+void MujocoSimulator::Plan(std::atomic<bool> &exitrequest,
+                           std::atomic<int> &uiloadrequest) {
   // instantiate thread pool
   mjpc::ThreadPool pool_planner(planner_threads_);
 
@@ -274,7 +275,7 @@ void MujocoSimulator::Plan(std::atomic<bool>& exitrequest,
     if (model && uiloadrequest.load() == 0) {
       PlanIteration(&pool_planner);
     }
-  }  // exitrequest sent -- stop planning
+  } // exitrequest sent -- stop planning
 }
 
 void MujocoSimulator::initialize() {
@@ -287,7 +288,8 @@ void MujocoSimulator::runSimulation(int numSteps) {
   std::atomic<bool> exitrequest(false);
   std::atomic<int> uiloadrequest(0);
   mjpc::ThreadPool plan_pool(planner_threads_);
-  // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() { Plan(exitrequest, uiloadrequest); });
+  // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() {
+  // Plan(exitrequest, uiloadrequest); });
 
   // Set control callback
   mjcb_control = mycontroller;
@@ -323,8 +325,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
           data->ctrl[i] = control_signal;
           // data->ctrl[i] = 0.;
         }
-      }
-      else{
+      } else {
         data->mocap_pos[0] = 1.2;
         data->mocap_pos[1] = 0.;
         data->mocap_pos[2] = 0.25;
@@ -337,8 +338,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // uiloadrequest.fetch_add(1);
         // task_->Reset(model);
         // planner.task->UpdateResidual();
-        // task_->Residual(model, data, data->sensordata);task_->Residual(model, data, data->sensordata);
-        if (counter_wbc % 10 == 0){
+        // task_->Residual(model, data, data->sensordata);task_->Residual(model,
+        // data, data->sensordata);
+        if (counter_wbc % 10 == 0) {
           // PlanIteration(&plan_pool);
           // set state
           // task_->SetFeatureParameters(model);
@@ -350,14 +352,14 @@ void MujocoSimulator::runSimulation(int numSteps) {
           residual_fn_ = task_->Residual();
           task_->risk = 0.;
           // planner policy
-          for (int i = 0;i <= 1; i++){
-              // Setup model timestep.
-              model->opt.timestep = timestep_planner_;
-              planner.OptimizePolicy(steps_, plan_pool);
-              // planner.NominalTrajectory(steps_, plan_pool);
+          for (int i = 0; i <= 1; i++) {
+            // Setup model timestep.
+            model->opt.timestep = timestep_planner_;
+            planner.OptimizePolicy(steps_, plan_pool);
+            // planner.NominalTrajectory(steps_, plan_pool);
 
-              // iteration
-              // planner.Iteration(steps_, plan_pool);
+            // iteration
+            // planner.Iteration(steps_, plan_pool);
           }
         }
         state_.Set(model, data);
@@ -365,17 +367,17 @@ void MujocoSimulator::runSimulation(int numSteps) {
         double timestep_simu = 0.002;
         model->opt.timestep = timestep_simu;
 
-
         // Direct torques from policy.
-        planner.ActionFromPolicy(
-          data->ctrl, &state_.state()[0],state_.time(), false);
-
+        planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
+                                 false);
 
         // std::vector<double>
         // for (int i = 0; i < model->nu; ++i) {
-        //   double error = planner.BestTrajectory()->states[37*1 + 7 + i] - data->qpos[i + 7];
-        //   double vel_error = data->qvel[i + 6]; // Assuming you have access to velocity information
-        //   // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error -
+        //   double error = planner.BestTrajectory()->states[37*1 + 7 + i] -
+        //   data->qpos[i + 7]; double vel_error = data->qvel[i + 6]; //
+        //   Assuming you have access to velocity information
+        //   // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error
+        //   -
         //   // kd_ * vel_error;
         //   double control_signal = kp_ * error - kd_ * vel_error;
 
@@ -384,8 +386,8 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // }
 
         // for (int i = 0; i < model->nu; ++i) {
-          // data->ctrl[i] = 0.;
-          // data->ctrl[i] = planner.BestTrajectory()->actions[i];
+        // data->ctrl[i] = 0.;
+        // data->ctrl[i] = planner.BestTrajectory()->actions[i];
         // }
         int counting = 0;
         // std::this_thread::sleep_for(std::chrono::milliseconds(30));

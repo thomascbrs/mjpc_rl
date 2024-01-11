@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mujoco/mujoco.h>
-#include <string>
 #include "mjpc/task.h"
 #include "ndcurves/bezier_curve.h"
+#include <mujoco/mujoco.h>
+#include <string>
 
 class QuadrupedTask : public mjpc::Task {
- public:
+public:
   std::string Name() const override;
   std::string XmlPath() const override;
   class ResidualFn : public mjpc::BaseResidualFn {
-   public:
-    explicit ResidualFn(const QuadrupedTask* task, int current_mode = 0)
+  public:
+    explicit ResidualFn(const QuadrupedTask *task, int current_mode = 0)
         : mjpc::BaseResidualFn(task), current_mode_(current_mode) {
       // Initialize Bezier points;
       P0 = Eigen::Vector3d(0.007, 0.0, 0.243);
@@ -57,10 +57,10 @@ class QuadrupedTask : public mjpc::Task {
     //   Number of parameters: 1
     //     Parameter (1): height_goal
     // -----------------------------------------------------------------------
-    void Residual(const mjModel* model, const mjData* data,
-                  double* residual) const override;
+    void Residual(const mjModel *model, const mjData *data,
+                  double *residual) const override;
 
-   private:
+  private:
     friend class QuadrupedTask;
     int current_mode_;
 
@@ -82,19 +82,19 @@ class QuadrupedTask : public mjpc::Task {
     ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_acc_;
   };
   QuadrupedTask() : residual_(this) {}
-  void TransitionLocked(mjModel* model, mjData* data) override;
+  void TransitionLocked(mjModel *model, mjData *data) override;
 
   // draw task-related geometry in the scene
-  void ModifyScene(const mjModel* model, const mjData* data,
-                   mjvScene* scene) const override;
+  void ModifyScene(const mjModel *model, const mjData *data,
+                   mjvScene *scene) const override;
 
- protected:
+protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
     return std::make_unique<ResidualFn>(this, residual_.current_mode_);
   }
-  ResidualFn* InternalResidual() override { return &residual_; }
+  ResidualFn *InternalResidual() override { return &residual_; }
 
- private:
+private:
   friend class ResidualFn;
   ResidualFn residual_;
 };

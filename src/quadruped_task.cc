@@ -16,9 +16,9 @@
 
 #include <string>
 
-#include <mujoco/mujoco.h>
 #include "mjpc/task.h"
 #include "mjpc/utilities.h"
+#include <mujoco/mujoco.h>
 
 std::string QuadrupedTask::XmlPath() const {
   return mjpc::GetModelPath("quadruped/task_hill.xml");
@@ -36,19 +36,19 @@ std::string QuadrupedTask::Name() const { return "Quadruped Task"; }
 //   Number of parameters: 1
 //     Parameter (1): height_goal
 // -----------------------------------------------------------------------
-void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
-                                         const mjData* data,
-                                         double* residual) const {
+void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
+                                         const mjData *data,
+                                         double *residual) const {
   // ---------- Residual (0) ----------
   // Fly-high cost.
-  double* FR = mjpc::SensorByName(model, data, "FR");
-  double* FL = mjpc::SensorByName(model, data, "FL");
-  double* RR = mjpc::SensorByName(model, data, "RR");
-  double* RL = mjpc::SensorByName(model, data, "RL");
-  double* FR_vel = mjpc::SensorByName(model, data, "FR_vel");
-  double* FL_vel = mjpc::SensorByName(model, data, "FL_vel");
-  double* RR_vel = mjpc::SensorByName(model, data, "RR_vel");
-  double* RL_vel = mjpc::SensorByName(model, data, "RL_vel");
+  double *FR = mjpc::SensorByName(model, data, "FR");
+  double *FL = mjpc::SensorByName(model, data, "FL");
+  double *RR = mjpc::SensorByName(model, data, "RR");
+  double *RL = mjpc::SensorByName(model, data, "RL");
+  double *FR_vel = mjpc::SensorByName(model, data, "FR_vel");
+  double *FL_vel = mjpc::SensorByName(model, data, "FL_vel");
+  double *RR_vel = mjpc::SensorByName(model, data, "RR_vel");
+  double *RL_vel = mjpc::SensorByName(model, data, "RL_vel");
   double feet_position[12];
 
   feet_position[0] = FR_vel[0];
@@ -90,16 +90,16 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
     }
     pitch *= -factor;
 
-    mjtNum axis[3] = {0.0, 1.0, 0.0};  // Set y-axis
+    mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
-    mju_axisAngle2Quat(quat, axis, pitch);  // Convert axis-angle to quaternion
-    mju_quat2Mat(ref_rotmat, quat);  // Convert quaternion to rotation matrix
+    mju_axisAngle2Quat(quat, axis, pitch); // Convert axis-angle to quaternion
+    mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
 
     // ---------- Residual (1) ----------
     // system's position
-    const double* p_ref = pos_ref.data();
-    double* position = mjpc::SensorByName(model, data, "position");
+    const double *p_ref = pos_ref.data();
+    double *position = mjpc::SensorByName(model, data, "position");
 
     // position error
     mju_sub3(residual + 12, position, p_ref);
@@ -107,15 +107,15 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
     // ---------- Residual (2) ----------
     // system's orientation
     double body_rotmat[9];
-    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    double *orientation = mjpc::SensorByName(model, data, "orientation");
     mju_quat2Mat(body_rotmat, orientation);
 
     mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
 
     // ---------- Residual (3) ----------
     // system's linear velocity
-    double* vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
-    const double* v_ref = vel_ref.data();
+    double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
+    const double *v_ref = vel_ref.data();
     mju_sub3(residual + 24, vel_trunk, v_ref);
   } else {
     // ---------- Residual (1) ----------
@@ -126,23 +126,23 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
     // position error
     mju_sub3(residual + 12, position, p_ref);
 
-    mjtNum axis[3] = {0.0, 1.0, 0.0};  // Set y-axis
+    mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
-    mju_axisAngle2Quat(quat, axis, 0.);  // Convert axis-angle to quaternion
-    mju_quat2Mat(ref_rotmat, quat);  // Convert quaternion to rotation matrix
+    mju_axisAngle2Quat(quat, axis, 0.); // Convert axis-angle to quaternion
+    mju_quat2Mat(ref_rotmat, quat);     // Convert quaternion to rotation matrix
 
     // ---------- Residual (2) ----------
     // system's orientation
     double body_rotmat[9];
-    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    double *orientation = mjpc::SensorByName(model, data, "orientation");
     mju_quat2Mat(body_rotmat, orientation);
 
     mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
 
     // ---------- Residual (3) ----------
     // system's linear velocity
-    double* vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
+    double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
     const double v_ref[3] = {0., 0., 0.};
     mju_sub3(residual + 24, vel_trunk, v_ref);
   }
@@ -153,10 +153,10 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
 }
 
 // / draw task-related geometry in the scene
-void QuadrupedTask::ModifyScene(const mjModel* model, const mjData* data,
-                                mjvScene* scene) const {
+void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
+                                mjvScene *scene) const {
   double size[3] = {0.01};
-  double* pos;
+  double *pos;
   double pos_previous[3];
 
   int n_points = 20;
@@ -173,19 +173,19 @@ void QuadrupedTask::ModifyScene(const mjModel* model, const mjData* data,
       pos_previous[2] = pos[2];
     }
     pos = residual_.curve_(float(i) / float(n_points + 3)).data();
-    mjvGeom* geomtest = scene->geoms + scene->ngeom++;
+    mjvGeom *geomtest = scene->geoms + scene->ngeom++;
     mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
     scene->geoms[scene->ngeom].category = mjCAT_DECOR;
 
     if (i > 0) {
       // mjvGeom* geomtest2 = scene->geoms + scene->ngeom++;
       // make connector geom
-      mjvGeom* geomtest2 = scene->geoms + scene->ngeom++;
+      mjvGeom *geomtest2 = scene->geoms + scene->ngeom++;
       mjv_initGeom(geomtest2, mjGEOM_LINE,
                    /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, color);
       scene->geoms[scene->ngeom].category = mjCAT_DECOR;
-      double* from = pos_previous;
-      double* to = pos;
+      double *from = pos_previous;
+      double *to = pos;
       mjv_makeConnector(geomtest2, mjGEOM_LINE, 2, from[0], from[1], from[2],
                         to[0], to[1], to[2]);
     }
@@ -200,7 +200,7 @@ void QuadrupedTask::ModifyScene(const mjModel* model, const mjData* data,
     color[2] = 0.;
     color[3] = 1.;
     pos = residual_.curve_(data->time - 1.).data();
-    mjvGeom* geomtest = scene->geoms + scene->ngeom++;
+    mjvGeom *geomtest = scene->geoms + scene->ngeom++;
     mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
     scene->geoms[scene->ngeom].category = mjCAT_DECOR;
   }
@@ -210,23 +210,23 @@ void QuadrupedTask::ModifyScene(const mjModel* model, const mjData* data,
 //   If quadruped is within tolerance of goal ->
 //   set goal to next from keyframes.
 // -----------------------------------------------
-void QuadrupedTask::TransitionLocked(mjModel* model, mjData* data) {
+void QuadrupedTask::TransitionLocked(mjModel *model, mjData *data) {
   // set mode to GUI selection
   if (mode > 0) {
     residual_.current_mode_ = mode - 1;
   } else {
     // ---------- Compute tolerance ----------
     // goal position
-    const double* goal_position = data->mocap_pos;
+    const double *goal_position = data->mocap_pos;
 
     // goal orientation
-    const double* goal_orientation = data->mocap_quat;
+    const double *goal_orientation = data->mocap_quat;
 
     // system's position
-    double* position = mjpc::SensorByName(model, data, "position");
+    double *position = mjpc::SensorByName(model, data, "position");
 
     // system's orientation
-    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    double *orientation = mjpc::SensorByName(model, data, "orientation");
 
     // position error
     double position_error[3];
