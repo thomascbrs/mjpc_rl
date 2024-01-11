@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string>
 #include <mujoco/mujoco.h>
+#include <string>
 #include "mjpc/task.h"
 #include "ndcurves/bezier_curve.h"
 
@@ -24,7 +24,29 @@ class QuadrupedTask : public mjpc::Task {
   class ResidualFn : public mjpc::BaseResidualFn {
    public:
     explicit ResidualFn(const QuadrupedTask* task, int current_mode = 0)
-        : mjpc::BaseResidualFn(task), current_mode_(current_mode) {}
+        : mjpc::BaseResidualFn(task), current_mode_(current_mode) {
+      // Initialize Bezier points;
+      P0 = Eigen::Vector3d(0.007, 0.0, 0.243);
+      P1 = Eigen::Vector3d(0.656, 0.0, 0.009);
+      P2 = Eigen::Vector3d(1.764, 0.0, 0.209);
+      P3 = Eigen::Vector3d(0.756, 0.0, 0.938);
+      P4 = Eigen::Vector3d(1.678, 0.0, 0.052);
+      P5 = Eigen::Vector3d(2.801, 0.0, 0.324);
+
+      // Update the container of points.
+      cp.push_back(P0);
+      cp.push_back(P1);
+      cp.push_back(P2);
+      cp.push_back(P3);
+      cp.push_back(P4);
+      cp.push_back(P5);
+
+      // Create the Bezier curve and its derivatives.
+      curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(
+          cp.begin(), cp.end());
+      curve_vel_ = curve_.compute_derivate(1);
+      curve_acc_ = curve_.compute_derivate(2);
+    }
 
     // --------------------- Residuals for quadruped task --------------------
     //   Number of residuals: 4
@@ -37,12 +59,34 @@ class QuadrupedTask : public mjpc::Task {
     // -----------------------------------------------------------------------
     void Residual(const mjModel* model, const mjData* data,
                   double* residual) const override;
+
    private:
     friend class QuadrupedTask;
     int current_mode_;
+
+    // Control points
+    Eigen::Vector3d P0;
+    Eigen::Vector3d P1;
+    Eigen::Vector3d P2;
+    Eigen::Vector3d P3;
+    Eigen::Vector3d P4;
+    Eigen::Vector3d P5;
+    Eigen::Vector3d P6;
+
+    // Creation of the container of control points
+    std::vector<Eigen::Vector3d> cp;
+
+    // Bezier curves
+    ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_;
+    ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_vel_;
+    ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_acc_;
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel* model, mjData* data) override;
+
+  // draw task-related geometry in the scene
+  void ModifyScene(const mjModel* model, const mjData* data,
+                   mjvScene* scene) const override;
 
  protected:
   std::unique_ptr<mjpc::ResidualFn> ResidualLocked() const override {
@@ -51,5 +95,6 @@ class QuadrupedTask : public mjpc::Task {
   ResidualFn* InternalResidual() override { return &residual_; }
 
  private:
+  friend class ResidualFn;
   ResidualFn residual_;
 };

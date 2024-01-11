@@ -40,48 +40,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
                                          const mjData* data,
                                          double* residual) const {
   // ---------- Residual (0) ----------
-  // standing height goal
-  double height_goal = parameters_[0];
-
-  // system's standing height
-  double standing_height = mjpc::SensorByName(model, data, "position")[2];
-
-  // average foot height
-  double FRz = mjpc::SensorByName(model, data, "FR")[2];
-  double FLz = mjpc::SensorByName(model, data, "FL")[2];
-  double RRz = mjpc::SensorByName(model, data, "RR")[2];
-  double RLz = mjpc::SensorByName(model, data, "RL")[2];
-  double avg_foot_height = 0.25 * (FRz + FLz + RRz + RLz);
-
-  residual[0] = (standing_height - avg_foot_height) - height_goal;
-
-  // ---------- Residual (1) ----------
-  // goal position
-  const double* goal_position = data->mocap_pos;
-
-  // system's position
-  double* position = mjpc::SensorByName(model, data, "position");
-
-  // position error
-  mju_sub3(residual + 1, position, goal_position);
-
-  // ---------- Residual (2) ----------
-  // goal orientation
-  double goal_rotmat[9];
-  const double* goal_orientation = data->mocap_quat;
-  mju_quat2Mat(goal_rotmat, goal_orientation);
-
-  // system's orientation
-  double body_rotmat[9];
-  double* orientation = mjpc::SensorByName(model, data, "orientation");
-  mju_quat2Mat(body_rotmat, orientation);
-
-  mju_sub(residual + 4, body_rotmat, goal_rotmat, 9);
-
-  // ---------- Residual (3) ----------
-  mju_copy(residual + 13, data->ctrl, model->nu);
-
-  // ---------- Residual (4) ----------
+  // Fly-high cost.
   double* FR = mjpc::SensorByName(model, data, "FR");
   double* FL = mjpc::SensorByName(model, data, "FL");
   double* RR = mjpc::SensorByName(model, data, "RR");
@@ -109,23 +68,142 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel* model,
   feet_position[11] = RL[2];
 
   // Copy in the residual.
-  mju_copy(residual + 25, feet_position, 12);
+  mju_copy(residual, feet_position, 12);
 
-  // ---------- Residual (5) ----------
-  double* vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
-  const double* vel_ref = new double[3]{1.2, 0.0, 0.};
-  // vel_ref[0] = 0.2;
-  // vel_ref[1] = 0.;
-  // vel_ref[2] = 0.;
+  // Time varying references.
+  if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
+    Eigen::Vector3d pos_ref = curve_(data->time - 1.);
+    Eigen::Vector3d vel_ref = curve_vel_(data->time - 1.);
+    Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
 
-  // position error
-  mju_sub3(residual + 37, vel_trunk, vel_ref);
+    // Compute derivative of the curve wrt to x to retrieve pitch angle.
+    double dt = 0.01;
+    double fwd = 0.02;
+    double pitch = 0.;
+    double factor = 0.4;
+    if (data->time + fwd + dt - 1. <= 1.) {
+      Eigen::Vector3d pos_ref_dt = curve_(data->time + dt - 1.);
+      pitch = (pos_ref_dt[2] - pos_ref[2]) / (pos_ref_dt[0] - pos_ref[0]);
+    } else {
+      Eigen::Vector3d pos_ref_dt = curve_(data->time - dt - 1.);
+      pitch = (pos_ref_dt[2] - pos_ref[2]) / (pos_ref_dt[0] - pos_ref[0]);
+    }
+    pitch *= -factor;
 
-  // ---------- Residual (6) ---------
-  // Angular velocity trunk error
-  double* ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
-  const double* ang_ref = new double[3]{0., 0., 0.};
-  mju_sub3(residual + 40, ang_vel_trunk, ang_ref);
+    mjtNum axis[3] = {0.0, 1.0, 0.0};  // Set y-axis
+    mjtNum quat[4];
+    mjtNum ref_rotmat[9];
+    mju_axisAngle2Quat(quat, axis, pitch);  // Convert axis-angle to quaternion
+    mju_quat2Mat(ref_rotmat, quat);  // Convert quaternion to rotation matrix
+
+    // ---------- Residual (1) ----------
+    // system's position
+    const double* p_ref = pos_ref.data();
+    double* position = mjpc::SensorByName(model, data, "position");
+
+    // position error
+    mju_sub3(residual + 12, position, p_ref);
+
+    // ---------- Residual (2) ----------
+    // system's orientation
+    double body_rotmat[9];
+    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    mju_quat2Mat(body_rotmat, orientation);
+
+    mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
+
+    // ---------- Residual (3) ----------
+    // system's linear velocity
+    double* vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
+    const double* v_ref = vel_ref.data();
+    mju_sub3(residual + 24, vel_trunk, v_ref);
+  } else {
+    // ---------- Residual (1) ----------
+    // system's position
+    const double p_ref[3] = {0., 0., 0.};
+    double position[3] = {0., 0., 0.};
+
+    // position error
+    mju_sub3(residual + 12, position, p_ref);
+
+    mjtNum axis[3] = {0.0, 1.0, 0.0};  // Set y-axis
+    mjtNum quat[4];
+    mjtNum ref_rotmat[9];
+    mju_axisAngle2Quat(quat, axis, 0.);  // Convert axis-angle to quaternion
+    mju_quat2Mat(ref_rotmat, quat);  // Convert quaternion to rotation matrix
+
+    // ---------- Residual (2) ----------
+    // system's orientation
+    double body_rotmat[9];
+    double* orientation = mjpc::SensorByName(model, data, "orientation");
+    mju_quat2Mat(body_rotmat, orientation);
+
+    mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
+
+    // ---------- Residual (3) ----------
+    // system's linear velocity
+    double* vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
+    const double v_ref[3] = {0., 0., 0.};
+    mju_sub3(residual + 24, vel_trunk, v_ref);
+  }
+
+  // ---------- Residual (4) ----------
+  // Cost on the command
+  mju_copy(residual + 27, data->ctrl, model->nu);
+}
+
+// / draw task-related geometry in the scene
+void QuadrupedTask::ModifyScene(const mjModel* model, const mjData* data,
+                                mjvScene* scene) const {
+  double size[3] = {0.01};
+  double* pos;
+  double pos_previous[3];
+
+  int n_points = 20;
+  // color
+  float color[4];
+  color[0] = 1.0;
+  color[1] = 0.0;
+  color[2] = 1.0;
+  color[3] = 0.4;
+  for (int i = 0; i < n_points; i++) {
+    if (i > 0) {
+      pos_previous[0] = pos[0];
+      pos_previous[1] = pos[1];
+      pos_previous[2] = pos[2];
+    }
+    pos = residual_.curve_(float(i) / float(n_points + 3)).data();
+    mjvGeom* geomtest = scene->geoms + scene->ngeom++;
+    mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
+    scene->geoms[scene->ngeom].category = mjCAT_DECOR;
+
+    if (i > 0) {
+      // mjvGeom* geomtest2 = scene->geoms + scene->ngeom++;
+      // make connector geom
+      mjvGeom* geomtest2 = scene->geoms + scene->ngeom++;
+      mjv_initGeom(geomtest2, mjGEOM_LINE,
+                   /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, color);
+      scene->geoms[scene->ngeom].category = mjCAT_DECOR;
+      double* from = pos_previous;
+      double* to = pos;
+      mjv_makeConnector(geomtest2, mjGEOM_LINE, 2, from[0], from[1], from[2],
+                        to[0], to[1], to[2]);
+    }
+  }
+  // Plot current time target along the horizon.
+  if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
+    size[0] = 0.02;
+    size[1] = 0.02;
+    size[2] = 0.02;
+    color[0] = 0.;
+    color[1] = 1.;
+    color[2] = 0.;
+    color[3] = 1.;
+    pos = residual_.curve_(data->time - 1.).data();
+    mjvGeom* geomtest = scene->geoms + scene->ngeom++;
+    mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
+    scene->geoms[scene->ngeom].category = mjCAT_DECOR;
+  }
 }
 
 // -------- Transition for quadruped task --------
