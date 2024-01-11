@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 project(MujocoExample)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_COMPILER /usr/bin/clang++-12)
-set(CMAKE_C_COMPILER /usr/bin/clang-12)
+# Cannot run this directly. The configuration re-run in a loop fachion.
+# Needs to be modified manually.
+# set(CMAKE_CXX_COMPILER /usr/bin/clang++-12)
+# set(CMAKE_C_COMPILER /usr/bin/clang-12)
+
+set(PYTHON_EXECUTABLE "/usr/bin/python")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -28,6 +32,7 @@ find_package(Python COMPONENTS Development)
 include_directories(${Python_INCLUDE_DIRS})
 find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(ndcurves REQUIRED)
 
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 
@@ -63,23 +68,29 @@ findorfetch(
 # Setting path variables, from already compiled library in libmjpc.
 set(MJPC_DIR_RELEASE "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build")
 set(MJPC_DIR_DEBUG "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug")
-set(INSTALL_DIR "/home/thomas_cbrs/install")
+set(INSTALL_DIR "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug/mjpc")
 
 ###################################################################
 # Create a first libray for the mujoco_simulator wrapper class.
 ###################################################################
 
 # Add the source files to the project
-add_library(mjpc_rl_cpp src/mujoco_simulator.cpp
-    src/mujoco_simulator.h)
+add_library(mjpc_rl_cpp
+    src/mujoco_simulator.h
+    src/quadruped_task.h
+    src/mujoco_simulator.cpp
+    src/quadruped_task.cc)
 
 # Link libmjpc, glfw (graphic UI), mujoco, threadpool (necessary for the executable).
 # Warning : mujoco in Release mode only, undefined reference to `__muloti4' error otherwise, clang12 ?
 target_link_libraries(mjpc_rl_cpp
     PUBLIC
+    ndcurves::ndcurves
     ${MJPC_DIR_DEBUG}/lib/libmjpc.a
     ${MJPC_DIR_DEBUG}/lib/libglfw3.a
     ${MJPC_DIR_DEBUG}/lib/libthreadpool.a
+    ${MJPC_DIR_DEBUG}/lib/libprotobufd.a
+    ${MJPC_DIR_DEBUG}/lib/libagent_state_proto_lib.a
     ${MJPC_DIR_RELEASE}/lib/libmujoco.so)
 target_include_directories(mjpc_rl_cpp
     PUBLIC
