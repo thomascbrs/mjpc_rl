@@ -4,13 +4,15 @@ from ndcurves import (bezier)
 from matplotlib.patches import Circle
 from matplotlib.widgets import Button
 
+
 class BezierCurveEditor:
+
     def __init__(self, control_points):
         self.control_points = np.array(control_points)
         self.curve = bezier(self.control_points.T)
         self.fig, self.ax = plt.subplots()
         self.ax.set_title("Bezier Curve Editor")
-        self.line, = self.ax.plot([], [], 'ro-', lw=2,markersize=8, markerfacecolor='none')
+        self.line, = self.ax.plot([], [], 'ro-', lw=2, markersize=8, markerfacecolor='none')
         self.control_points_scatter, = self.ax.plot([], [], 'bo', markersize=14)
 
         self.circle_radius = 0.2
@@ -20,12 +22,14 @@ class BezierCurveEditor:
         self.ax.set_ylim(0, 1)
         self.ax.set_aspect('equal')
 
-
         self.dragging = False
         self.selected_point = None
 
         # Create permanent circles
-        self.circles = [Circle((point[0], point[1]), radius=self.circle_radius, color='r', alpha=0.) for point in self.control_points]
+        self.circles = [
+            Circle((point[0], point[1]), radius=self.circle_radius, color='r', alpha=0.)
+            for point in self.control_points
+        ]
         for circle in self.circles:
             self.ax.add_patch(circle)
 
@@ -36,7 +40,7 @@ class BezierCurveEditor:
         self.print_button = Button(self.print_button_ax, 'Print Positions')
         self.print_button.on_clicked(self.print_positions)
 
-         # Button to add a control point
+        # Button to add a control point
         self.add_button_ax = self.fig.add_axes([0.01, 0.85, 0.1, 0.05])
         self.add_button = Button(self.add_button_ax, 'Add Point')
         self.add_button.on_clicked(self.add_control_point)
@@ -48,7 +52,6 @@ class BezierCurveEditor:
         self.ax.grid(True, linestyle='--', alpha=0.7)
         self.ax.set_xlim(-1., 4.5)
         self.ax.set_ylim(-1., 4.5)
-
 
         plt.show()
 
@@ -95,7 +98,7 @@ class BezierCurveEditor:
             self.update_curve()
 
     def add_control_point(self, event):
-        new_point = [1.5,1.5]
+        new_point = [1.5, 1.5]
         self.control_points = np.vstack([self.control_points, new_point])
         point = self.control_points[-1]
         self.circles.append(Circle((point[0], point[1]), radius=self.circle_radius, color='r', alpha=0.))
@@ -108,12 +111,13 @@ class BezierCurveEditor:
             print(f"P{i} = Eigen::Vector3d({point[0]:.3f}, 0.0, {point[1]:.3f});")
         print("\n\n")
 
+
 if __name__ == "__main__":
     # Initial control points
     P0 = [0.007, 0.243]
-    P1 = [1.25,  -0.6]
-    P2 = [1.25,  3.]
-    P3 = [4.,  0.173]
+    P1 = [1.25, -0.6]
+    P2 = [1.25, 3.]
+    P3 = [4., 0.173]
     initial_points = np.array([P0, P1, P2, P3])
 
     editor = BezierCurveEditor(initial_points)
