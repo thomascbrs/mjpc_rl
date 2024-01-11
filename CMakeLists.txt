@@ -67,8 +67,19 @@ findorfetch(
 
 # Setting path variables, from already compiled library in libmjpc.
 set(MJPC_DIR_RELEASE "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build")
-set(MJPC_DIR_DEBUG "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug")
 set(INSTALL_DIR "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug/mjpc")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Your code for Release build goes here
+    message(STATUS "Building in Release mode")
+    # Additional Release-specific settings or configurations can be added here
+    set(MJPC_DIR_DEBUG ${MJPC_DIR_RELEASE})
+else()
+    # Your code for other build types (Debug, RelWithDebInfo, etc.) goes here
+    message(STATUS "Building in a non-Release mode")
+    # Additional non-Release-specific settings or configurations can be added here
+    set(MJPC_DIR_DEBUG "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug")
+endif()
 
 ###################################################################
 # Create a first libray for the mujoco_simulator wrapper class.

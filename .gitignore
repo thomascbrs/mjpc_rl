@@ -13,6 +13,7 @@ MUJOCO_LOG.TXT
 *.egg-info
 dist
 build
+build_release
 eggs
 parts
 bin
