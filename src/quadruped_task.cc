@@ -26,16 +26,61 @@ std::string QuadrupedTask::XmlPath() const {
 
 std::string QuadrupedTask::Name() const { return "Quadruped Task"; }
 
-// --------------------- Residuals for quadruped task --------------------
-//   Number of residuals: 4
-//     Residual (0): position_z - average(foot position)_z - height_goal
-//     Residual (1): position - goal_position
-//     Residual (2): orientation - goal_orientation
-//     Residual (3): control
-//     Residual (4): Fly-hight cost
-//   Number of parameters: 1
-//     Parameter (1): height_goal
-// -----------------------------------------------------------------------
+// TODO: Compute pitch angle once, when the curve is created.
+void QuadrupedTask::ResidualFn::getPitch(double pitch[1], double wpitch[1], double t) const{
+  // Compute derivative of the curve wrt to x to retrieve pitch angle.
+  double dt = 0.01;
+  double factor = 0.5;
+
+  Eigen::Vector3d p0;  // Current position
+  Eigen::Vector3d p1;  // Backward (- dt)
+  Eigen::Vector3d p2;  // Forward  (+ dt)
+
+  if (t - dt >= curve_.min() && t + dt <= curve_.max()){
+    p0 = curve_(t);
+    p1 = curve_(t-dt);
+    p2 = curve_(t+dt);
+  }
+  else{
+    if (t - dt < curve_.min()){
+      // Beginning of the curve. Shift of dt.
+      p0 = curve_(t+dt);
+      p1 = curve_(t);
+      p2 = curve_(t+2*dt);
+    }
+    else{
+      // End of the curve. Shift of -dt.
+      p0 = curve_(t-dt);
+      p1 = curve_(t-2*dt);
+      p2 = curve_(t);
+    }
+  }
+
+  // Compute pitch angle. Forward.
+  if (p2[0] - p0[0] == 0.){
+    pitch[0] = 0.;
+  }
+  else{
+    pitch[0] = (p2[2] - p0[2]) / (p2[0] - p0[0]);
+  }
+  double pitch_backward = 0.;
+  if (p0[0] - p1[0] == 0.){
+    pitch_backward = 0.;
+  }
+  else{
+    pitch_backward = (p0[2] - p1[2]) / (p0[0] - p1[0]);
+  }
+
+  // Cmpute derivative.
+  wpitch[0] = (pitch[0] - pitch_backward )/ dt ;
+
+  // Add factor
+  pitch[0] *= -factor;
+  wpitch[0] *= -factor;
+  std::cout << "pitch : " << pitch << std::endl;
+}
+
+
 void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
                                          const mjData *data,
                                          double *residual) const {
@@ -80,23 +125,17 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
 
     // Compute derivative of the curve wrt to x to retrieve pitch angle.
-    double dt = 0.01;
-    double fwd = 0.02;
-    double pitch = 0.;
-    double factor = 0.4;
-    if (data->time + fwd + dt - 1. <= 1.) {
-      Eigen::Vector3d pos_ref_dt = curve_(data->time + dt - 1.);
-      pitch = (pos_ref_dt[2] - pos_ref[2]) / (pos_ref_dt[0] - pos_ref[0]);
-    } else {
-      Eigen::Vector3d pos_ref_dt = curve_(data->time - dt - 1.);
-      pitch = (pos_ref_dt[2] - pos_ref[2]) / (pos_ref_dt[0] - pos_ref[0]);
-    }
-    pitch *= -factor;
+    double pitch[1];
+    double wpitch[1];
+    double fwd = 0.0;
+    getPitch(pitch, wpitch, data->time + fwd  - 1.);
 
     mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
-    mju_axisAngle2Quat(quat, axis, pitch); // Convert axis-angle to quaternion
+    mju_axisAngle2Quat(quat, axis, pitch[0]); // Convert axis-angle to quaternion
+    std::cout << pitch << std::endl;
+    std::cout << wpitch << std::endl;
     mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
 
     // ---------- Residual (1) ----------

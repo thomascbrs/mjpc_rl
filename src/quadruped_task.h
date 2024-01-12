@@ -54,6 +54,7 @@ public:
 
     // Update function override
     void Update() override ;
+    void getPitch(double pitch[1], double wpitch[1], double t) const;
 
   private:
     friend class QuadrupedTask;
