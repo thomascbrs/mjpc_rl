@@ -347,6 +347,10 @@ void MujocoSimulator::runSimulation(int numSteps) {
           // task_->parameters[0] = -0.9;
           // data->sensordata[1] = data->qpos[0] - 0.9;
           // task_->Reset();
+
+          task_->parameters[0] = 1.;
+          task_->UpdateResidual();
+
           state_.Set(model, data);
           planner.SetState(state_);
           residual_fn_ = task_->Residual();

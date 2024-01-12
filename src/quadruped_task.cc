@@ -39,6 +39,8 @@ std::string QuadrupedTask::Name() const { return "Quadruped Task"; }
 void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
                                          const mjData *data,
                                          double *residual) const {
+
+  int res_index = 0;
   // ---------- Residual (0) ----------
   // Fly-high cost.
   double *FR = mjpc::SensorByName(model, data, "FR");
@@ -69,6 +71,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
   // Copy in the residual.
   mju_copy(residual, feet_position, 12);
+  res_index += 12;
 
   // Time varying references.
   if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
@@ -102,7 +105,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double *position = mjpc::SensorByName(model, data, "position");
 
     // position error
-    mju_sub3(residual + 12, position, p_ref);
+    mju_sub3(residual + res_index, position, p_ref);
+    res_index += 3;
 
     // ---------- Residual (2) ----------
     // system's orientation
@@ -110,13 +114,33 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double *orientation = mjpc::SensorByName(model, data, "orientation");
     mju_quat2Mat(body_rotmat, orientation);
 
-    mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
+    mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
+    res_index += 9;
 
     // ---------- Residual (3) ----------
     // system's linear velocity
     double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
     const double *v_ref = vel_ref.data();
-    mju_sub3(residual + 24, vel_trunk, v_ref);
+    mju_sub3(residual + res_index, vel_trunk, v_ref);
+    res_index += 3;
+
+    // ---------- Residual (4) ----------
+    // system's linear acceleration
+    // double *acc_trunk = mjpc::SensorByName(model, data, "acc_lin_trunk");
+    // const double *a_ref = acc_ref.data();
+    // mju_sub3(residual + res_index, acc_trunk, a_ref);
+    // res_index += 3;
+
+    // ---------- Residual (5) ----------
+    // system's linear velocity
+    double *ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
+    double ang_v_ref[3];
+    ang_v_ref[0] = 0.;
+    ang_v_ref[1] = wpitch[0];
+    ang_v_ref[2] = 0.;
+    mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
+    res_index += 3;
+
   } else {
     // ---------- Residual (1) ----------
     // system's position
@@ -124,7 +148,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double position[3] = {0., 0., 0.};
 
     // position error
-    mju_sub3(residual + 12, position, p_ref);
+    mju_sub3(residual + res_index, position, p_ref);
+    res_index += 3;
 
     mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
@@ -138,18 +163,58 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double *orientation = mjpc::SensorByName(model, data, "orientation");
     mju_quat2Mat(body_rotmat, orientation);
 
-    mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
+    mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
+    res_index += 9;
 
     // ---------- Residual (3) ----------
     // system's linear velocity
     double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
     const double v_ref[3] = {0., 0., 0.};
-    mju_sub3(residual + 24, vel_trunk, v_ref);
+    mju_sub3(residual + res_index, vel_trunk, v_ref);
+    res_index += 3;
+
+    // ---------- Residual (4) ----------
+    // system's linear acceleration
+    // double acc_trunk[3] = {0.,0.,0.} ;
+    // double a_ref[3] = {0.,0.,0.};
+    // mju_sub3(residual + res_index, acc_trunk, a_ref);
+    // res_index += 3;
+
+    // ---------- Residual (4) ----------
+    // system's linear acceleration
+    // double acc_trunk[3] = {0.,0.,0.} ;
+    // double a_ref[3] = {0.,0.,0.};
+    // mju_sub3(residual + res_index, acc_trunk, a_ref);
+    // res_index += 3;
+
+    // ---------- Residual (5) ----------
+    // system's linear velocity
+    double *ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
+    const double ang_v_ref[3] = {0., 0., 0.};
+    mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
+    res_index += 3;
   }
 
   // ---------- Residual (4) ----------
   // Cost on the command
-  mju_copy(residual + 27, data->ctrl, model->nu);
+  mju_copy(residual + res_index, data->ctrl, model->nu);
+}
+
+void QuadrupedTask::ResidualFn::Update() {
+  num_residual_ = task_->num_residual;
+  num_term_ = task_->num_term;
+  num_trace_ = task_->num_trace;
+  dim_norm_residual_ = task_->dim_norm_residual;
+  num_norm_parameter_ = task_->num_norm_parameter;
+  norm_ = task_->norm;
+  weight_ = task_->weight;
+  norm_parameter_ = task_->norm_parameter;
+  risk_ = task_->risk;
+  parameters_ = task_->parameters;
+  // cp[3] = Eigen::Vector3d(1.678, 0.0, 0.052);
+  // curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(
+  //     cp.begin(), cp.end());
+  // std::cout << "Hello" << std::endl;
 }
 
 // / draw task-related geometry in the scene
