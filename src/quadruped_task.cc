@@ -77,7 +77,6 @@ void QuadrupedTask::ResidualFn::getPitch(double pitch[1], double wpitch[1], doub
   // Add factor
   pitch[0] *= -factor;
   wpitch[0] *= -factor;
-  std::cout << "pitch : " << pitch << std::endl;
 }
 
 
@@ -134,8 +133,6 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
     mju_axisAngle2Quat(quat, axis, pitch[0]); // Convert axis-angle to quaternion
-    std::cout << pitch << std::endl;
-    std::cout << wpitch << std::endl;
     mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
 
     // ---------- Residual (1) ----------
