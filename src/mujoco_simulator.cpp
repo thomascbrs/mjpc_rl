@@ -2,6 +2,40 @@
 #include "quadruped_task.h"
 #include <iostream>
 
+
+// Function to convert enum value to string
+const char* enumToString(mjtObj value) {
+    switch (value) {
+        case mjOBJ_UNKNOWN: return "mjOBJ_UNKNOWN";
+        case mjOBJ_BODY: return "mjOBJ_BODY";
+        case mjOBJ_XBODY: return "mjOBJ_XBODY";
+        case mjOBJ_JOINT: return "mjOBJ_JOINT";
+        case mjOBJ_DOF: return "mjOBJ_DOF";
+        case mjOBJ_GEOM: return "mjOBJ_GEOM";
+        case mjOBJ_SITE: return "mjOBJ_SITE";
+        case mjOBJ_CAMERA: return "mjOBJ_CAMERA";
+        case mjOBJ_LIGHT: return "mjOBJ_LIGHT";
+        case mjOBJ_FLEX: return "mjOBJ_FLEX";
+        case mjOBJ_MESH: return "mjOBJ_MESH";
+        case mjOBJ_SKIN: return "mjOBJ_SKIN";
+        case mjOBJ_HFIELD: return "mjOBJ_HFIELD";
+        case mjOBJ_TEXTURE: return "mjOBJ_TEXTURE";
+        case mjOBJ_MATERIAL: return "mjOBJ_MATERIAL";
+        case mjOBJ_PAIR: return "mjOBJ_PAIR";
+        case mjOBJ_EXCLUDE: return "mjOBJ_EXCLUDE";
+        case mjOBJ_EQUALITY: return "mjOBJ_EQUALITY";
+        case mjOBJ_TENDON: return "mjOBJ_TENDON";
+        case mjOBJ_ACTUATOR: return "mjOBJ_ACTUATOR";
+        case mjOBJ_SENSOR: return "mjOBJ_SENSOR";
+        case mjOBJ_NUMERIC: return "mjOBJ_NUMERIC";
+        case mjOBJ_TEXT: return "mjOBJ_TEXT";
+        case mjOBJ_TUPLE: return "mjOBJ_TUPLE";
+        case mjOBJ_KEY: return "mjOBJ_KEY";
+        case mjOBJ_PLUGIN: return "mjOBJ_PLUGIN";
+        default: return "Unknown Enum Value";
+    }
+}
+
 // Define the task outisde the class function.
 // mjpc::QuadrupedFlat *task_;
 // mjpc::QuadrupedHill *task_;
@@ -146,6 +180,41 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
 
     // Print the string
     std::cout << "Geom " << geom_idx << " Name: " << geom_name << std::endl;
+  }
+
+  ///////////////////////
+  // Model description
+  ///////////////////////
+  foot_names_ = {"FR", "FL", "HR", "HL"};
+
+  std::cout << "\nModel of the robot" << std::endl;
+  for (int objType = mjOBJ_UNKNOWN; objType < mjOBJ_PLUGIN; ++objType) {
+    mjtObj enumValue = static_cast<mjtObj>(objType);
+
+    // Convert enum value to string
+    const char* enumName = enumToString(enumValue);
+
+    std::vector<std::pair<const char*, int>> objNames;
+    for (int k = 0; k < 100; k++){
+      const char* objName = mj_id2name(model, objType, k);
+      if (objName != nullptr){
+        objNames.push_back(std::make_pair(objName,k));
+      }
+    }
+    if (objNames.size() > 0){
+      std::cout << "\n------- Types : " << enumName << "-------" << std::endl;
+      for (const auto& element : objNames){
+        const char* objName = element.first;
+        int index = element.second;
+        std::cout << "Name : " << objName << " -- Index : " << index << std::endl;
+
+        auto it = std::find(foot_names_.begin(), foot_names_.end(), std::string(objName));
+        // Create a list of geometry.
+        if (it != foot_names_.end() && objType == mjOBJ_GEOM ) {
+          foot_idx_.push_back(index);
+        }
+      }
+    }
   }
 
   // start plan thread
@@ -340,6 +409,20 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // planner.task->UpdateResidual();
         // task_->Residual(model, data, data->sensordata);task_->Residual(model,
         // data, data->sensordata);
+
+        // Contact detection code. TODO: Write a proper function/ class to handle this.
+        for (int contactIndex = 0; contactIndex < data->ncon; ++contactIndex) {
+            int geomIndex0 = data->contact[contactIndex].geom[0];
+            auto it0 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex0);
+            int geomIndex1 = data->contact[contactIndex].geom[1];
+            auto it1 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex1);
+            const char* geomName0 = mj_id2name(model, mjOBJ_GEOM, geomIndex0);
+            const char* geomName1 = mj_id2name(model, mjOBJ_GEOM, geomIndex1);
+            if (it0 != foot_idx_.end() || it1 != foot_idx_.end()){
+              std::cout << "Geom : " << geomName0 << " in contact with : " <<  geomName1 << "  -Position_x : " << data->contact[contactIndex].pos[0] <<std::endl;
+            }
+        }
+
         if (counter_wbc % 10 == 0) {
           // PlanIteration(&plan_pool);
           // set state

@@ -64,4 +64,7 @@ private:
   std::unique_ptr<mjpc::ResidualFn> residual_fn_;
 
   std::vector<std::vector<double>> jointPositionsLog;
+
+  std::vector<std::string> foot_names_;
+  std::vector<int> foot_idx_;
 };
