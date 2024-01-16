@@ -48,6 +48,9 @@ mjpc::iLQGPlanner planner;
 // mjpc::SamplingPlanner planner;
 // mjpc::GradientPlanner planner;
 
+// Logger path.
+std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
+
 MujocoSimulator::MujocoSimulator(const char *modelFile)
     : model(nullptr), data(nullptr) {
 
@@ -186,6 +189,9 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Model description
   ///////////////////////
   foot_names_ = {"FR", "FL", "HR", "HL"};
+  for (const auto& name:foot_names_){
+    contact_status_[name] = 0;
+  }
 
   std::cout << "\nModel of the robot" << std::endl;
   for (int objType = mjOBJ_UNKNOWN; objType < mjOBJ_PLUGIN; ++objType) {
@@ -216,6 +222,9 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
       }
     }
   }
+
+  // Initialize logger.
+  logger_.Initialize(foot_names_);
 
   // start plan thread
   runSimulation(1000);
@@ -411,6 +420,11 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // data, data->sensordata);
 
         // Contact detection code. TODO: Write a proper function/ class to handle this.
+
+        // Reset the contact status to 0.
+        for (auto& status: contact_status_){
+          status.second = 0;
+        }
         for (int contactIndex = 0; contactIndex < data->ncon; ++contactIndex) {
             int geomIndex0 = data->contact[contactIndex].geom[0];
             auto it0 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex0);
@@ -419,8 +433,34 @@ void MujocoSimulator::runSimulation(int numSteps) {
             const char* geomName0 = mj_id2name(model, mjOBJ_GEOM, geomIndex0);
             const char* geomName1 = mj_id2name(model, mjOBJ_GEOM, geomIndex1);
             if (it0 != foot_idx_.end() || it1 != foot_idx_.end()){
-              std::cout << "Geom : " << geomName0 << " in contact with : " <<  geomName1 << "  -Position_x : " << data->contact[contactIndex].pos[0] <<std::endl;
+              // Calculate the index by subtracting iterators
+              if (it0 != foot_idx_.end()){
+                contact_status_[geomName0] = 1;
+              }
+              else{
+                contact_status_[geomName1] = 1;
+              }
             }
+        }
+
+        // Print un-ordered map.
+        std::cout << "Contact status [";
+        for (auto& ct:contact_status_){
+          std::cout << ct.first << ",";
+        }
+        std::cout << "] : [";
+        for (auto& ct:contact_status_){
+          std::cout << ct.second << ",";
+        }
+        std::cout << "]" << std::endl;
+
+        logger_.logFeetStatus(contact_status_);
+
+        if (data->time > 1.1){
+          logger_.saveData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          // Data data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          // logger_.writeToCsvFile(filename);
+          return;
         }
 
         if (counter_wbc % 10 == 0) {
