@@ -87,6 +87,8 @@ endif()
 
 # Add the source files to the project
 add_library(mjpc_rl_cpp
+    src/logger.h
+    src/logger.cpp
     src/mujoco_simulator.h
     src/quadruped_task.h
     src/mujoco_simulator.cpp
