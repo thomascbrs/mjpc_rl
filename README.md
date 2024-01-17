@@ -14,3 +14,8 @@ Project using mujoco and mujoco_mpc for high-level planning strategies.
 
 ##### Python interface
 Only working on release mode.
+
+From root directory. Plotting tools :
+```
+python3 scripts/plots.py
+```
