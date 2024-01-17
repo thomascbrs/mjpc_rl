@@ -1,4 +1,4 @@
-from build.libmjpc_rl_pywrap import MujocoSimulator
+from build_release.libmjpc_rl_pywrap import MujocoSimulator
 import example_robot_data
 import numpy as np
 from time import sleep

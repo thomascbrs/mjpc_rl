@@ -10,6 +10,7 @@
 // #include "mjpc/tasks/quadruped/quadruped.h"
 // #include "mjpc/tasks/cartpole/cartpole.h"
 #include "mjpc/threadpool.h"
+#include "logger.h"
 
 class MujocoSimulator {
 public:
@@ -18,6 +19,7 @@ public:
 
   void initialize();
   void runSimulation(int numSteps);
+  void step();
   static void sensor(const mjModel *model, mjData *data, int stage);
   void PlanIteration(mjpc::ThreadPool *pool);
   void Plan(std::atomic<bool> &exitrequest, std::atomic<int> &uiloadrequest);
@@ -64,4 +66,10 @@ private:
   std::unique_ptr<mjpc::ResidualFn> residual_fn_;
 
   std::vector<std::vector<double>> jointPositionsLog;
+
+  std::vector<std::string> foot_names_;
+  std::vector<int> foot_idx_;
+  std::unordered_map<std::string, int> contact_status_;
+
+  Logger logger_;
 };

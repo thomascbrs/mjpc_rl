@@ -26,25 +26,71 @@ std::string QuadrupedTask::XmlPath() const {
 
 std::string QuadrupedTask::Name() const { return "Quadruped Task"; }
 
-// --------------------- Residuals for quadruped task --------------------
-//   Number of residuals: 4
-//     Residual (0): position_z - average(foot position)_z - height_goal
-//     Residual (1): position - goal_position
-//     Residual (2): orientation - goal_orientation
-//     Residual (3): control
-//     Residual (4): Fly-hight cost
-//   Number of parameters: 1
-//     Parameter (1): height_goal
-// -----------------------------------------------------------------------
+// TODO: Compute pitch angle once, when the curve is created.
+void QuadrupedTask::ResidualFn::getPitch(double pitch[1], double wpitch[1], double t) const{
+  // Compute derivative of the curve wrt to x to retrieve pitch angle.
+  double dt = 0.01;
+  double factor = 0.5;
+
+  Eigen::Vector3d p0;  // Current position
+  Eigen::Vector3d p1;  // Backward (- dt)
+  Eigen::Vector3d p2;  // Forward  (+ dt)
+
+  if (t - dt >= curve_.min() && t + dt <= curve_.max()){
+    p0 = curve_(t);
+    p1 = curve_(t-dt);
+    p2 = curve_(t+dt);
+  }
+  else{
+    if (t - dt < curve_.min()){
+      // Beginning of the curve. Shift of dt.
+      p0 = curve_(t+dt);
+      p1 = curve_(t);
+      p2 = curve_(t+2*dt);
+    }
+    else{
+      // End of the curve. Shift of -dt.
+      p0 = curve_(t-dt);
+      p1 = curve_(t-2*dt);
+      p2 = curve_(t);
+    }
+  }
+
+  // Compute pitch angle. Forward.
+  if (p2[0] - p0[0] == 0.){
+    pitch[0] = 0.;
+  }
+  else{
+    pitch[0] = (p2[2] - p0[2]) / (p2[0] - p0[0]);
+  }
+  double pitch_backward = 0.;
+  if (p0[0] - p1[0] == 0.){
+    pitch_backward = 0.;
+  }
+  else{
+    pitch_backward = (p0[2] - p1[2]) / (p0[0] - p1[0]);
+  }
+
+  // Cmpute derivative.
+  wpitch[0] = (pitch[0] - pitch_backward )/ dt ;
+
+  // Add factor
+  pitch[0] *= -factor;
+  wpitch[0] *= -factor;
+}
+
+
 void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
                                          const mjData *data,
                                          double *residual) const {
+
+  int res_index = 0;
   // ---------- Residual (0) ----------
   // Fly-high cost.
   double *FR = mjpc::SensorByName(model, data, "FR");
   double *FL = mjpc::SensorByName(model, data, "FL");
-  double *RR = mjpc::SensorByName(model, data, "RR");
-  double *RL = mjpc::SensorByName(model, data, "RL");
+  double *RR = mjpc::SensorByName(model, data, "HR");
+  double *RL = mjpc::SensorByName(model, data, "HL");
   double *FR_vel = mjpc::SensorByName(model, data, "FR_vel");
   double *FL_vel = mjpc::SensorByName(model, data, "FL_vel");
   double *RR_vel = mjpc::SensorByName(model, data, "RR_vel");
@@ -69,6 +115,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
   // Copy in the residual.
   mju_copy(residual, feet_position, 12);
+  res_index += 12;
 
   // Time varying references.
   if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
@@ -77,23 +124,15 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
 
     // Compute derivative of the curve wrt to x to retrieve pitch angle.
-    double dt = 0.01;
-    double fwd = 0.02;
-    double pitch = 0.;
-    double factor = 0.4;
-    if (data->time + fwd + dt - 1. <= 1.) {
-      Eigen::Vector3d pos_ref_dt = curve_(data->time + dt - 1.);
-      pitch = (pos_ref_dt[2] - pos_ref[2]) / (pos_ref_dt[0] - pos_ref[0]);
-    } else {
-      Eigen::Vector3d pos_ref_dt = curve_(data->time - dt - 1.);
-      pitch = (pos_ref_dt[2] - pos_ref[2]) / (pos_ref_dt[0] - pos_ref[0]);
-    }
-    pitch *= -factor;
+    double pitch[1];
+    double wpitch[1];
+    double fwd = 0.0;
+    getPitch(pitch, wpitch, data->time + fwd  - 1.);
 
     mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
-    mju_axisAngle2Quat(quat, axis, pitch); // Convert axis-angle to quaternion
+    mju_axisAngle2Quat(quat, axis, pitch[0]); // Convert axis-angle to quaternion
     mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
 
     // ---------- Residual (1) ----------
@@ -102,7 +141,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double *position = mjpc::SensorByName(model, data, "position");
 
     // position error
-    mju_sub3(residual + 12, position, p_ref);
+    mju_sub3(residual + res_index, position, p_ref);
+    res_index += 3;
 
     // ---------- Residual (2) ----------
     // system's orientation
@@ -110,13 +150,33 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double *orientation = mjpc::SensorByName(model, data, "orientation");
     mju_quat2Mat(body_rotmat, orientation);
 
-    mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
+    mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
+    res_index += 9;
 
     // ---------- Residual (3) ----------
     // system's linear velocity
     double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
     const double *v_ref = vel_ref.data();
-    mju_sub3(residual + 24, vel_trunk, v_ref);
+    mju_sub3(residual + res_index, vel_trunk, v_ref);
+    res_index += 3;
+
+    // ---------- Residual (4) ----------
+    // system's linear acceleration
+    // double *acc_trunk = mjpc::SensorByName(model, data, "acc_lin_trunk");
+    // const double *a_ref = acc_ref.data();
+    // mju_sub3(residual + res_index, acc_trunk, a_ref);
+    // res_index += 3;
+
+    // ---------- Residual (5) ----------
+    // system's linear velocity
+    double *ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
+    double ang_v_ref[3];
+    ang_v_ref[0] = 0.;
+    ang_v_ref[1] = wpitch[0];
+    ang_v_ref[2] = 0.;
+    mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
+    res_index += 3;
+
   } else {
     // ---------- Residual (1) ----------
     // system's position
@@ -124,7 +184,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double position[3] = {0., 0., 0.};
 
     // position error
-    mju_sub3(residual + 12, position, p_ref);
+    mju_sub3(residual + res_index, position, p_ref);
+    res_index += 3;
 
     mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
@@ -138,18 +199,58 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double *orientation = mjpc::SensorByName(model, data, "orientation");
     mju_quat2Mat(body_rotmat, orientation);
 
-    mju_sub(residual + 15, body_rotmat, ref_rotmat, 9);
+    mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
+    res_index += 9;
 
     // ---------- Residual (3) ----------
     // system's linear velocity
     double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
     const double v_ref[3] = {0., 0., 0.};
-    mju_sub3(residual + 24, vel_trunk, v_ref);
+    mju_sub3(residual + res_index, vel_trunk, v_ref);
+    res_index += 3;
+
+    // ---------- Residual (4) ----------
+    // system's linear acceleration
+    // double acc_trunk[3] = {0.,0.,0.} ;
+    // double a_ref[3] = {0.,0.,0.};
+    // mju_sub3(residual + res_index, acc_trunk, a_ref);
+    // res_index += 3;
+
+    // ---------- Residual (4) ----------
+    // system's linear acceleration
+    // double acc_trunk[3] = {0.,0.,0.} ;
+    // double a_ref[3] = {0.,0.,0.};
+    // mju_sub3(residual + res_index, acc_trunk, a_ref);
+    // res_index += 3;
+
+    // ---------- Residual (5) ----------
+    // system's linear velocity
+    double *ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
+    const double ang_v_ref[3] = {0., 0., 0.};
+    mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
+    res_index += 3;
   }
 
   // ---------- Residual (4) ----------
   // Cost on the command
-  mju_copy(residual + 27, data->ctrl, model->nu);
+  mju_copy(residual + res_index, data->ctrl, model->nu);
+}
+
+void QuadrupedTask::ResidualFn::Update() {
+  num_residual_ = task_->num_residual;
+  num_term_ = task_->num_term;
+  num_trace_ = task_->num_trace;
+  dim_norm_residual_ = task_->dim_norm_residual;
+  num_norm_parameter_ = task_->num_norm_parameter;
+  norm_ = task_->norm;
+  weight_ = task_->weight;
+  norm_parameter_ = task_->norm_parameter;
+  risk_ = task_->risk;
+  parameters_ = task_->parameters;
+  // cp[3] = Eigen::Vector3d(1.678, 0.0, 0.052);
+  // curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(
+  //     cp.begin(), cp.end());
+  // std::cout << "Hello" << std::endl;
 }
 
 // / draw task-related geometry in the scene
