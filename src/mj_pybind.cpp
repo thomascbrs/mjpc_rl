@@ -26,7 +26,9 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
         .def(py::init<>())
         .def_readwrite("size", &Data::size)
         .def_readwrite("P", &Data::P)
-        .def_readwrite("D", &Data::D);
+        .def_readwrite("D", &Data::D)
+        .def_readwrite("foot_status", &Data::foot_status)
+        .def_readwrite("foot_position", &Data::foot_position);
 
   m.def("loadData", &loadDataWithoutInstance, "Load data from file and return as Data struct");
 }

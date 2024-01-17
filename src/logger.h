@@ -5,12 +5,15 @@
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
+#include "mujoco/mujoco.h"
+#include "mjpc/utilities.h"
 
 struct Data {
     int size = 0; // Usefull for loading.
     std::vector<double> P;
     std::vector<double> D;
     std::unordered_map<std::string, std::vector<int>> foot_status;
+    std::unordered_map<std::string, std::vector<std::array<double, 3>>> foot_position;
 };
 
 class Logger {
@@ -20,6 +23,8 @@ public:
     ~Logger();
 
     void logFeetStatus(const std::unordered_map<std::string, int>& contact_status);
+    void logFeetPosition(const mjModel *model, mjData *data);
+
     void writeToCsvFile(const std::string &fileName);
     void saveData(const std::string& fileName);
     Data loadData(const std::string& fileName);

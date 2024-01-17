@@ -89,8 +89,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   // Fly-high cost.
   double *FR = mjpc::SensorByName(model, data, "FR");
   double *FL = mjpc::SensorByName(model, data, "FL");
-  double *RR = mjpc::SensorByName(model, data, "RR");
-  double *RL = mjpc::SensorByName(model, data, "RL");
+  double *RR = mjpc::SensorByName(model, data, "HR");
+  double *RL = mjpc::SensorByName(model, data, "HL");
   double *FR_vel = mjpc::SensorByName(model, data, "FR_vel");
   double *FL_vel = mjpc::SensorByName(model, data, "FL_vel");
   double *RR_vel = mjpc::SensorByName(model, data, "RR_vel");

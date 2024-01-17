@@ -455,10 +455,11 @@ void MujocoSimulator::runSimulation(int numSteps) {
         std::cout << "]" << std::endl;
 
         logger_.logFeetStatus(contact_status_);
+        logger_.logFeetPosition(model, data);
 
-        if (data->time > 1.1){
+        if (data->time > 2.){
           logger_.saveData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          // Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           // logger_.writeToCsvFile(filename);
           return;
         }
