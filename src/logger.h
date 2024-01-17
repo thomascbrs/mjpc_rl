@@ -27,7 +27,6 @@ public:
 private:
     Data data_;
     std::vector<std::string> foot_names_;
-    std::unordered_map<std::string, std::vector<int>> foot_status_;
 };
 
 

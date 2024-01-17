@@ -11,14 +11,8 @@ Logger::~Logger(){}
 
 void Logger::Initialize(const std::vector<std::string>& foot_names){
     foot_names_ = foot_names;
-    // Reserve the memory for the foot status.
-    for (auto& name: foot_names){
-        std::vector<int> tmp;
-        tmp.reserve(5000);
-        foot_status_[name] = tmp;
-    }
 
-    // Reserve the memory for the foot in the data.
+    // Reserve memory for the foot contact status in the data.
     for (auto& name: foot_names){
         std::vector<int> tmp;
         tmp.reserve(5000);
@@ -27,9 +21,6 @@ void Logger::Initialize(const std::vector<std::string>& foot_names){
 }
 
 void Logger::logFeetStatus(const std::unordered_map<std::string, int>& contact_status) {
-    for (const auto& status : contact_status) {
-        foot_status_[status.first].push_back(status.second);
-    }
     data_.P.push_back(3.);
     data_.D.push_back(0.2);
     for (const auto& status : contact_status) {
@@ -115,10 +106,10 @@ void Logger::writeToCsvFile(const std::string& fileName){
             outputFile << (std::next(it) != foot_names_.end() ? "," : "\n");
         }
     }
-    int size = foot_status_[foot_names_[0]].size();
+    int size = data_.foot_status[foot_names_[0]].size();
     for (int k=0; k < size;k++){
         for (auto it = foot_names_.begin(); it != foot_names_.end(); ++it) {
-            outputFile << foot_status_.at(*it)[k];
+            outputFile << data_.foot_status.at(*it)[k];
             outputFile << (std::next(it) != foot_names_.end() ? "," : "\n");
         }
     }
