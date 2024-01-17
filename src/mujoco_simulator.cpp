@@ -458,7 +458,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
         if (data->time > 1.1){
           logger_.saveData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          // Data data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           // logger_.writeToCsvFile(filename);
           return;
         }

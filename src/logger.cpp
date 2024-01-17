@@ -2,18 +2,27 @@
 
 Logger::Logger(){
     int max_size = 5000;
-    // data_.size = 0;
+    data_.size = 0;
     data_.D.reserve(max_size);
     data_.P.reserve(max_size);
 }
+
 Logger::~Logger(){}
 
 void Logger::Initialize(const std::vector<std::string>& foot_names){
     foot_names_ = foot_names;
+    // Reserve the memory for the foot status.
     for (auto& name: foot_names){
         std::vector<int> tmp;
         tmp.reserve(5000);
         foot_status_[name] = tmp;
+    }
+
+    // Reserve the memory for the foot in the data.
+    for (auto& name: foot_names){
+        std::vector<int> tmp;
+        tmp.reserve(5000);
+        data_.foot_status[name] = tmp;
     }
 }
 
@@ -23,6 +32,9 @@ void Logger::logFeetStatus(const std::unordered_map<std::string, int>& contact_s
     }
     data_.P.push_back(3.);
     data_.D.push_back(0.2);
+    for (const auto& status : contact_status) {
+        data_.foot_status[status.first].push_back(status.second);
+    }
     data_.size ++;
 }
 
@@ -34,14 +46,14 @@ void Logger::saveData(const std::string& fileName) {
         file.write(reinterpret_cast<const char*>(data_.D.data()), data_.P.size() * sizeof(double));
 
         // Save foot_status_ data
-        // for (const auto& entry : data_.foot_status_) {
-        //     // Save the key (foot name)
-        //     file.write(entry.first.c_str(), entry.first.size() * sizeof(char));
-        //     file.write("\0", sizeof(char));  // Null-terminate the string
+        for (const auto& entry : data_.foot_status) {
+            // Save the key (foot name)
+            file.write(entry.first.c_str(), entry.first.size() * sizeof(char));
+            file.write("\0", sizeof(char));  // Null-terminate the string
 
-        //     // Save the vector of integers
-        //     file.write(reinterpret_cast<const char*>(entry.second.data()), entry.second.size() * sizeof(int));
-        // }
+            // Save the vector of integers
+            file.write(reinterpret_cast<const char*>(entry.second.data()), entry.second.size() * sizeof(int));
+        }
 
         file.close();
     }
@@ -70,18 +82,18 @@ Data Logger::loadData(const std::string& fileName) {
         file.read(reinterpret_cast<char*>(data.D.data()), size_t(data.size) * sizeof(double));
 
         // Load foot_status_ data
-        // while (!file.eof()) {
-        //     std::string footName;
-        //     char c;
-        //     while ((file.get(c)) && (c != '\0')) {
-        //         footName += c;
-        //     }
+        while (!file.eof()) {
+            std::string footName;
+            char c;
+            while ((file.get(c)) && (c != '\0')) {
+                footName += c;
+            }
 
-        //     std::vector<int> footData(data.foot_status_[footName].size());
-        //     file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(int));
+            std::vector<int> footData(data.size);
+            file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(int));
 
-        //     data.foot_status_[footName] = footData;
-        // }
+            data.foot_status[footName] = footData;
+        }
 
         file.close();
     }

@@ -8,10 +8,9 @@
 
 struct Data {
     int size = 0; // Usefull for loading.
-
     std::vector<double> P;
     std::vector<double> D;
-    // std::unordered_map<std::string, std::vector<int>> foot_status_
+    std::unordered_map<std::string, std::vector<int>> foot_status;
 };
 
 class Logger {
