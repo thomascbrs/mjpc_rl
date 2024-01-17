@@ -456,6 +456,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
         logger_.logFeetStatus(contact_status_);
         logger_.logFeetPosition(model, data);
+        logger_.logFeetVelocity(model, data);
 
         if (data->time > 2.){
           logger_.saveData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");

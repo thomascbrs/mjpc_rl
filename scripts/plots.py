@@ -12,8 +12,6 @@ def plot_contact(data):
     for i,name in enumerate(names):
         ax = plt.subplot(4,1,i+1)
 
-
-
         pos_x = [pos[0]for pos in data.foot_position[name]]
         pos_z = [pos[2]for pos in data.foot_position[name]]
         max_z = max(pos_z)
@@ -40,7 +38,38 @@ def plot_contact(data):
 
     # Get the figure manager and set the window title
     fig_manager = plt.get_current_fig_manager()
-    fig_manager.set_window_title("Your Custom Window Title")
+    fig_manager.set_window_title("Foot contact")
+
+def plot_velocity(data):
+    fig, axs = plt.subplots(4, 3)
+    names = ["FR_vel", "FL_vel", "HR_vel", "HL_vel"]
+    order = [1,5,9,2,6,10,3,7,11,4,8,12]
+
+    dt = 0.002
+    T = np.arange(0.,dt*len(data.foot_velocity[names[0]]), dt)
+    for i,name in enumerate(names):
+        ax = plt.subplot(3,4,order[3*i])
+        pos_ = [pos[0]for pos in data.foot_velocity[name]]
+        ax.plot(T, pos_, "bx-", label = "vel_x")
+        ax.set_title("velocity_x : " + name)
+
+        ax = plt.subplot(3,4,order[3*i+1])
+        pos_ = [pos[1]for pos in data.foot_velocity[name]]
+        ax.plot(T, pos_, "bx-", label = "vel_y")
+        ax.set_title("velocity_y : " + name)
+
+        ax = plt.subplot(3,4,order[3*i+2])
+        pos_ = [pos[2]for pos in data.foot_velocity[name]]
+        ax.plot(T, pos_, "bx-", label = "vel_z")
+        ax.set_title("velocity_z : " + name)
+
+    # Adjust the vertical space between subplots
+    plt.subplots_adjust(hspace=0.5)  # You can adjust the value as needed
+    fig.suptitle("Foot Velocity")
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("Foot Velocity")
 
 if __name__ == "__main__":
 
@@ -51,4 +80,5 @@ if __name__ == "__main__":
     data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
 
     plot_contact(data)
+    plot_velocity(data)
     plt.show()

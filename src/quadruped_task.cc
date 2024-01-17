@@ -93,8 +93,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   double *RL = mjpc::SensorByName(model, data, "HL");
   double *FR_vel = mjpc::SensorByName(model, data, "FR_vel");
   double *FL_vel = mjpc::SensorByName(model, data, "FL_vel");
-  double *RR_vel = mjpc::SensorByName(model, data, "RR_vel");
-  double *RL_vel = mjpc::SensorByName(model, data, "RL_vel");
+  double *RR_vel = mjpc::SensorByName(model, data, "HR_vel");
+  double *RL_vel = mjpc::SensorByName(model, data, "HL_vel");
   double feet_position[12];
 
   feet_position[0] = FR_vel[0];

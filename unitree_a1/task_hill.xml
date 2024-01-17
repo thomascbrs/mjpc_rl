@@ -112,8 +112,8 @@
 
     <framelinvel   name="FR_vel" objtype="site" objname="FR" reftype="world" refname="world"/>
     <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
-    <framelinvel   name="RR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
-    <framelinvel   name="RL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
+    <framelinvel   name="HR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
+    <framelinvel   name="HL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
 
     <framelinvel   name="velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
     <frameangvel   name="ang_velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>

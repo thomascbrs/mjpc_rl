@@ -16,10 +16,12 @@ void Logger::Initialize(const std::vector<std::string>& foot_names){
     for (auto& name: foot_names){
         std::vector<int> tmp;
         std::vector<std::array<double, 3>> tmp_pos;
+        std::vector<std::array<double, 3>> tmp_vel;
         tmp.reserve(5000);
         tmp_pos.reserve(5000);
         data_.foot_status[name] = tmp;
         data_.foot_position[name] = tmp_pos;
+        data_.foot_velocity[name + "_vel"] = tmp_vel;
     }
 }
 
@@ -43,6 +45,18 @@ void Logger::logFeetPosition(const mjModel* model, mjData* data) {
   }
 }
 
+void Logger::logFeetVelocity(const mjModel* model, mjData* data) {
+  for (const auto& name : foot_names_) {
+    std::string name_vel = name + "_vel";
+    const double* foot_pos = mjpc::SensorByName(model, data, name_vel);
+    std::array<double, 3> tmp_arr;
+
+    // Copy the elements from foot_pos to temp_array
+    std::copy(foot_pos, foot_pos + 3, tmp_arr.begin());
+    data_.foot_velocity[name_vel].push_back(tmp_arr);
+  }
+}
+
 void Logger::saveData(const std::string& fileName) {
     std::ofstream file(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
     if (file.is_open()) {
@@ -62,6 +76,16 @@ void Logger::saveData(const std::string& fileName) {
 
         // Save foot_position data
         for (const auto& entry : data_.foot_position) {
+            // Save the key (foot name)
+            file.write(entry.first.c_str(), entry.first.size() * sizeof(char));
+            file.write("\0", sizeof(char));  // Null-terminate the string
+
+            // Save the vector of integers
+            file.write(reinterpret_cast<const char*>(entry.second.data()), entry.second.size() * sizeof(std::array<double,3>));
+        }
+
+        // Save foot_velocity data
+        for (const auto& entry : data_.foot_velocity) {
             // Save the key (foot name)
             file.write(entry.first.c_str(), entry.first.size() * sizeof(char));
             file.write("\0", sizeof(char));  // Null-terminate the string
@@ -120,6 +144,19 @@ Data Logger::loadData(const std::string& fileName) {
             std::vector<std::array<double,3>> footData(data.size);
             file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(std::array<double,3>));
             data.foot_position[footName] = footData;
+        }
+
+        // Load data specific to foot velocity.
+        for (size_t i = 0; i < 4; ++i) {
+            // Read the key
+            std::string footName;
+            char c;
+            while ((file.get(c)) && (c != '\0')) {
+                footName += c;
+            }
+            std::vector<std::array<double,3>> footData(data.size);
+            file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(std::array<double,3>));
+            data.foot_velocity[footName] = footData;
         }
 
         file.close();
