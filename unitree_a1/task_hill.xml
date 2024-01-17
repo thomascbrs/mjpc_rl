@@ -21,9 +21,9 @@
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.7 0.7 0.7" specular="0.3 0.3 0.3"
         directional="true" castshadow="true"/>
-    <body name="goal" mocap="true" pos="-0.125 -0.625 0.25" quat="0.7071 0 0 -0.7071">
+    <!-- <body name="goal" mocap="true" pos="-0.125 -0.625 0.25" quat="0.7071 0 0 -0.7071">
         <geom type="capsule" size="0.1 0.1 0.05" contype="0" conaffinity="0" rgba="0 1 0 .02" fromto="-0.1 0 0 0.1 0 0"/>
-    </body>
+    </body> -->
     <!-- <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/> -->
 
     <!-- <body name="box" mocap="true" pos="-2.5 0 0">
@@ -107,8 +107,8 @@
 
     <framepos      name="FR" objtype="site" objname="FR" reftype="world" refname="world"/>
     <framepos      name="FL" objtype="site" objname="FL" reftype="world" refname="world"/>
-    <framepos      name="RR" objtype="site" objname="RR" reftype="world" refname="world"/>
-    <framepos      name="RL" objtype="site" objname="RL" reftype="world" refname="world"/>
+    <framepos      name="HR" objtype="site" objname="RR" reftype="world" refname="world"/>
+    <framepos      name="HL" objtype="site" objname="RL" reftype="world" refname="world"/>
 
     <framelinvel   name="FR_vel" objtype="site" objname="FR" reftype="world" refname="world"/>
     <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
