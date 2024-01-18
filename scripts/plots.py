@@ -73,6 +73,38 @@ def plot_velocity(data):
     fig_manager = plt.get_current_fig_manager()
     fig_manager.set_window_title("Foot Velocity")
 
+def plot_contact_forces(data):
+    fig, axs = plt.subplots(4, 3)
+    names = ["FR", "FL", "HR", "HL"]
+    order = [1,5,9,2,6,10,3,7,11,4,8,12]
+
+    dt = 0.002
+    T = np.arange(0.,dt*len(data.contact_forces[names[0]]), dt)
+    for i,name in enumerate(names):
+        ax = plt.subplot(3,4,order[3*i])
+        pos_ = [pos[0]for pos in data.contact_forces[name]]
+        ax.plot(T, pos_, "bx-", label = "fc_x")
+        ax.set_title("Forces_x : " + name)
+
+        ax = plt.subplot(3,4,order[3*i+1])
+        pos_ = [pos[1]for pos in data.contact_forces[name]]
+        ax.plot(T, pos_, "bx-", label = "fc_y")
+        ax.set_title("Forces_y : " + name)
+
+        ax = plt.subplot(3,4,order[3*i+2])
+        pos_ = [pos[2]for pos in data.contact_forces[name]]
+        ax.plot(T, pos_, "bx-", label = "fc_z")
+        ax.set_title("Forces_z : " + name)
+
+    # Adjust the vertical space between subplots
+    plt.subplots_adjust(hspace=0.5)  # You can adjust the value as needed
+    fig.suptitle("Contact forces")
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("Contact Forces")
+
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
@@ -83,4 +115,5 @@ if __name__ == "__main__":
 
     plot_contact(data)
     plot_velocity(data)
+    plot_contact_forces(data)
     plt.show()

@@ -16,6 +16,7 @@ struct Data {
     std::unordered_map<std::string, std::vector<int>> foot_status_touch;
     std::unordered_map<std::string, std::vector<std::array<double, 3>>> foot_position;
     std::unordered_map<std::string, std::vector<std::array<double, 3>>> foot_velocity;
+    std::unordered_map<std::string, std::vector<std::array<double, 3>>> contact_forces;
 };
 
 class Logger {
@@ -25,6 +26,7 @@ public:
     ~Logger();
 
     void logFeetStatus(const std::unordered_map<std::string, int>& contact_status);
+    void logFeetForces(const std::unordered_map<std::string, std::array<double,3>>& contact_forces);
     void logFeetPosition(const mjModel *model, mjData *data);
     void logFeetVelocity(const mjModel *model, mjData *data);
     void logFeetTouch(const mjModel *model, mjData *data);

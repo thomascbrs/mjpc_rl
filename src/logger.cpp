@@ -18,14 +18,17 @@ void Logger::Initialize(const std::vector<std::string>& foot_names) {
     std::vector<int> tmp_touch;
     std::vector<std::array<double, 3>> tmp_pos;
     std::vector<std::array<double, 3>> tmp_vel;
+    std::vector<std::array<double, 3>> tmp_forces;
     tmp.reserve(5000);
     tmp_pos.reserve(5000);
     tmp_touch.reserve(5000);
     tmp_vel.reserve(5000);
+    tmp_forces.reserve(5000);
     data_.foot_status[name] = tmp;
     data_.foot_status_touch[name] = tmp;
     data_.foot_position[name] = tmp_pos;
     data_.foot_velocity[name] = tmp_vel;
+    data_.contact_forces[name] = tmp_forces;
   }
 }
 
@@ -36,6 +39,13 @@ void Logger::logFeetStatus(const std::unordered_map<std::string, int>& contact_s
         data_.foot_status[status.first].push_back(status.second);
     }
     data_.size ++;
+}
+
+void Logger::logFeetForces(const std::unordered_map<std::string, std::array<double,3>>& contact_forces) {
+    for (const auto& status : contact_forces) {
+        data_.contact_forces[status.first].push_back(status.second);
+        std::cout << "status.second : " << status.second[0] << std::endl;
+    }
 }
 
 void Logger::logFeetPosition(const mjModel* model, mjData* data) {
@@ -109,6 +119,16 @@ void Logger::saveData(const std::string& fileName) {
             file.write(reinterpret_cast<const char*>(entry.second.data()), entry.second.size() * sizeof(std::array<double,3>));
         }
 
+        // Save contact forces data
+        for (const auto& entry : data_.contact_forces) {
+            // Save the key (foot name)
+            file.write(entry.first.c_str(), entry.first.size() * sizeof(char));
+            file.write("\0", sizeof(char));  // Null-terminate the string
+
+            // Save the vector of integers
+            file.write(reinterpret_cast<const char*>(entry.second.data()), entry.second.size() * sizeof(std::array<double,3>));
+        }
+
         file.close();
     }
     else{
@@ -172,6 +192,19 @@ Data Logger::loadData(const std::string& fileName) {
             std::vector<std::array<double,3>> footData(data.size);
             file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(std::array<double,3>));
             data.foot_velocity[footName] = footData;
+        }
+
+        // Load data specific to contact forces.
+        for (size_t i = 0; i < 4; ++i) {
+            // Read the key
+            std::string footName;
+            char c;
+            while ((file.get(c)) && (c != '\0')) {
+                footName += c;
+            }
+            std::vector<std::array<double,3>> footData(data.size);
+            file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(std::array<double,3>));
+            data.contact_forces[footName] = footData;
         }
 
         file.close();
