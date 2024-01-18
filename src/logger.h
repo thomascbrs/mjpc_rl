@@ -13,6 +13,7 @@ struct Data {
     std::vector<double> P;
     std::vector<double> D;
     std::unordered_map<std::string, std::vector<int>> foot_status;
+    std::unordered_map<std::string, std::vector<int>> foot_status_touch;
     std::unordered_map<std::string, std::vector<std::array<double, 3>>> foot_position;
     std::unordered_map<std::string, std::vector<std::array<double, 3>>> foot_velocity;
 };
@@ -26,6 +27,7 @@ public:
     void logFeetStatus(const std::unordered_map<std::string, int>& contact_status);
     void logFeetPosition(const mjModel *model, mjData *data);
     void logFeetVelocity(const mjModel *model, mjData *data);
+    void logFeetTouch(const mjModel *model, mjData *data);
 
     void writeToCsvFile(const std::string &fileName);
     void saveData(const std::string& fileName);

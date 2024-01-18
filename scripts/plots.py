@@ -20,9 +20,11 @@ def plot_contact(data):
         # status_labels = {0.8 * max_z: "ground", 0: "flight"}
         # contact_labels = [data.foot_status[name] for status in data.foot_status[name]]
         contacts = [0.8 * max_z if status == 0 else 0. for status in data.foot_status[name]]
+        contacts_touch = [0.7 * max_z if status == 0 else 0. for status in data.foot_status[name]]
 
         # ax.plot(pos_x, contact_labels, "r-", label = "status_" + name)
         ax.plot(pos_x, contacts, "r-", label = "status_" + name)
+        ax.plot(pos_x, contacts_touch, "g-", label = "touch_sens" + name)
         ax.plot(pos_x, pos_z, "bx-", label = "pos_" + name)
         title = "Contact status foot " + name
         ax.set_title(title)
@@ -42,7 +44,7 @@ def plot_contact(data):
 
 def plot_velocity(data):
     fig, axs = plt.subplots(4, 3)
-    names = ["FR_vel", "FL_vel", "HR_vel", "HL_vel"]
+    names = ["FR", "FL", "HR", "HL"]
     order = [1,5,9,2,6,10,3,7,11,4,8,12]
 
     dt = 0.002

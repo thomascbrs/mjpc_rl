@@ -9,20 +9,24 @@ Logger::Logger(){
 
 Logger::~Logger(){}
 
-void Logger::Initialize(const std::vector<std::string>& foot_names){
-    foot_names_ = foot_names;
+void Logger::Initialize(const std::vector<std::string>& foot_names) {
+  foot_names_ = foot_names;
 
-    // Reserve memory for the foot contact status in the data.
-    for (auto& name: foot_names){
-        std::vector<int> tmp;
-        std::vector<std::array<double, 3>> tmp_pos;
-        std::vector<std::array<double, 3>> tmp_vel;
-        tmp.reserve(5000);
-        tmp_pos.reserve(5000);
-        data_.foot_status[name] = tmp;
-        data_.foot_position[name] = tmp_pos;
-        data_.foot_velocity[name + "_vel"] = tmp_vel;
-    }
+  // Reserve memory for the foot contact status in the data.
+  for (auto& name : foot_names) {
+    std::vector<int> tmp;
+    std::vector<int> tmp_touch;
+    std::vector<std::array<double, 3>> tmp_pos;
+    std::vector<std::array<double, 3>> tmp_vel;
+    tmp.reserve(5000);
+    tmp_pos.reserve(5000);
+    tmp_touch.reserve(5000);
+    tmp_vel.reserve(5000);
+    data_.foot_status[name] = tmp;
+    data_.foot_status_touch[name] = tmp;
+    data_.foot_position[name] = tmp_pos;
+    data_.foot_velocity[name] = tmp_vel;
+  }
 }
 
 void Logger::logFeetStatus(const std::unordered_map<std::string, int>& contact_status) {
@@ -47,13 +51,24 @@ void Logger::logFeetPosition(const mjModel* model, mjData* data) {
 
 void Logger::logFeetVelocity(const mjModel* model, mjData* data) {
   for (const auto& name : foot_names_) {
-    std::string name_vel = name + "_vel";
-    const double* foot_pos = mjpc::SensorByName(model, data, name_vel);
+    const double* foot_pos = mjpc::SensorByName(model, data, name + "_vel");
     std::array<double, 3> tmp_arr;
 
     // Copy the elements from foot_pos to temp_array
     std::copy(foot_pos, foot_pos + 3, tmp_arr.begin());
-    data_.foot_velocity[name_vel].push_back(tmp_arr);
+    data_.foot_velocity[name].push_back(tmp_arr);
+  }
+}
+
+void Logger::logFeetTouch(const mjModel* model, mjData* data) {
+  for (const auto& name : foot_names_) {
+    const double* touch = mjpc::SensorByName(model, data, name + "_touch");
+    if (touch[0] < 0.01){
+        data_.foot_status_touch[name].push_back(1);
+    }
+    else{
+        data_.foot_status_touch[name].push_back(0);
+    }
   }
 }
 
