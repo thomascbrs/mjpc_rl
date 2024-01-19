@@ -3,8 +3,8 @@
 Logger::Logger(){
     int max_size = 5000;
     data_.size = 0;
-    data_.D.reserve(max_size);
-    data_.P.reserve(max_size);
+    data_.qpos.reserve(5000);
+    data_.qvel.reserve(5000);
 }
 
 Logger::~Logger(){}
@@ -33,8 +33,6 @@ void Logger::Initialize(const std::vector<std::string>& foot_names) {
 }
 
 void Logger::logFeetStatus(const std::unordered_map<std::string, int>& contact_status) {
-    data_.P.push_back(3.);
-    data_.D.push_back(0.2);
     for (const auto& status : contact_status) {
         data_.foot_status[status.first].push_back(status.second);
     }
@@ -82,12 +80,21 @@ void Logger::logFeetTouch(const mjModel* model, mjData* data) {
   }
 }
 
+void Logger::logState(const mjModel* model, mjData* data) {
+  std::array<double,19> qpos;
+  std::copy(data->qpos, data->qpos + 19, qpos.begin());
+  data_.qpos.emplace_back(qpos);
+  std::cout << "qpos : " << qpos[2] << std::endl;
+
+  std::array<double,18> qvel;
+  std::copy(data->qvel, data->qvel + 18, qvel.begin());
+  data_.qvel.emplace_back(qvel);
+}
+
 void Logger::saveData(const std::string& fileName) {
     std::ofstream file(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
     if (file.is_open()) {
         file.write(reinterpret_cast<const char*>(&data_.size), sizeof(int));
-        file.write(reinterpret_cast<const char*>(data_.P.data()), data_.P.size() * sizeof(double));
-        file.write(reinterpret_cast<const char*>(data_.D.data()), data_.P.size() * sizeof(double));
 
         // Save foot_status_ data
         for (const auto& entry : data_.foot_status) {
@@ -129,6 +136,11 @@ void Logger::saveData(const std::string& fileName) {
             file.write(reinterpret_cast<const char*>(entry.second.data()), entry.second.size() * sizeof(std::array<double,3>));
         }
 
+        // Load qpos and qvel
+        std::cout << "qpos size : " << data_.qpos.size() << std::endl;
+        file.write(reinterpret_cast<const char*>(data_.qpos.data()), data_.qpos.size() * sizeof(std::array<double,19>));
+        file.write(reinterpret_cast<const char*>(data_.qvel.data()), data_.qvel.size() * sizeof(std::array<double,18>));
+
         file.close();
     }
     else{
@@ -148,12 +160,6 @@ Data Logger::loadData(const std::string& fileName) {
         // int size; // meta-data.
         // file.read(reinterpret_cast<char*>(&data.size), sizeof(int));
         file.read(reinterpret_cast<char*>(&data.size), sizeof(int));
-
-        // Resize vectors before reading data
-        data.P.resize(data.size);
-        data.D.resize(data.size);
-        file.read(reinterpret_cast<char*>(data.P.data()), size_t(data.size) * sizeof(double));
-        file.read(reinterpret_cast<char*>(data.D.data()), size_t(data.size) * sizeof(double));
 
         // Load data specific to contact status
         for (size_t i = 0; i < 4; i++) {
@@ -206,6 +212,11 @@ Data Logger::loadData(const std::string& fileName) {
             file.read(reinterpret_cast<char*>(footData.data()), footData.size() * sizeof(std::array<double,3>));
             data.contact_forces[footName] = footData;
         }
+
+        data.qpos.resize(data.size);
+        data.qvel.resize(data.size);
+        file.read(reinterpret_cast<char*>(data.qpos.data()), data.qpos.size() * sizeof(std::array<double,19>));
+        file.read(reinterpret_cast<char*>(data.qvel.data()), data.qvel.size() * sizeof(std::array<double,18>));
 
         file.close();
     }

@@ -470,15 +470,17 @@ void MujocoSimulator::runSimulation(int numSteps) {
         }
 
         // Print un-ordered map.
-        std::cout << "Contact status [";
-        for (auto& ct:contact_status_){
-          std::cout << ct.first << ",";
-        }
-        std::cout << "] : [";
-        for (auto& ct:contact_status_){
-          std::cout << ct.second << ",";
-        }
-        std::cout << "]" << std::endl;
+        // std::cout << "Contact status [";
+        // for (auto& ct:contact_status_){
+        //   std::cout << ct.first << ",";
+        // }
+        // std::cout << "] : [";
+        // for (auto& ct:contact_status_){
+        //   std::cout << ct.second << ",";
+        // }
+        // std::cout << "]" << std::endl;
+
+        logger_.logState(model,data);
 
         logger_.logFeetStatus(contact_status_);
         logger_.logFeetPosition(model, data);
@@ -488,7 +490,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
         if (data->time > 2.){
           logger_.saveData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          // Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           // logger_.writeToCsvFile(filename);
           return;
         }

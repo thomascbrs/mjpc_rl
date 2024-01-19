@@ -114,15 +114,15 @@
     <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
     <framelinvel   name="HR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
     <framelinvel   name="HL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
+    <touch         name="FR_touch" site="FR"/>
+    <touch         name="FL_touch" site="FL"/>
+    <touch         name="HR_touch" site="RR"/>
+    <touch         name="HL_touch" site="RL"/>
 
     <framelinvel   name="velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
     <frameangvel   name="ang_velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
     <framelinacc   name="acc_lin_trunk" objtype="body" objname="trunk"/>
 
-    <touch         name="FR_touch" site="FR"/>
-    <touch         name="FL_touch" site="FL"/>
-    <touch         name="HR_touch" site="RR"/>
-    <touch         name="HL_touch" site="RL"/>
 
   </sensor>
 
