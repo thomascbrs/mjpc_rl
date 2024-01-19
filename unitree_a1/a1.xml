@@ -47,7 +47,7 @@
           <geom size="0.01" fromto="0.02 0 -0.13 0 0 -0.2"/>
         </default>
         <default class="foot">
-          <geom type="sphere" size="0.02" pos="0 0 -0.2" priority="1" solimp="0.015 1 0.031"
+          <geom type="sphere" size="0.02" pos="0 0 -0.2" priority="1" solimp="0.015 0.95 0.041 0.5 2" solref="0.02 1"
               condim="6" friction="0.8 0.02 0.01"/>
         </default>
       </default>
