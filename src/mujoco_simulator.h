@@ -70,6 +70,7 @@ private:
   std::vector<std::string> foot_names_;
   std::vector<int> foot_idx_;
   std::unordered_map<std::string, int> contact_status_;
+  std::unordered_map<std::string, std::array<double,3>> contact_forces_; // World frame.
 
   Logger logger_;
 };

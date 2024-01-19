@@ -191,6 +191,8 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   foot_names_ = {"FR", "FL", "HR", "HL"};
   for (const auto& name:foot_names_){
     contact_status_[name] = 0;
+    std::array<double,3> tmp = {0.,0.,0.};
+    contact_forces_[name] = tmp;
   }
 
   std::cout << "\nModel of the robot" << std::endl;
@@ -433,33 +435,62 @@ void MujocoSimulator::runSimulation(int numSteps) {
             const char* geomName0 = mj_id2name(model, mjOBJ_GEOM, geomIndex0);
             const char* geomName1 = mj_id2name(model, mjOBJ_GEOM, geomIndex1);
             if (it0 != foot_idx_.end() || it1 != foot_idx_.end()){
+              mjtNum mat[9], confrc[6], frc[3], vec[3];
+
+              // mat = contact frame rotation matrix (normal along x)
+              mju_transpose(mat, data->contact[contactIndex].frame, 3, 3);
+
+              // get contact force:torque in contact frame
+              mj_contactForce(model, data, contactIndex, confrc);
+
+              // Get nonly the linear forces.
+              mju_copy(frc, confrc, 3);
+
+              mju_mulMatVec(vec, mat, frc, 3, 3);
+
               // Calculate the index by subtracting iterators
               if (it0 != foot_idx_.end()){
                 contact_status_[geomName0] = 1;
+                // Point from Geom[0] to Geom 1. Here Geom[0] is the foot.
+                mju_scl3(vec, vec, -1);
+                // std::array<double, 3> tmp_vec = {vec[1], vec[2], vec[0]}
+                contact_forces_[geomName0][0] = vec[0];
+                contact_forces_[geomName0][1] = vec[1];
+                contact_forces_[geomName0][2] = vec[2];
               }
               else{
                 contact_status_[geomName1] = 1;
+                // Point from Geom[0] to Geom 1. Here Geom[1] is the foot. Direction Ok.
+                // mju_scl3(vec, vec, -1);
+                contact_forces_[geomName0][0] = vec[0];
+                contact_forces_[geomName0][1] = vec[1];
+                contact_forces_[geomName0][2] = vec[2];
               }
             }
         }
 
         // Print un-ordered map.
-        std::cout << "Contact status [";
-        for (auto& ct:contact_status_){
-          std::cout << ct.first << ",";
-        }
-        std::cout << "] : [";
-        for (auto& ct:contact_status_){
-          std::cout << ct.second << ",";
-        }
-        std::cout << "]" << std::endl;
+        // std::cout << "Contact status [";
+        // for (auto& ct:contact_status_){
+        //   std::cout << ct.first << ",";
+        // }
+        // std::cout << "] : [";
+        // for (auto& ct:contact_status_){
+        //   std::cout << ct.second << ",";
+        // }
+        // std::cout << "]" << std::endl;
+
+        logger_.logState(model,data);
 
         logger_.logFeetStatus(contact_status_);
         logger_.logFeetPosition(model, data);
+        logger_.logFeetVelocity(model, data);
+        logger_.logFeetTouch(model,data);
+        logger_.logFeetForces(contact_forces_);
 
         if (data->time > 2.){
           logger_.saveData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          // Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          Data data = logger_.loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           // logger_.writeToCsvFile(filename);
           return;
         }
