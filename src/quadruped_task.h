@@ -53,7 +53,7 @@ public:
                   double *residual) const override;
 
     // Update function override
-    void Update() override ;
+    void Update() override;
     void getPitch(double pitch[1], double wpitch[1], double t) const;
 
   private:
