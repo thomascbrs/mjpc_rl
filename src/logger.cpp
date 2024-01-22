@@ -9,8 +9,11 @@ Logger::Logger() {
 
 Logger::~Logger() {}
 
-void Logger::Initialize(const std::vector<std::string> &foot_names) {
+void Logger::Initialize(const std::vector<std::string> &foot_names,
+                        const double dt_mpc, const int nsteps_mpc) {
   foot_names_ = foot_names;
+  data_.dt_mpc = dt_mpc;
+  data_.nsteps_mpc = nsteps_mpc;
 
   // Reserve memory for the foot contact status in the data.
   for (auto &name : foot_names) {
@@ -45,7 +48,6 @@ void Logger::logFeetForces(
         &contact_forces) {
   for (const auto &status : contact_forces) {
     data_.contact_forces[status.first].push_back(status.second);
-    std::cout << "status.second : " << status.second[0] << std::endl;
   }
 }
 
@@ -82,11 +84,21 @@ void Logger::logFeetTouch(const mjModel *model, mjData *data) {
   }
 }
 
+void Logger::logMPC(const mjpc::Trajectory *trajectory) {
+  std::vector<std::array<double, 37>> tmp_states;
+  for (int n = 0; n < trajectory->horizon; n++) {
+    std::array<double, 37> tmp_;
+    std::copy(trajectory->states.begin() + 37 * n,
+              trajectory->states.begin() + 37 * (n + 1), tmp_.begin());
+    tmp_states.push_back(tmp_);
+  }
+  data_.mpc_traj.push_back(tmp_states);
+}
+
 void Logger::logState(const mjModel *model, mjData *data) {
   std::array<double, 19> qpos;
   std::copy(data->qpos, data->qpos + 19, qpos.begin());
   data_.qpos.emplace_back(qpos);
-  std::cout << "qpos : " << qpos[2] << std::endl;
 
   std::array<double, 18> qvel;
   std::copy(data->qvel, data->qvel + 18, qvel.begin());

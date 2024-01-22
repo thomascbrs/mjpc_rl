@@ -254,7 +254,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   }
 
   // Initialize logger.
-  logger_.Initialize(foot_names_);
+  logger_.Initialize(foot_names_, horizon_, steps_);
 
   // start plan thread
   runSimulation(1000);
@@ -550,6 +550,8 @@ void MujocoSimulator::runSimulation(int numSteps) {
             // iteration
             // planner.Iteration(steps_, plan_pool);
           }
+          // Log OCP best trajectory.
+          logger_.logMPC(planner.BestTrajectory());
         }
         state_.Set(model, data);
         std::cout << "state_.time() : " << state_.time() << std::endl;
