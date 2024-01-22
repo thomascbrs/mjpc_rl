@@ -19,3 +19,15 @@ From root directory. Plotting tools :
 ```
 python3 scripts/plots.py
 ```
+
+##### TODO list
+
+Explore new costs on the OCP formulation:
+- Penalize contact forces
+- Penalize feet acceleration
+- Air time cost
+- Symmetric cost
+
+Improve plots and debug:
+- Add references curves on plot (velocity/angular)
+- Print MPC solutions on the graphs.
