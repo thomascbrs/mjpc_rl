@@ -257,7 +257,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   logger_.Initialize(foot_names_, horizon_, steps_);
 
   // start plan thread
-  runSimulation(1000);
+  // runSimulation(1000);
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -516,7 +516,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         logger_.logFeetTouch(model, data);
         logger_.logFeetForces(contact_forces_);
 
-        if (data->time > 2.) {
+        if (data->time > 1.3) {
           logger_.saveData(
               "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           Data data = logger_.loadData(

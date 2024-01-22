@@ -11,7 +11,8 @@
 
 struct Data {
   int size = 0; // Usefull for loading.
-  int nsteps_mpc;
+  int nsteps_mpc; // Number of steps for each OCP. horizon = npsteps * dt_mpc
+  int mpc_iteration; //  Number of iteration done by the mpc.
   double dt_mpc;
   std::vector<std::array<double, 19>>
       qpos; // qpos of the CoM/Trunk in world frame.
