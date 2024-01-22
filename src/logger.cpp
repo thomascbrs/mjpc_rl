@@ -11,10 +11,10 @@ Logger::Logger() {
 Logger::~Logger() {}
 
 void Logger::Initialize(const std::vector<std::string> &foot_names,
-                        const double dt_mpc, const int nsteps_mpc) {
+                        const double dt_mpc, const int horizon) {
   foot_names_ = foot_names;
   data_.dt_mpc = dt_mpc;
-  data_.nsteps_mpc = nsteps_mpc;
+  data_.horizon = horizon;
 
   // Reserve memory for the foot contact status in the data.
   for (auto &name : foot_names) {
@@ -113,7 +113,7 @@ void Logger::saveData(const std::string &fileName) {
   if (file.is_open()) {
     file.write(reinterpret_cast<const char *>(&data_.size), sizeof(int));
     file.write(reinterpret_cast<const char *>(&data_.mpc_iteration), sizeof(int));
-    file.write(reinterpret_cast<const char *>(&data_.nsteps_mpc), sizeof(int));
+    file.write(reinterpret_cast<const char *>(&data_.horizon), sizeof(int));
     file.write(reinterpret_cast<const char *>(&data_.dt_mpc), sizeof(double));
 
     // Save foot_status_ data
@@ -185,7 +185,7 @@ Data Logger::loadData(const std::string &fileName) {
   if (file.is_open()) {
     file.read(reinterpret_cast<char *>(&data.size), sizeof(int));
     file.read(reinterpret_cast<char *>(&data.mpc_iteration), sizeof(int));
-    file.read(reinterpret_cast<char *>(&data.nsteps_mpc), sizeof(int));
+    file.read(reinterpret_cast<char *>(&data.horizon), sizeof(int));
     file.read(reinterpret_cast<char *>(&data.dt_mpc), sizeof(double));
 
     // Load data specific to contact status
@@ -253,7 +253,7 @@ Data Logger::loadData(const std::string &fileName) {
 
     // Read MPC trajectories.
     for (size_t i = 0; i < data.mpc_iteration; i++){
-      std::vector<std::array<double, 37>> mpc_data(data.nsteps_mpc);
+      std::vector<std::array<double, 37>> mpc_data(data.horizon);
       file.read(reinterpret_cast<char *>(mpc_data.data()),
                 mpc_data.size() * sizeof(std::array<double, 37>));
       data.mpc_traj.push_back(mpc_data);
