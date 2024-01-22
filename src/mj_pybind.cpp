@@ -25,12 +25,18 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
   py::class_<Data>(m, "Data")
       .def(py::init<>())
       .def_readwrite("size", &Data::size)
+      .def_readwrite("mpc_iteration", &Data::mpc_iteration)
+      .def_readwrite("horizon", &Data::horizon)
+      .def_readwrite("dt_mpc", &Data::dt_mpc)
+      .def_readwrite("k_mpc", &Data::k_mpc)
+      .def_readwrite("dt_simu", &Data::dt_simu)
       .def_readwrite("qpos", &Data::qpos)
       .def_readwrite("qvel", &Data::qvel)
       .def_readwrite("foot_status", &Data::foot_status)
       .def_readwrite("foot_position", &Data::foot_position)
       .def_readwrite("foot_velocity", &Data::foot_velocity)
-      .def_readwrite("contact_forces", &Data::contact_forces);
+      .def_readwrite("contact_forces", &Data::contact_forces)
+      .def_readwrite("mpc_traj", &Data::mpc_traj);
 
   m.def("loadData", &loadDataWithoutInstance,
         "Load data from file and return as Data struct");

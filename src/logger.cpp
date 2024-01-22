@@ -11,10 +11,13 @@ Logger::Logger() {
 Logger::~Logger() {}
 
 void Logger::Initialize(const std::vector<std::string> &foot_names,
-                        const double dt_mpc, const int horizon) {
+                        const double dt_mpc, const int horizon, const int k_mpc,
+                        const double dt_simu) {
   foot_names_ = foot_names;
   data_.dt_mpc = dt_mpc;
   data_.horizon = horizon;
+  data_.k_mpc = k_mpc;
+  data_.dt_simu = dt_simu;
 
   // Reserve memory for the foot contact status in the data.
   for (auto &name : foot_names) {
@@ -112,9 +115,12 @@ void Logger::saveData(const std::string &fileName) {
                      std::ios::out | std::ios::binary | std::ios::trunc);
   if (file.is_open()) {
     file.write(reinterpret_cast<const char *>(&data_.size), sizeof(int));
-    file.write(reinterpret_cast<const char *>(&data_.mpc_iteration), sizeof(int));
+    file.write(reinterpret_cast<const char *>(&data_.mpc_iteration),
+               sizeof(int));
     file.write(reinterpret_cast<const char *>(&data_.horizon), sizeof(int));
     file.write(reinterpret_cast<const char *>(&data_.dt_mpc), sizeof(double));
+    file.write(reinterpret_cast<const char *>(&data_.k_mpc), sizeof(double));
+    file.write(reinterpret_cast<const char *>(&data_.dt_simu), sizeof(double));
 
     // Save foot_status_ data
     for (const auto &entry : data_.foot_status) {
@@ -167,10 +173,10 @@ void Logger::saveData(const std::string &fileName) {
                data_.qvel.size() * sizeof(std::array<double, 18>));
 
     // Save mpc trajectories
-    for (size_t i = 0; i < data_.mpc_traj.size(); i++){
-        file.write(reinterpret_cast<char *>(data_.mpc_traj.at(i).data()),
-                  data_.mpc_traj.at(i).size() * sizeof(std::array<double, 37>));
-      }
+    for (size_t i = 0; i < data_.mpc_traj.size(); i++) {
+      file.write(reinterpret_cast<char *>(data_.mpc_traj.at(i).data()),
+                 data_.mpc_traj.at(i).size() * sizeof(std::array<double, 37>));
+    }
 
     file.close();
   } else {
@@ -187,6 +193,8 @@ Data Logger::loadData(const std::string &fileName) {
     file.read(reinterpret_cast<char *>(&data.mpc_iteration), sizeof(int));
     file.read(reinterpret_cast<char *>(&data.horizon), sizeof(int));
     file.read(reinterpret_cast<char *>(&data.dt_mpc), sizeof(double));
+    file.read(reinterpret_cast<char *>(&data.k_mpc), sizeof(double));
+    file.read(reinterpret_cast<char *>(&data.dt_simu), sizeof(double));
 
     // Load data specific to contact status
     for (size_t i = 0; i < 4; i++) {
@@ -252,7 +260,7 @@ Data Logger::loadData(const std::string &fileName) {
               data.qvel.size() * sizeof(std::array<double, 18>));
 
     // Read MPC trajectories.
-    for (size_t i = 0; i < data.mpc_iteration; i++){
+    for (size_t i = 0; i < data.mpc_iteration; i++) {
       std::vector<std::array<double, 37>> mpc_data(data.horizon);
       file.read(reinterpret_cast<char *>(mpc_data.data()),
                 mpc_data.size() * sizeof(std::array<double, 37>));

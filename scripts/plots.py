@@ -199,6 +199,91 @@ def plot_state(data):
     fig_manager.set_window_title("States")
 
 
+def plot_MCP_horizon(ax, T, x, cmap, colors, norm, rfactor=1):
+    ax.scatter(T[::rfactor], x[::rfactor], marker=".", s=5, cmap=cmap, c=colors[::rfactor])
+    Tf = T[::rfactor]
+    xf = x[::rfactor]
+    rcolor = colors[::rfactor]
+    for k in range(1, len(T[::rfactor])):
+        ax.plot(Tf[k - 1:k + 1], xf[k - 1:k + 1], linestyle="-", color=cmap(norm(rcolor[k])), linewidth=2, markersize=0)
+
+def plot_state(ax,T,x,color,rfactor=1):
+    ax.plot(T[::rfactor], x[::rfactor], "-", label="x", color=color, linewidth=4)
+
+def plot_state_mpc(data):
+    """ Plot the state.
+    """
+    fig, axs = plt.subplots(3, 4)
+    order = [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
+    names_pos = ["x", "y", "z", "roll", "pitch", "yaw"]
+    names_vel = ["vx", "vy", "vz", "wx", "wy", "wz"]
+
+    dt = data.dt_simu
+    rfactor_mpc = 2
+    rfactor_state = 15
+    T = np.arange(0., dt * len(data.qpos), dt)
+
+    # Define colors
+    color_r = plt.cm.Reds(0.7)
+    color_b = plt.cm.Blues(0.8)
+    # Define the color values for replays
+    cmap = plt.cm.Greys
+
+    for i, mpc_data in enumerate(data.mpc_traj):
+        # Timeline i-MPC
+        t_start = i * data.k_mpc * dt
+        t_end = t_start + data.dt_mpc * (data.horizon - 1)
+        T_tmp = np.linspace(t_start, t_end, data.horizon)
+
+        # Colors for horizon
+        colors = np.linspace(0.95, 0.45, len(T_tmp))
+        norm = plt.Normalize(colors.min(), colors.max())
+
+        ##################
+        # Linear position
+        for k in range(3):
+            ax = plt.subplot(3, 4, order[k])
+            x = [state[k] for state in mpc_data]
+            plot_MCP_horizon(ax,T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+            x = [pos[k] for pos in data.qpos]
+            plot_state(ax,T,x,color_b, rfactor_state)
+            ax.set_title("State " + names_pos[k])
+
+        ###################
+        # Angular position
+        rpy_mpc = []
+        for elt in mpc_data:
+            rpy_mpc.append(pin.rpy.matrixToRpy(pin.Quaternion(elt[3], elt[4], elt[5], elt[6]).toRotationMatrix()))
+
+        rpy_state = []
+        for elt in data.qpos:
+            rpy_state.append(pin.rpy.matrixToRpy(pin.Quaternion(elt[3], elt[4], elt[5], elt[6]).toRotationMatrix()))
+        for k in range(3):
+            ax = plt.subplot(3, 4, order[k+3])
+            x = [state[k] for state in rpy_mpc]
+            plot_MCP_horizon(ax,T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+            x = [pos[k] for pos in rpy_state]
+            plot_state(ax,T,x,color_b, rfactor_state)
+            ax.set_title("State " + names_pos[k+3])
+
+        #####################
+        # Pos/Ang velocities
+        for k in range(6):
+            ax = plt.subplot(3, 4, order[k+6])
+            x = [state[k+19] for state in mpc_data]
+            plot_MCP_horizon(ax,T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+            x = [pos[k] for pos in data.qvel]
+            plot_state(ax,T,x,color_b, rfactor_state)
+            ax.set_title("State " + names_vel[k])
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("States with MCP")
+
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
@@ -207,8 +292,9 @@ if __name__ == "__main__":
     # Load the data.
     data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
 
-    plot_contact(data)
-    plot_velocity(data)
-    plot_contact_forces(data)
-    plot_state(data)
+    # plot_contact(data)
+    # plot_velocity(data)
+    # plot_contact_forces(data)
+    # plot_state(data)
+    plot_state_mpc(data)
     plt.show()
