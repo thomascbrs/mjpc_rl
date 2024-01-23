@@ -254,10 +254,10 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   }
 
   // Initialize logger.
-  logger_.Initialize(foot_names_);
+  logger_.Initialize(foot_names_, timestep_planner_, steps_, 10, timestep_);
 
   // start plan thread
-  runSimulation(1000);
+  // runSimulation(1000);
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -516,7 +516,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         logger_.logFeetTouch(model, data);
         logger_.logFeetForces(contact_forces_);
 
-        if (data->time > 2.) {
+        if (data->time > 1.3) {
           logger_.saveData(
               "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           Data data = logger_.loadData(
@@ -550,6 +550,8 @@ void MujocoSimulator::runSimulation(int numSteps) {
             // iteration
             // planner.Iteration(steps_, plan_pool);
           }
+          // Log OCP best trajectory.
+          logger_.logMPC(planner.BestTrajectory());
         }
         state_.Set(model, data);
         std::cout << "state_.time() : " << state_.time() << std::endl;
