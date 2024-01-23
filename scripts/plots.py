@@ -3,6 +3,7 @@ import numpy as np
 import pinocchio as pin
 from ndcurves import bezier
 
+
 def plot_contact(data):
     """ Plot the main contact status.
     """
@@ -205,10 +206,17 @@ def plot_MCP_horizon(ax, T, x, cmap, colors, norm, rfactor=1):
     xf = x[::rfactor]
     rcolor = colors[::rfactor]
     for k in range(1, len(T[::rfactor])):
-        ax.plot(Tf[k - 1:k + 1], xf[k - 1:k + 1], linestyle="-", color=cmap(norm(rcolor[k])), linewidth=2, markersize=0)
+        ax.plot(Tf[k - 1:k + 1],
+                xf[k - 1:k + 1],
+                linestyle="-",
+                color=cmap(norm(rcolor[k])),
+                linewidth=2,
+                markersize=0)
 
-def plot_state(ax,T,x,color,rfactor=1):
+
+def plot_state(ax, T, x, color, rfactor=1):
     ax.plot(T[::rfactor], x[::rfactor], "-", label="x", color=color, linewidth=4)
+
 
 def plot_state_mpc(data):
     """ Plot the state.
@@ -254,10 +262,10 @@ def plot_state_mpc(data):
         for k in range(3):
             ax = plt.subplot(3, 4, order[k])
             x = [state[k] for state in mpc_data]
-            plot_MCP_horizon(ax,T_tmp, x, cmap, colors, norm, rfactor_mpc)
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
 
             x = [pos[k] for pos in data.qpos]
-            plot_state(ax,T,x,color_b, rfactor_state)
+            plot_state(ax, T, x, color_b, rfactor_state)
             ax.set_title("State " + names_pos[k])
 
         ###################
@@ -270,38 +278,50 @@ def plot_state_mpc(data):
         for elt in data.qpos:
             rpy_state.append(pin.rpy.matrixToRpy(pin.Quaternion(elt[3], elt[4], elt[5], elt[6]).toRotationMatrix()))
         for k in range(3):
-            ax = plt.subplot(3, 4, order[k+3])
+            ax = plt.subplot(3, 4, order[k + 3])
             x = [state[k] for state in rpy_mpc]
-            plot_MCP_horizon(ax,T_tmp, x, cmap, colors, norm, rfactor_mpc)
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
 
             x = [pos[k] for pos in rpy_state]
-            plot_state(ax,T,x,color_b, rfactor_state)
-            ax.set_title("State " + names_pos[k+3])
+            plot_state(ax, T, x, color_b, rfactor_state)
+            ax.set_title("State " + names_pos[k + 3])
 
             if k == 1:
                 x = [curve.get_pitch(t)[0] for t in T]
                 ax.plot(T[::rfactor_state], x[::rfactor_state], "--", label="x", color=color_r, linewidth=2)
 
                 x = [curve.get_pitch(t)[0] for t in T_tmp[T_tmp < 1]]
-                ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc], x[::rfactor_mpc], "--", label="x", color=color_r, linewidth=2, alpha =0.2)
+                ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc],
+                        x[::rfactor_mpc],
+                        "--",
+                        label="x",
+                        color=color_r,
+                        linewidth=2,
+                        alpha=0.2)
 
         #####################
         # Pos/Ang velocities
         for k in range(6):
-            ax = plt.subplot(3, 4, order[k+6])
-            x = [state[k+19] for state in mpc_data]
-            plot_MCP_horizon(ax,T_tmp, x, cmap, colors, norm, rfactor_mpc)
+            ax = plt.subplot(3, 4, order[k + 6])
+            x = [state[k + 19] for state in mpc_data]
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
 
             x = [pos[k] for pos in data.qvel]
-            plot_state(ax,T,x,color_b, rfactor_state)
+            plot_state(ax, T, x, color_b, rfactor_state)
 
-            if k < 3: # Linear velocities
-                x = [curve.curve.derivate(t,1)[k] for t in T]
+            if k < 3:  # Linear velocities
+                x = [curve.curve.derivate(t, 1)[k] for t in T]
                 ax.plot(T[::rfactor_state], x[::rfactor_state], "--", label="x", color=color_r, linewidth=2)
 
                 # Ref for each MPC
-                x = [curve.curve.derivate(t,1)[k] for t in T_tmp[T_tmp < 1]]
-                ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc], x[::rfactor_mpc], "--", label="x", color=color_r, linewidth=2, alpha =0.2)
+                x = [curve.curve.derivate(t, 1)[k] for t in T_tmp[T_tmp < 1]]
+                ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc],
+                        x[::rfactor_mpc],
+                        "--",
+                        label="x",
+                        color=color_r,
+                        linewidth=2,
+                        alpha=0.2)
 
             # if k == 4:
             #     x = [curve.get_pitch(t)[1] for t in T]
@@ -316,7 +336,9 @@ def plot_state_mpc(data):
     fig_manager = plt.get_current_fig_manager()
     fig_manager.set_window_title("States with MCP")
 
+
 class BezierRef():
+
     def __init__(self):
         P0 = [0.007, 0.0, 0.243]
         P1 = [0.656, 0.0, 0.009]
@@ -324,7 +346,7 @@ class BezierRef():
         P3 = [0.756, 0.0, 0.938]
         P4 = [1.678, 0.0, 0.052]
         P5 = [2.801, 0.0, 0.324]
-        self.curve = bezier(np.array([P0,P1,P2,P3,P4,P5]).T)
+        self.curve = bezier(np.array([P0, P1, P2, P3, P4, P5]).T)
 
     def get_pitch(self, t):
         # Compute derivative of the curve wrt to x to retrieve pitch angle.
