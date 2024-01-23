@@ -1,7 +1,7 @@
 from build_release.libmjpc_rl_pywrap import loadData
 import numpy as np
 import pinocchio as pin
-
+from ndcurves import bezier
 
 def plot_contact(data):
     """ Plot the main contact status.
@@ -230,6 +230,16 @@ def plot_state_mpc(data):
     cmap = plt.cm.Greys
 
     for i, mpc_data in enumerate(data.mpc_traj):
+
+        # Convert data.mpc_traj to a NumPy array
+        mpc_data = np.array(mpc_data)
+
+        # Replace values greater than 1e5 with zero
+        mpc_data[mpc_data > 1e5] = 0
+        mpc_data[mpc_data < -1e5] = 0
+
+        mpc_data = mpc_data.tolist()
+
         # Timeline i-MPC
         t_start = i * data.k_mpc * dt
         t_end = t_start + data.dt_mpc * (data.horizon - 1)
@@ -268,6 +278,13 @@ def plot_state_mpc(data):
             plot_state(ax,T,x,color_b, rfactor_state)
             ax.set_title("State " + names_pos[k+3])
 
+            if k == 1:
+                x = [curve.get_pitch(t)[0] for t in T]
+                ax.plot(T[::rfactor_state], x[::rfactor_state], "--", label="x", color=color_r, linewidth=2)
+
+                x = [curve.get_pitch(t)[0] for t in T_tmp[T_tmp < 1]]
+                ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc], x[::rfactor_mpc], "--", label="x", color=color_r, linewidth=2, alpha =0.2)
+
         #####################
         # Pos/Ang velocities
         for k in range(6):
@@ -277,17 +294,86 @@ def plot_state_mpc(data):
 
             x = [pos[k] for pos in data.qvel]
             plot_state(ax,T,x,color_b, rfactor_state)
+
+            if k < 3: # Linear velocities
+                x = [curve.curve.derivate(t,1)[k] for t in T]
+                ax.plot(T[::rfactor_state], x[::rfactor_state], "--", label="x", color=color_r, linewidth=2)
+
+                # Ref for each MPC
+                x = [curve.curve.derivate(t,1)[k] for t in T_tmp[T_tmp < 1]]
+                ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc], x[::rfactor_mpc], "--", label="x", color=color_r, linewidth=2, alpha =0.2)
+
+            # if k == 4:
+            #     x = [curve.get_pitch(t)[1] for t in T]
+            #     ax.plot(T[::rfactor_state], x[::rfactor_state], "--", label="x", color=color_r, linewidth=2)
+
+            #     x = [curve.get_pitch(t)[1] for t in T_tmp[T_tmp < 1]]
+            #     ax.plot(T_tmp[T_tmp < 1][::rfactor_mpc], x[::rfactor_mpc], "--", label="x", color=color_r, linewidth=2, alpha =0.2)
+
             ax.set_title("State " + names_vel[k])
 
     # Get the figure manager and set the window title
     fig_manager = plt.get_current_fig_manager()
     fig_manager.set_window_title("States with MCP")
 
+class BezierRef():
+    def __init__(self):
+        P0 = [0.007, 0.0, 0.243]
+        P1 = [0.656, 0.0, 0.009]
+        P2 = [1.764, 0.0, 0.209]
+        P3 = [0.756, 0.0, 0.938]
+        P4 = [1.678, 0.0, 0.052]
+        P5 = [2.801, 0.0, 0.324]
+        self.curve = bezier(np.array([P0,P1,P2,P3,P4,P5]).T)
+
+    def get_pitch(self, t):
+        # Compute derivative of the curve wrt to x to retrieve pitch angle.
+        dt = 0.01
+        factor = 0.5
+
+        # Current position
+        p0 = np.zeros(3)
+        # Backward (- dt)
+        p1 = np.zeros(3)
+        # Forward  (+ dt)
+        p2 = np.zeros(3)
+
+        if t - dt >= self.curve.min() and t + dt <= self.curve.max():
+            p0 = self.curve(t)
+            p1 = self.curve(t - dt)
+            p2 = self.curve(t + dt)
+        else:
+            if t - dt < self.curve.min():
+                # Beginning of the curve. Shift of dt.
+                p0 = self.curve(t + dt)
+                p1 = self.curve(t)
+                p2 = self.curve(t + 2 * dt)
+            else:
+                # End of the curve. Shift of -dt.
+                p0 = self.curve(t - dt)
+                p1 = self.curve(t - 2 * dt)
+                p2 = self.curve(t)
+
+        # Compute pitch angle. Forward.
+        pitch = 0. if p2[0] - p0[0] == 0. else (p2[2] - p0[2]) / (p2[0] - p0[0])
+        pitch_backward = 0. if p0[0] - p1[0] == 0. else (p0[2] - p1[2]) / (p0[0] - p1[0])
+
+        # Compute derivative.
+        wpitch = (pitch - pitch_backward) / dt
+
+        # Add factor
+        pitch *= -factor
+        wpitch *= -factor
+
+        return pitch, wpitch
+
 
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     plt.ion()
+
+    curve = BezierRef()
 
     # Load the data.
     data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
