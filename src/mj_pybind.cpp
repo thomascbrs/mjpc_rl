@@ -36,6 +36,7 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def_readwrite("foot_position", &Data::foot_position)
       .def_readwrite("foot_velocity", &Data::foot_velocity)
       .def_readwrite("contact_forces", &Data::contact_forces)
+      .def_readwrite("contact_forces_sensors", &Data::contact_forces_sensors)
       .def_readwrite("mpc_traj", &Data::mpc_traj);
 
   m.def("loadData", &loadDataWithoutInstance,

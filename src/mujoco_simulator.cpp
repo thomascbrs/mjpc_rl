@@ -128,7 +128,19 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   mjv_defaultCamera(&cam);
   mjv_defaultPerturb(&pert);
   mjv_defaultOption(&opt);
+  // opt.flags[mjVIS_CONTACTPOaINT] = 1;
+  opt.flags[mjVIS_CONTACTFORCE] = 1;
+  opt.flags[mjVIS_CONTACTSPLIT] = 1;
+  // opt.flags[mjVIS_CONSTRAINT] = 1;
+  std::cout << "FLAGS : " << opt.flags[mjVIS_CONTACTPOINT] << "\n" << std::endl;  // Set desired visualization flags
   mjr_defaultContext(&con);
+
+  double mass = 0.;
+  for (int i = 0; i < model->nbody; i++){
+    mass += model->body_mass[i];
+  }
+  std::cout << "Mass : " << mass << std::endl;
+
 
   // create scene and context
   mjv_makeScene(model, &scn, 1000);
@@ -215,10 +227,11 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Model description
   ///////////////////////
   foot_names_ = {"FR", "FL", "HR", "HL"};
+  foot_site_names_ = {{"FR", "FR"}, {"FL", "FL"}, {"HR", "RR"}, {"HL", "RL"}};
   for (const auto &name : foot_names_) {
     contact_status_[name] = 0;
-    std::array<double, 3> tmp = {0., 0., 0.};
-    contact_forces_[name] = tmp;
+    contact_forces_[name] = {0., 0., 0.};
+    contact_forces_sensors_[name] = {0., 0., 0.};
   }
 
   std::cout << "\nModel of the robot" << std::endl;
@@ -490,33 +503,48 @@ void MujocoSimulator::runSimulation(int numSteps) {
               contact_status_[geomName1] = 1;
               // Point from Geom[0] to Geom 1. Here Geom[1] is the foot.
               // Direction Ok. mju_scl3(vec, vec, -1);
-              contact_forces_[geomName0][0] = vec[0];
-              contact_forces_[geomName0][1] = vec[1];
-              contact_forces_[geomName0][2] = vec[2];
+              // mju_scl3(vec, vec, -1);
+              contact_forces_[geomName1][0] = vec[0];
+              contact_forces_[geomName1][1] = vec[1];
+              contact_forces_[geomName1][2] = vec[2];
             }
           }
         }
 
-        // Print un-ordered map.
-        // std::cout << "Contact status [";
-        // for (auto& ct:contact_status_){
-        //   std::cout << ct.first << ",";
-        // }
-        // std::cout << "] : [";
-        // for (auto& ct:contact_status_){
-        //   std::cout << ct.second << ",";
-        // }
-        // std::cout << "]" << std::endl;
+        ////////////////////////////////
+        // Log forces from force sensor.
+        for (const auto &name: foot_names_){
+          double *force = mjpc::SensorByName(model, data, name + "_force");
+
+          int siteID = mj_name2id(model, mjOBJ_SITE, foot_site_names_[name].c_str());
+          int parentBodyIndex = model->site_bodyid[siteID];
+
+          // Get the local position and orientation of the site
+          const mjtNum* localPosition = model->site_pos + 3 * siteID;
+          const mjtNum* localOrientation = model->site_quat + 4 * siteID;
+
+          // Use mj_local2Global to get the global position and orientation
+          mjtNum globalPosition[3];
+          mjtNum globalOrientation[9];
+          mjtNum vec[3];
+          mj_local2Global(data, globalPosition, globalOrientation, localPosition, localOrientation, parentBodyIndex, 0);
+          mju_mulMatVec(vec, globalOrientation, force, 3, 3);
+
+          // Update sensors dict.
+          contact_forces_sensors_[name][0] = -vec[0];
+          contact_forces_sensors_[name][1] = -vec[1];
+          contact_forces_sensors_[name][2] = -vec[2];
+        }
 
         logger_.logState(model, data);
-
         logger_.logFeetStatus(contact_status_);
         logger_.logFeetPosition(model, data);
         logger_.logFeetVelocity(model, data);
         logger_.logFeetTouch(model, data);
         logger_.logFeetForces(contact_forces_);
+        logger_.logFeetForcesSensors(contact_forces_sensors_);
 
-        if (data->time > 1.3) {
+        if (data->time > 1.9) {
           logger_.saveData(
               "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           Data data = logger_.loadData(
@@ -568,7 +596,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         //   data->qpos[i + 7]; double vel_error = data->qvel[i + 6]; //
         //   Assuming you have access to velocity information
         //   // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error
-        //   -
+        //
         //   // kd_ * vel_error;
         //   double control_signal = kp_ * error - kd_ * vel_error;
 
@@ -613,6 +641,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
     // Add visualisation.
     task_->ModifyScene(model, data, &scn);
+
+    // Add contact-related geoms to the visualization scene
+    // addContactGeom(model, data, 0, nullptr, &scn);
 
     mjr_render(viewport, &scn, &con);
 
