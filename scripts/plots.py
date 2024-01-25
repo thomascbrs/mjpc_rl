@@ -88,17 +88,23 @@ def plot_contact_forces(data):
     for i, name in enumerate(names):
         ax = plt.subplot(3, 4, order[3 * i])
         pos_ = [pos[0] for pos in data.contact_forces[name]]
-        ax.plot(T, pos_, "bx-", label="fc_x")
+        ax.plot(T, pos_, "b-", label="fc_x")
+        pos_ = [pos[0] for pos in data.contact_forces_sensors[name]]
+        ax.plot(T, pos_, "r-", label="fsensor_x")
         ax.set_title("Forces_x : " + name)
 
         ax = plt.subplot(3, 4, order[3 * i + 1])
         pos_ = [pos[1] for pos in data.contact_forces[name]]
-        ax.plot(T, pos_, "bx-", label="fc_y")
+        ax.plot(T, pos_, "b-", label="fc_y")
+        pos_ = [pos[1] for pos in data.contact_forces_sensors[name]]
+        ax.plot(T, pos_, "r-", label="fsensor_y")
         ax.set_title("Forces_y : " + name)
 
         ax = plt.subplot(3, 4, order[3 * i + 2])
         pos_ = [pos[2] for pos in data.contact_forces[name]]
-        ax.plot(T, pos_, "bx-", label="fc_z")
+        ax.plot(T, pos_, "b-", label="fc_z")
+        pos_ = [pos[2] for pos in data.contact_forces_sensors[name]]
+        ax.plot(T, pos_, "r-", label="fsensor_z")
         ax.set_title("Forces_z : " + name)
 
     # Adjust the vertical space between subplots
@@ -402,7 +408,7 @@ if __name__ == "__main__":
 
     # plot_contact(data)
     # plot_velocity(data)
-    # plot_contact_forces(data)
+    plot_contact_forces(data)
     # plot_state(data)
-    plot_state_mpc(data)
+    # plot_state_mpc(data)
     plt.show()
