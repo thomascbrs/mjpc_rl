@@ -1,6 +1,6 @@
 <mujoco model="Quadruped Terrain">
   <include file="../common.xml"/>
-
+  <!-- <option impratio="10" cone="elliptic"/> -->
   <size memory="1M"/>
 
   <custom>
@@ -91,9 +91,10 @@
     <user name="Fly-high" dim="12" user="9 0.1 0.0 1.0 90. 1. 1." />
     <user name="Body Pos." dim="3" user="0 0. 0.0 100.0" />
     <user name="Body Rot." dim="9" user="0 1. 0.0 10.0" />
-    <user name="Body Vel" dim="3" user="0 0.5 0. 1.0 90." />
+    <user name="Body Vel" dim="3" user="0 0.45 0. 1.0 90." />
     <user name="Body Ang vel" dim="3" user="0 0. 0.0 1.0 90." />
     <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
+    <user name="Forces" dim="12" user="0 0. 0.0 1.0" />
     <!-- <user name="Body Rot.Vel" dim="3" user="0 0.5 0.0 100.0" /> -->
     <!-- <user name="Foot-target-position" dim="8" user="0 0. 0.0 100.0" /> -->
     <!-- <user name="Body Acc" dim="3" user="0 0. 0.0 1.0 90." /> -->
@@ -114,10 +115,16 @@
     <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
     <framelinvel   name="HR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
     <framelinvel   name="HL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
+
     <touch         name="FR_touch" site="FR"/>
     <touch         name="FL_touch" site="FL"/>
     <touch         name="HR_touch" site="RR"/>
     <touch         name="HL_touch" site="RL"/>
+
+    <force         name="FR_force" site="FR"/>
+    <force         name="FL_force" site="FL"/>
+    <force         name="HR_force" site="RR"/>
+    <force         name="HL_force" site="RL"/>
 
     <framelinvel   name="velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
     <frameangvel   name="ang_velocity_trunk" objtype="body" objname="trunk" reftype="world" refname="world"/>
