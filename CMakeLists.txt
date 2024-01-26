@@ -87,6 +87,7 @@ endif()
 
 # Add the source files to the project
 add_library(mjpc_rl_cpp
+    src/contact_data.h
     src/utils.cpp
     src/logger.h
     src/logger.cpp

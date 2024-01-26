@@ -42,6 +42,17 @@ void Logger::Initialize(const std::vector<std::string> &foot_names,
   }
 }
 
+void Logger::log(const mjModel *model, mjData *data,
+                 const ContactData *mcontactData) {
+  logState(model, data);
+  logFeetStatus(mcontactData->contact_status);
+  logFeetPosition(model, data);
+  logFeetVelocity(model, data);
+  logFeetTouch(model, data);
+  logFeetForces(mcontactData->contact_forces);
+  logFeetForcesSensors(mcontactData->contact_forces_sensors);
+};
+
 void Logger::logFeetStatus(
     const std::unordered_map<std::string, int> &contact_status) {
   for (const auto &status : contact_status) {

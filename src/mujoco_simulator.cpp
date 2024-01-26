@@ -352,14 +352,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
         // Reset the contact status to 0.
         mcontactData.update(model, data);
-
-        logger_.logState(model, data);
-        logger_.logFeetStatus(mcontactData.contact_status);
-        logger_.logFeetPosition(model, data);
-        logger_.logFeetVelocity(model, data);
-        logger_.logFeetTouch(model, data);
-        logger_.logFeetForces(mcontactData.contact_forces);
-        logger_.logFeetForcesSensors(mcontactData.contact_forces_sensors);
+        logger_.log(model, data, &mcontactData);
 
         if (data->time > 1.9) {
           logger_.saveData(

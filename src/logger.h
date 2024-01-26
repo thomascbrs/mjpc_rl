@@ -1,6 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include "contact_data.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 #include "mujoco/mujoco.h"
@@ -40,6 +41,8 @@ public:
                   const double dt_mpc, const int horizon_mpc, const int k_mpc,
                   const double dt_simu);
   ~Logger();
+
+  void log(const mjModel *model, mjData *data, const ContactData *mcontactData);
 
   void logState(const mjModel *model, mjData *data);
 
