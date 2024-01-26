@@ -234,37 +234,8 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
     contact_forces_sensors_[name] = {0., 0., 0.};
   }
 
-  std::cout << "\nModel of the robot" << std::endl;
-  for (int objType = mjOBJ_UNKNOWN; objType < mjOBJ_PLUGIN; ++objType) {
-    mjtObj enumValue = static_cast<mjtObj>(objType);
-
-    // Convert enum value to string
-    const char *enumName = enumToString(enumValue);
-
-    std::vector<std::pair<const char *, int>> objNames;
-    for (int k = 0; k < 100; k++) {
-      const char *objName = mj_id2name(model, objType, k);
-      if (objName != nullptr) {
-        objNames.push_back(std::make_pair(objName, k));
-      }
-    }
-    if (objNames.size() > 0) {
-      std::cout << "\n------- Types : " << enumName << "-------" << std::endl;
-      for (const auto &element : objNames) {
-        const char *objName = element.first;
-        int index = element.second;
-        std::cout << "Name : " << objName << " -- Index : " << index
-                  << std::endl;
-
-        auto it = std::find(foot_names_.begin(), foot_names_.end(),
-                            std::string(objName));
-        // Create a list of geometry.
-        if (it != foot_names_.end() && objType == mjOBJ_GEOM) {
-          foot_idx_.push_back(index);
-        }
-      }
-    }
-  }
+  // Print model informations.
+  infos_models(model);
 
   // Initialize logger.
   logger_.Initialize(foot_names_, timestep_planner_, steps_, 10, timestep_);
