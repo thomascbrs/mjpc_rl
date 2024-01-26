@@ -88,17 +88,23 @@ def plot_contact_forces(data):
     for i, name in enumerate(names):
         ax = plt.subplot(3, 4, order[3 * i])
         pos_ = [pos[0] for pos in data.contact_forces[name]]
-        ax.plot(T, pos_, "bx-", label="fc_x")
+        ax.plot(T, pos_, "b-", label="fc_x")
+        pos_ = [pos[0] for pos in data.contact_forces_sensors[name]]
+        ax.plot(T, pos_, "r-", label="fsensor_x")
         ax.set_title("Forces_x : " + name)
 
         ax = plt.subplot(3, 4, order[3 * i + 1])
         pos_ = [pos[1] for pos in data.contact_forces[name]]
-        ax.plot(T, pos_, "bx-", label="fc_y")
+        ax.plot(T, pos_, "b-", label="fc_y")
+        pos_ = [pos[1] for pos in data.contact_forces_sensors[name]]
+        ax.plot(T, pos_, "r-", label="fsensor_y")
         ax.set_title("Forces_y : " + name)
 
         ax = plt.subplot(3, 4, order[3 * i + 2])
         pos_ = [pos[2] for pos in data.contact_forces[name]]
-        ax.plot(T, pos_, "bx-", label="fc_z")
+        ax.plot(T, pos_, "b-", label="fc_z")
+        pos_ = [pos[2] for pos in data.contact_forces_sensors[name]]
+        ax.plot(T, pos_, "r-", label="fsensor_z")
         ax.set_title("Forces_z : " + name)
 
     # Adjust the vertical space between subplots
@@ -200,8 +206,8 @@ def plot_state(data):
     fig_manager.set_window_title("States")
 
 
-def plot_MCP_horizon(ax, T, x, cmap, colors, norm, rfactor=1):
-    ax.scatter(T[::rfactor], x[::rfactor], marker=".", s=5, cmap=cmap, c=colors[::rfactor])
+def plot_MCP_horizon(ax, T, x, cmap, colors, norm, rfactor=1, label=""):
+    ax.scatter(T[::rfactor], x[::rfactor], marker=".", s=5, cmap=cmap, c=colors[::rfactor], label=label)
     Tf = T[::rfactor]
     xf = x[::rfactor]
     rcolor = colors[::rfactor]
@@ -214,8 +220,15 @@ def plot_MCP_horizon(ax, T, x, cmap, colors, norm, rfactor=1):
                 markersize=0)
 
 
-def plot_state(ax, T, x, color, rfactor=1):
-    ax.plot(T[::rfactor], x[::rfactor], "-", label="x", color=color, linewidth=4)
+def plot_state(ax, T, x, color, label="", linestyle='-', marker='o', markersize=1, linewidth=1, rfactor=1):
+    ax.plot(T[::rfactor],
+            x[::rfactor],
+            label=label,
+            linewidth=linewidth,
+            linestyle=linestyle,
+            markersize=markersize,
+            marker=marker,
+            color=color)
 
 
 def plot_state_mpc(data):
@@ -337,6 +350,123 @@ def plot_state_mpc(data):
     fig_manager.set_window_title("States with MCP")
 
 
+def plot_angular_position_MPCs(data):
+
+    fig, axs = plt.subplots(3, 4)
+    order = [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
+    names_pos = ["q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"]
+    actuator_names = dict()
+    actuator_names = dict()
+    actuator_names[0] = "FR_hip"
+    actuator_names[1] = "FR_thigh"
+    actuator_names[2] = "FR_calf"
+    actuator_names[3] = "FL_hip"
+    actuator_names[4] = "FL_thigh"
+    actuator_names[5] = "FL_calf"
+    actuator_names[6] = "RR_hip"
+    actuator_names[7] = "RR_thigh"
+    actuator_names[8] = "RR_calf"
+    actuator_names[9] = "RL_hip"
+    actuator_names[10] = "RL_thigh"
+    actuator_names[11] = "RL_calf"
+
+    dt = data.dt_simu
+    rfactor_mpc = 4
+    rfactor_state = 10
+    T = np.arange(0., dt * len(data.qpos), dt)
+
+    # Define colors
+    color_r = plt.cm.Reds(0.7)
+    color_b = plt.cm.Blues(0.8)
+    # Define the color values for replays
+    cmap = plt.cm.Greys
+
+    for i, mpc_data in enumerate(data.mpc_traj):
+        # Timeline i-MPC
+        t_start = i * data.k_mpc * dt
+        t_end = t_start + data.dt_mpc * (data.horizon - 1)
+        T_tmp = np.linspace(t_start, t_end, data.horizon)
+
+        # Colors for horizon
+        colors = np.linspace(0.6, 0.35, len(T_tmp))
+        norm = plt.Normalize(colors.min(), colors.max())
+
+        ##################
+        # Angular position
+        for k in range(12):
+            ax = plt.subplot(3, 4, order[k])
+            x = [state[k + 7] for state in mpc_data]
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+    for k in range(12):
+        ax = plt.subplot(3, 4, order[k])
+        x = [state[k + 7] for state in data.qpos]
+        plot_state(ax, T, x, color_b, label="measured", linewidth=2, markersize=1, rfactor=rfactor_state)
+        ax.set_title("q" + str(k) + " : " + actuator_names[k])
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("Angular position with MCP")
+
+
+def plot_angular_velocities_MPCs(data):
+
+    fig, axs = plt.subplots(3, 4)
+    order = [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
+    actuator_names = dict()
+    actuator_names = dict()
+    actuator_names[0] = "FR_hip"
+    actuator_names[1] = "FR_thigh"
+    actuator_names[2] = "FR_calf"
+    actuator_names[3] = "FL_hip"
+    actuator_names[4] = "FL_thigh"
+    actuator_names[5] = "FL_calf"
+    actuator_names[6] = "RR_hip"
+    actuator_names[7] = "RR_thigh"
+    actuator_names[8] = "RR_calf"
+    actuator_names[9] = "RL_hip"
+    actuator_names[10] = "RL_thigh"
+    actuator_names[11] = "RL_calf"
+
+    dt = data.dt_simu
+    rfactor_mpc = 4
+    rfactor_state = 10
+    T = np.arange(0., dt * len(data.qpos), dt)
+
+    # Define colors
+    color_r = plt.cm.Reds(0.7)
+    color_b = plt.cm.Blues(0.8)
+    # Define the color values for replays
+    cmap = plt.cm.Greys
+
+    for i, mpc_data in enumerate(data.mpc_traj):
+        # Timeline i-MPC
+        t_start = i * data.k_mpc * dt
+        t_end = t_start + data.dt_mpc * (data.horizon - 1)
+        T_tmp = np.linspace(t_start, t_end, data.horizon)
+
+        # Colors for horizon
+        colors = np.linspace(0.6, 0.35, len(T_tmp))
+        norm = plt.Normalize(colors.min(), colors.max())
+
+        ##################
+        # Angular position
+        for k in range(12):
+            ax = plt.subplot(3, 4, order[k])
+            x = [state[k + 25] for state in mpc_data]
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+    for k in range(12):
+        ax = plt.subplot(3, 4, order[k])
+        x = [state[k + 6] for state in data.qvel]
+        plot_state(ax, T, x, color_b, label="measured", linewidth=2, markersize=1, rfactor=rfactor_state)
+        ax.set_title("qv" + str(k) + " : " + actuator_names[k])
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("Angular velocities with MCP")
+
+
 class BezierRef():
 
     def __init__(self):
@@ -404,5 +534,7 @@ if __name__ == "__main__":
     # plot_velocity(data)
     # plot_contact_forces(data)
     # plot_state(data)
-    plot_state_mpc(data)
+    # plot_state_mpc(data)
+    plot_angular_velocities_MPCs(data)
+    plot_angular_position_MPCs(data)
     plt.show()

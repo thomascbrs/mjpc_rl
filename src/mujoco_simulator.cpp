@@ -1,66 +1,7 @@
 #include "mujoco_simulator.h"
 #include "quadruped_task.h"
+#include "utils.cpp"
 #include <iostream>
-
-// Function to convert enum value to string
-const char *enumToString(mjtObj value) {
-  switch (value) {
-  case mjOBJ_UNKNOWN:
-    return "mjOBJ_UNKNOWN";
-  case mjOBJ_BODY:
-    return "mjOBJ_BODY";
-  case mjOBJ_XBODY:
-    return "mjOBJ_XBODY";
-  case mjOBJ_JOINT:
-    return "mjOBJ_JOINT";
-  case mjOBJ_DOF:
-    return "mjOBJ_DOF";
-  case mjOBJ_GEOM:
-    return "mjOBJ_GEOM";
-  case mjOBJ_SITE:
-    return "mjOBJ_SITE";
-  case mjOBJ_CAMERA:
-    return "mjOBJ_CAMERA";
-  case mjOBJ_LIGHT:
-    return "mjOBJ_LIGHT";
-  case mjOBJ_FLEX:
-    return "mjOBJ_FLEX";
-  case mjOBJ_MESH:
-    return "mjOBJ_MESH";
-  case mjOBJ_SKIN:
-    return "mjOBJ_SKIN";
-  case mjOBJ_HFIELD:
-    return "mjOBJ_HFIELD";
-  case mjOBJ_TEXTURE:
-    return "mjOBJ_TEXTURE";
-  case mjOBJ_MATERIAL:
-    return "mjOBJ_MATERIAL";
-  case mjOBJ_PAIR:
-    return "mjOBJ_PAIR";
-  case mjOBJ_EXCLUDE:
-    return "mjOBJ_EXCLUDE";
-  case mjOBJ_EQUALITY:
-    return "mjOBJ_EQUALITY";
-  case mjOBJ_TENDON:
-    return "mjOBJ_TENDON";
-  case mjOBJ_ACTUATOR:
-    return "mjOBJ_ACTUATOR";
-  case mjOBJ_SENSOR:
-    return "mjOBJ_SENSOR";
-  case mjOBJ_NUMERIC:
-    return "mjOBJ_NUMERIC";
-  case mjOBJ_TEXT:
-    return "mjOBJ_TEXT";
-  case mjOBJ_TUPLE:
-    return "mjOBJ_TUPLE";
-  case mjOBJ_KEY:
-    return "mjOBJ_KEY";
-  case mjOBJ_PLUGIN:
-    return "mjOBJ_PLUGIN";
-  default:
-    return "Unknown Enum Value";
-  }
-}
 
 // Define the task outisde the class function.
 // mjpc::QuadrupedFlat *task_;
@@ -78,7 +19,8 @@ mjpc::iLQGPlanner planner;
 std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
 MujocoSimulator::MujocoSimulator(const char *modelFile)
-    : model(nullptr), data(nullptr) {
+    : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
+      mcontactData(foot_names_) {
 
   // Load Mujoco model
   char loadError[1024] = "";
@@ -128,7 +70,19 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   mjv_defaultCamera(&cam);
   mjv_defaultPerturb(&pert);
   mjv_defaultOption(&opt);
+  // opt.flags[mjVIS_CONTACTPOaINT] = 1;
+  opt.flags[mjVIS_CONTACTFORCE] = 1;
+  opt.flags[mjVIS_CONTACTSPLIT] = 1;
+  // opt.flags[mjVIS_CONSTRAINT] = 1;
+  std::cout << "FLAGS : " << opt.flags[mjVIS_CONTACTPOINT] << "\n"
+            << std::endl; // Set desired visualization flags
   mjr_defaultContext(&con);
+
+  double mass = 0.;
+  for (int i = 0; i < model->nbody; i++) {
+    mass += model->body_mass[i];
+  }
+  std::cout << "Mass : " << mass << std::endl;
 
   // create scene and context
   mjv_makeScene(model, &scn, 1000);
@@ -191,73 +145,17 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
     }
   }
 
-  // TODO : Modify values of the geom to disable geom params and to plan
-  // only with the feet and not with other body parts.
-  // Not working for now.
-  // Iterate over all geoms
-  for (int geom_idx = 0; geom_idx < model->ngeom; ++geom_idx) {
-    int geom_name_ptr = model->name_geomadr[geom_idx];
-
-    // Determine the length of the geom name
-    size_t name_length = 0;
-    while (model->names[geom_name_ptr + name_length] != '\0') {
-      ++name_length;
-    }
-
-    // Convert the char to a string
-    std::string geom_name(&model->names[geom_name_ptr], name_length);
-
-    // Print the string
-    std::cout << "Geom " << geom_idx << " Name: " << geom_name << std::endl;
-  }
-
   ///////////////////////
   // Model description
   ///////////////////////
   foot_names_ = {"FR", "FL", "HR", "HL"};
-  for (const auto &name : foot_names_) {
-    contact_status_[name] = 0;
-    std::array<double, 3> tmp = {0., 0., 0.};
-    contact_forces_[name] = tmp;
-  }
 
-  std::cout << "\nModel of the robot" << std::endl;
-  for (int objType = mjOBJ_UNKNOWN; objType < mjOBJ_PLUGIN; ++objType) {
-    mjtObj enumValue = static_cast<mjtObj>(objType);
-
-    // Convert enum value to string
-    const char *enumName = enumToString(enumValue);
-
-    std::vector<std::pair<const char *, int>> objNames;
-    for (int k = 0; k < 100; k++) {
-      const char *objName = mj_id2name(model, objType, k);
-      if (objName != nullptr) {
-        objNames.push_back(std::make_pair(objName, k));
-      }
-    }
-    if (objNames.size() > 0) {
-      std::cout << "\n------- Types : " << enumName << "-------" << std::endl;
-      for (const auto &element : objNames) {
-        const char *objName = element.first;
-        int index = element.second;
-        std::cout << "Name : " << objName << " -- Index : " << index
-                  << std::endl;
-
-        auto it = std::find(foot_names_.begin(), foot_names_.end(),
-                            std::string(objName));
-        // Create a list of geometry.
-        if (it != foot_names_.end() && objType == mjOBJ_GEOM) {
-          foot_idx_.push_back(index);
-        }
-      }
-    }
-  }
+  // Print model informations.
+  infos_models(model);
 
   // Initialize logger.
-  logger_.Initialize(foot_names_, timestep_planner_, steps_, 10, timestep_);
-
-  // start plan thread
-  // runSimulation(1000);
+  int k_mpc = 10;
+  logger_.Initialize(foot_names_, timestep_planner_, steps_, k_mpc, timestep_);
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -453,70 +351,10 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // handle this.
 
         // Reset the contact status to 0.
-        for (auto &status : contact_status_) {
-          status.second = 0;
-        }
-        for (int contactIndex = 0; contactIndex < data->ncon; ++contactIndex) {
-          int geomIndex0 = data->contact[contactIndex].geom[0];
-          auto it0 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex0);
-          int geomIndex1 = data->contact[contactIndex].geom[1];
-          auto it1 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex1);
-          const char *geomName0 = mj_id2name(model, mjOBJ_GEOM, geomIndex0);
-          const char *geomName1 = mj_id2name(model, mjOBJ_GEOM, geomIndex1);
-          if (it0 != foot_idx_.end() || it1 != foot_idx_.end()) {
-            mjtNum mat[9], confrc[6], frc[3], vec[3];
+        mcontactData.update(model, data);
+        logger_.log(model, data, &mcontactData);
 
-            // mat = contact frame rotation matrix (normal along x)
-            mju_transpose(mat, data->contact[contactIndex].frame, 3, 3);
-
-            // get contact force:torque in contact frame
-            mj_contactForce(model, data, contactIndex, confrc);
-
-            // Get nonly the linear forces.
-            mju_copy(frc, confrc, 3);
-
-            mju_mulMatVec(vec, mat, frc, 3, 3);
-
-            // Calculate the index by subtracting iterators
-            if (it0 != foot_idx_.end()) {
-              contact_status_[geomName0] = 1;
-              // Point from Geom[0] to Geom 1. Here Geom[0] is the foot.
-              mju_scl3(vec, vec, -1);
-              // std::array<double, 3> tmp_vec = {vec[1], vec[2], vec[0]}
-              contact_forces_[geomName0][0] = vec[0];
-              contact_forces_[geomName0][1] = vec[1];
-              contact_forces_[geomName0][2] = vec[2];
-            } else {
-              contact_status_[geomName1] = 1;
-              // Point from Geom[0] to Geom 1. Here Geom[1] is the foot.
-              // Direction Ok. mju_scl3(vec, vec, -1);
-              contact_forces_[geomName0][0] = vec[0];
-              contact_forces_[geomName0][1] = vec[1];
-              contact_forces_[geomName0][2] = vec[2];
-            }
-          }
-        }
-
-        // Print un-ordered map.
-        // std::cout << "Contact status [";
-        // for (auto& ct:contact_status_){
-        //   std::cout << ct.first << ",";
-        // }
-        // std::cout << "] : [";
-        // for (auto& ct:contact_status_){
-        //   std::cout << ct.second << ",";
-        // }
-        // std::cout << "]" << std::endl;
-
-        logger_.logState(model, data);
-
-        logger_.logFeetStatus(contact_status_);
-        logger_.logFeetPosition(model, data);
-        logger_.logFeetVelocity(model, data);
-        logger_.logFeetTouch(model, data);
-        logger_.logFeetForces(contact_forces_);
-
-        if (data->time > 1.3) {
+        if (data->time > 1.9) {
           logger_.saveData(
               "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           Data data = logger_.loadData(
@@ -568,7 +406,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         //   data->qpos[i + 7]; double vel_error = data->qvel[i + 6]; //
         //   Assuming you have access to velocity information
         //   // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error
-        //   -
+        //
         //   // kd_ * vel_error;
         //   double control_signal = kp_ * error - kd_ * vel_error;
 
@@ -613,6 +451,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
     // Add visualisation.
     task_->ModifyScene(model, data, &scn);
+
+    // Add contact-related geoms to the visualization scene
+    // addContactGeom(model, data, 0, nullptr, &scn);
 
     mjr_render(viewport, &scn, &con);
 

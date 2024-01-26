@@ -1,6 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include "contact_data.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 #include "mujoco/mujoco.h"
@@ -28,6 +29,8 @@ struct Data {
       foot_velocity;
   std::unordered_map<std::string, std::vector<std::array<double, 3>>>
       contact_forces;
+  std::unordered_map<std::string, std::vector<std::array<double, 3>>>
+      contact_forces_sensors;
   std::vector<std::vector<std::array<double, 37>>> mpc_traj;
 };
 
@@ -39,6 +42,8 @@ public:
                   const double dt_simu);
   ~Logger();
 
+  void log(const mjModel *model, mjData *data, const ContactData *mcontactData);
+
   void logState(const mjModel *model, mjData *data);
 
   void
@@ -46,6 +51,9 @@ public:
   void
   logFeetForces(const std::unordered_map<std::string, std::array<double, 3>>
                     &contact_forces);
+  void logFeetForcesSensors(
+      const std::unordered_map<std::string, std::array<double, 3>>
+          &contact_forces_sensors);
   void logFeetPosition(const mjModel *model, mjData *data);
   void logFeetVelocity(const mjModel *model, mjData *data);
   void logFeetTouch(const mjModel *model, mjData *data);

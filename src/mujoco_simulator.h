@@ -1,3 +1,6 @@
+#ifndef MUJOCO_SIMULATOR_H
+#define MUJOCO_SIMULATOR_H
+
 #include "mujoco/mujoco.h"
 #include <GLFW/glfw3.h>
 #include <mujoco/mjvisualize.h>
@@ -7,10 +10,11 @@
 #include "mjpc/planners/ilqg/planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
+#include "mjpc/threadpool.h"
 // #include "mjpc/tasks/quadruped/quadruped.h"
 // #include "mjpc/tasks/cartpole/cartpole.h"
+#include "contact_data.h"
 #include "logger.h"
-#include "mjpc/threadpool.h"
 
 class MujocoSimulator {
 public:
@@ -68,10 +72,9 @@ private:
   std::vector<std::vector<double>> jointPositionsLog;
 
   std::vector<std::string> foot_names_;
-  std::vector<int> foot_idx_;
-  std::unordered_map<std::string, int> contact_status_;
-  std::unordered_map<std::string, std::array<double, 3>>
-      contact_forces_; // World frame.
+  ContactData mcontactData;
 
   Logger logger_;
 };
+
+#endif // MUJOCO_SIMULATOR_H
