@@ -238,10 +238,8 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   infos_models(model);
 
   // Initialize logger.
-  logger_.Initialize(foot_names_, timestep_planner_, steps_, 10, timestep_);
-
-  // start plan thread
-  // runSimulation(1000);
+  int k_mpc = 10;
+  logger_.Initialize(foot_names_, timestep_planner_, steps_, k_mpc, timestep_);
 }
 
 MujocoSimulator::~MujocoSimulator() {
