@@ -48,8 +48,9 @@ public:
   void
   logFeetForces(const std::unordered_map<std::string, std::array<double, 3>>
                     &contact_forces);
-  void logFeetForcesSensors(const std::unordered_map<std::string, std::array<double, 3>>
-                    &contact_forces_sensors);
+  void logFeetForcesSensors(
+      const std::unordered_map<std::string, std::array<double, 3>>
+          &contact_forces_sensors);
   void logFeetPosition(const mjModel *model, mjData *data);
   void logFeetVelocity(const mjModel *model, mjData *data);
   void logFeetTouch(const mjModel *model, mjData *data);

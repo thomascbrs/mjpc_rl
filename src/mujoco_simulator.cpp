@@ -1,66 +1,7 @@
 #include "mujoco_simulator.h"
 #include "quadruped_task.h"
+#include "utils.cpp"
 #include <iostream>
-
-// Function to convert enum value to string
-const char *enumToString(mjtObj value) {
-  switch (value) {
-  case mjOBJ_UNKNOWN:
-    return "mjOBJ_UNKNOWN";
-  case mjOBJ_BODY:
-    return "mjOBJ_BODY";
-  case mjOBJ_XBODY:
-    return "mjOBJ_XBODY";
-  case mjOBJ_JOINT:
-    return "mjOBJ_JOINT";
-  case mjOBJ_DOF:
-    return "mjOBJ_DOF";
-  case mjOBJ_GEOM:
-    return "mjOBJ_GEOM";
-  case mjOBJ_SITE:
-    return "mjOBJ_SITE";
-  case mjOBJ_CAMERA:
-    return "mjOBJ_CAMERA";
-  case mjOBJ_LIGHT:
-    return "mjOBJ_LIGHT";
-  case mjOBJ_FLEX:
-    return "mjOBJ_FLEX";
-  case mjOBJ_MESH:
-    return "mjOBJ_MESH";
-  case mjOBJ_SKIN:
-    return "mjOBJ_SKIN";
-  case mjOBJ_HFIELD:
-    return "mjOBJ_HFIELD";
-  case mjOBJ_TEXTURE:
-    return "mjOBJ_TEXTURE";
-  case mjOBJ_MATERIAL:
-    return "mjOBJ_MATERIAL";
-  case mjOBJ_PAIR:
-    return "mjOBJ_PAIR";
-  case mjOBJ_EXCLUDE:
-    return "mjOBJ_EXCLUDE";
-  case mjOBJ_EQUALITY:
-    return "mjOBJ_EQUALITY";
-  case mjOBJ_TENDON:
-    return "mjOBJ_TENDON";
-  case mjOBJ_ACTUATOR:
-    return "mjOBJ_ACTUATOR";
-  case mjOBJ_SENSOR:
-    return "mjOBJ_SENSOR";
-  case mjOBJ_NUMERIC:
-    return "mjOBJ_NUMERIC";
-  case mjOBJ_TEXT:
-    return "mjOBJ_TEXT";
-  case mjOBJ_TUPLE:
-    return "mjOBJ_TUPLE";
-  case mjOBJ_KEY:
-    return "mjOBJ_KEY";
-  case mjOBJ_PLUGIN:
-    return "mjOBJ_PLUGIN";
-  default:
-    return "Unknown Enum Value";
-  }
-}
 
 // Define the task outisde the class function.
 // mjpc::QuadrupedFlat *task_;
@@ -78,7 +19,8 @@ mjpc::iLQGPlanner planner;
 std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
 MujocoSimulator::MujocoSimulator(const char *modelFile)
-    : model(nullptr), data(nullptr) {
+    : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
+      mcontactData(foot_names_) {
 
   // Load Mujoco model
   char loadError[1024] = "";
@@ -203,36 +145,10 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
     }
   }
 
-  // TODO : Modify values of the geom to disable geom params and to plan
-  // only with the feet and not with other body parts.
-  // Not working for now.
-  // Iterate over all geoms
-  for (int geom_idx = 0; geom_idx < model->ngeom; ++geom_idx) {
-    int geom_name_ptr = model->name_geomadr[geom_idx];
-
-    // Determine the length of the geom name
-    size_t name_length = 0;
-    while (model->names[geom_name_ptr + name_length] != '\0') {
-      ++name_length;
-    }
-
-    // Convert the char to a string
-    std::string geom_name(&model->names[geom_name_ptr], name_length);
-
-    // Print the string
-    std::cout << "Geom " << geom_idx << " Name: " << geom_name << std::endl;
-  }
-
   ///////////////////////
   // Model description
   ///////////////////////
   foot_names_ = {"FR", "FL", "HR", "HL"};
-  foot_site_names_ = {{"FR", "FR"}, {"FL", "FL"}, {"HR", "RR"}, {"HL", "RL"}};
-  for (const auto &name : foot_names_) {
-    contact_status_[name] = 0;
-    contact_forces_[name] = {0., 0., 0.};
-    contact_forces_sensors_[name] = {0., 0., 0.};
-  }
 
   // Print model informations.
   infos_models(model);
@@ -435,85 +351,15 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // handle this.
 
         // Reset the contact status to 0.
-        for (auto &status : contact_status_) {
-          status.second = 0;
-        }
-        for (int contactIndex = 0; contactIndex < data->ncon; ++contactIndex) {
-          int geomIndex0 = data->contact[contactIndex].geom[0];
-          auto it0 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex0);
-          int geomIndex1 = data->contact[contactIndex].geom[1];
-          auto it1 = std::find(foot_idx_.begin(), foot_idx_.end(), geomIndex1);
-          const char *geomName0 = mj_id2name(model, mjOBJ_GEOM, geomIndex0);
-          const char *geomName1 = mj_id2name(model, mjOBJ_GEOM, geomIndex1);
-          if (it0 != foot_idx_.end() || it1 != foot_idx_.end()) {
-            mjtNum mat[9], confrc[6], frc[3], vec[3];
-
-            // mat = contact frame rotation matrix (normal along x)
-            mju_transpose(mat, data->contact[contactIndex].frame, 3, 3);
-
-            // get contact force:torque in contact frame
-            mj_contactForce(model, data, contactIndex, confrc);
-
-            // Get nonly the linear forces.
-            mju_copy(frc, confrc, 3);
-
-            mju_mulMatVec(vec, mat, frc, 3, 3);
-
-            // Calculate the index by subtracting iterators
-            if (it0 != foot_idx_.end()) {
-              contact_status_[geomName0] = 1;
-              // Point from Geom[0] to Geom 1. Here Geom[0] is the foot.
-              mju_scl3(vec, vec, -1);
-              // std::array<double, 3> tmp_vec = {vec[1], vec[2], vec[0]}
-              contact_forces_[geomName0][0] = vec[0];
-              contact_forces_[geomName0][1] = vec[1];
-              contact_forces_[geomName0][2] = vec[2];
-            } else {
-              contact_status_[geomName1] = 1;
-              // Point from Geom[0] to Geom 1. Here Geom[1] is the foot.
-              // Direction Ok. mju_scl3(vec, vec, -1);
-              // mju_scl3(vec, vec, -1);
-              contact_forces_[geomName1][0] = vec[0];
-              contact_forces_[geomName1][1] = vec[1];
-              contact_forces_[geomName1][2] = vec[2];
-            }
-          }
-        }
-
-        ////////////////////////////////
-        // Log forces from force sensor.
-        for (const auto &name : foot_names_) {
-          double *force = mjpc::SensorByName(model, data, name + "_force");
-
-          int siteID =
-              mj_name2id(model, mjOBJ_SITE, foot_site_names_[name].c_str());
-          int parentBodyIndex = model->site_bodyid[siteID];
-
-          // Get the local position and orientation of the site
-          const mjtNum *localPosition = model->site_pos + 3 * siteID;
-          const mjtNum *localOrientation = model->site_quat + 4 * siteID;
-
-          // Use mj_local2Global to get the global position and orientation
-          mjtNum globalPosition[3];
-          mjtNum globalOrientation[9];
-          mjtNum vec[3];
-          mj_local2Global(data, globalPosition, globalOrientation,
-                          localPosition, localOrientation, parentBodyIndex, 0);
-          mju_mulMatVec(vec, globalOrientation, force, 3, 3);
-
-          // Update sensors dict.
-          contact_forces_sensors_[name][0] = -vec[0];
-          contact_forces_sensors_[name][1] = -vec[1];
-          contact_forces_sensors_[name][2] = -vec[2];
-        }
+        mcontactData.update(model, data);
 
         logger_.logState(model, data);
-        logger_.logFeetStatus(contact_status_);
+        logger_.logFeetStatus(mcontactData.contact_status);
         logger_.logFeetPosition(model, data);
         logger_.logFeetVelocity(model, data);
         logger_.logFeetTouch(model, data);
-        logger_.logFeetForces(contact_forces_);
-        logger_.logFeetForcesSensors(contact_forces_sensors_);
+        logger_.logFeetForces(mcontactData.contact_forces);
+        logger_.logFeetForcesSensors(mcontactData.contact_forces_sensors);
 
         if (data->time > 1.9) {
           logger_.saveData(
