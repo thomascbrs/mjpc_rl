@@ -132,15 +132,15 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   opt.flags[mjVIS_CONTACTFORCE] = 1;
   opt.flags[mjVIS_CONTACTSPLIT] = 1;
   // opt.flags[mjVIS_CONSTRAINT] = 1;
-  std::cout << "FLAGS : " << opt.flags[mjVIS_CONTACTPOINT] << "\n" << std::endl;  // Set desired visualization flags
+  std::cout << "FLAGS : " << opt.flags[mjVIS_CONTACTPOINT] << "\n"
+            << std::endl; // Set desired visualization flags
   mjr_defaultContext(&con);
 
   double mass = 0.;
-  for (int i = 0; i < model->nbody; i++){
+  for (int i = 0; i < model->nbody; i++) {
     mass += model->body_mass[i];
   }
   std::cout << "Mass : " << mass << std::endl;
-
 
   // create scene and context
   mjv_makeScene(model, &scn, 1000);
@@ -513,21 +513,23 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
         ////////////////////////////////
         // Log forces from force sensor.
-        for (const auto &name: foot_names_){
+        for (const auto &name : foot_names_) {
           double *force = mjpc::SensorByName(model, data, name + "_force");
 
-          int siteID = mj_name2id(model, mjOBJ_SITE, foot_site_names_[name].c_str());
+          int siteID =
+              mj_name2id(model, mjOBJ_SITE, foot_site_names_[name].c_str());
           int parentBodyIndex = model->site_bodyid[siteID];
 
           // Get the local position and orientation of the site
-          const mjtNum* localPosition = model->site_pos + 3 * siteID;
-          const mjtNum* localOrientation = model->site_quat + 4 * siteID;
+          const mjtNum *localPosition = model->site_pos + 3 * siteID;
+          const mjtNum *localOrientation = model->site_quat + 4 * siteID;
 
           // Use mj_local2Global to get the global position and orientation
           mjtNum globalPosition[3];
           mjtNum globalOrientation[9];
           mjtNum vec[3];
-          mj_local2Global(data, globalPosition, globalOrientation, localPosition, localOrientation, parentBodyIndex, 0);
+          mj_local2Global(data, globalPosition, globalOrientation,
+                          localPosition, localOrientation, parentBodyIndex, 0);
           mju_mulMatVec(vec, globalOrientation, force, 3, 3);
 
           // Update sensors dict.
