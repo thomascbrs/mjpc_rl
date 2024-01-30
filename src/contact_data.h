@@ -18,9 +18,8 @@ struct ContactData {
 
   // Constructor to initialize the struct
   ContactData(const std::vector<std::string> &foot_names)
-      : foot_names(foot_names) {
+      : foot_names(foot_names), force_suffix("_force") {
     // TODO: Find a better way to initialize this. Modify .xml ?
-    force_suffix = "_force";
     foot_site_names = {{"FR", "FR"}, {"FL", "FL"}, {"HR", "RR"}, {"HL", "RL"}};
     for (const auto &name : foot_names) {
       contact_status[name] = 0;
