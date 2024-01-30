@@ -177,11 +177,21 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
     // ---------- Residual (6) ----------
     // Force feet penalisation
-    std::vector<std::string> force_name = {"FR_force","FL_force","HR_force","HL_force"};
-    double forces_ref[3] = {33.,0.,0.};
+    // std::vector<std::string> force_name = {"FR_force","FL_force","HR_force","HL_force"};
+    // double forces_ref[3] = {33.,0.,0.};
+    // for (const auto& name:force_name){
+    //   double *forces = mjpc::SensorByName(model, data, name);
+    //   mju_sub3(residual + res_index, forces, forces_ref);
+    //   res_index += 3;
+    // }
+
+    // ---------- Residual (6) ----------
+    // Feet velocity
+    std::vector<std::string> force_name = {"FR_vel","FL_vel","HR_vel","HL_vel"};
+    double feet_acc_ref[3] = {0.,0.,0.};
     for (const auto& name:force_name){
-      double *forces = mjpc::SensorByName(model, data, name);
-      mju_sub3(residual + res_index, forces, forces_ref);
+      double *feet_acc = mjpc::SensorByName(model, data, name);
+      mju_sub3(residual + res_index, feet_acc, feet_acc_ref);
       res_index += 3;
     }
 

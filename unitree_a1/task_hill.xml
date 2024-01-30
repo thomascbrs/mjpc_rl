@@ -93,7 +93,8 @@
     <user name="Body Rot." dim="9" user="0 1. 0.0 10.0" />
     <user name="Body Vel" dim="3" user="0 0.45 0. 1.0 90." />
     <user name="Body Ang vel" dim="3" user="0 0. 0.0 1.0 90." />
-    <user name="Forces" dim="12" user="0 0.0 0.0 1.0" />
+    <!-- <user name="Forces" dim="12" user="0 0.0 0.0 1.0" /> -->
+    <user name="Foot-Vel" dim="12" user="0 0. 0.0 1.0" />
     <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
     <!-- <user name="Body Rot.Vel" dim="3" user="0 0.5 0.0 100.0" /> -->
     <!-- <user name="Body Acc" dim="3" user="0 0. 0.0 1.0 90." /> -->
@@ -114,6 +115,11 @@
     <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
     <framelinvel   name="HR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
     <framelinvel   name="HL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
+
+    <framelinacc   name="FR_acc" objtype="site" objname="FR"/>
+    <framelinacc   name="FL_acc" objtype="site" objname="FL"/>
+    <framelinacc   name="HR_acc" objtype="site" objname="RR"/>
+    <framelinacc   name="HL_acc" objtype="site" objname="RL"/>
 
     <touch         name="FR_touch" site="FR"/>
     <touch         name="FL_touch" site="FL"/>
