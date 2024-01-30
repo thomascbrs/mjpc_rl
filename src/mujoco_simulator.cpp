@@ -20,7 +20,7 @@ std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
 MujocoSimulator::MujocoSimulator(const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
-      mcontactData(foot_names_) {
+      mcontactData(foot_names_, 0.002) {
 
   // Load Mujoco model
   char loadError[1024] = "";
@@ -98,6 +98,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   horizon_ = 0.4;
   timestep_planner_ = 1.0e-2;
   timestep_ = 0.002;
+  mcontactData.dt_simu = timestep_; // TODO, find a better way.
   options->timestep = timestep_;
   kMaxTrajectoryHorizon_ = 128;
   steps_ = horizon_ / timestep_planner_ + 1; // planning steps
