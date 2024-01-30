@@ -12,7 +12,11 @@
     <numeric name="sampling_exploration" data="0.6" />
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="residual_Height Goal" data="0.25" />
-    <numeric name="residual_nn" size="3" data="0. 0. 0." />
+    <numeric name="residual_nn" size="7" data="0.1 0.2 0.3 0.4 0.5 0.6 0.7" />
+    <numeric name="residual_air_time_FR" data="0." />
+    <numeric name="residual_air_time_FL" data="0." />
+    <numeric name="residual_air_time_HR" data="0.3" />
+    <numeric name="residual_air_time_HL" data="0." />
     <numeric name="sampling_trajectories" data="128" />
     <numeric name="gradient_num_trajectory" data="64" />
     <numeric name="ilqg_num_rollouts" data="16" />

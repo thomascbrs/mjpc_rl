@@ -176,6 +176,13 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     res_index += 3;
 
     // ---------- Residual (6) ----------
+    parameters_[mjpc::ParameterIndex(model, "Heading")];
+    std::vector<std::string> foot_names = {"FR", "FL", "HR", "HL"};
+    for (const auto& name:foot_names){
+      std::cout << "AIRTIME " << name << " = " << parameters_[mjpc::ParameterIndex(model, "residual_air_time_" + name)];
+    }
+
+    // ---------- Residual (7) ----------
     // Force feet penalisation
     // std::vector<std::string> force_name = {"FR_force","FL_force","HR_force","HL_force"};
     // double forces_ref[3] = {33.,0.,0.};
@@ -185,7 +192,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     //   res_index += 3;
     // }
 
-    // ---------- Residual (6) ----------
+    // ---------- Residual (7) ----------
     // Feet velocity
     std::vector<std::string> force_name = {"FR_vel","FL_vel","HR_vel","HL_vel"};
     double feet_acc_ref[3] = {0.,0.,0.};
@@ -371,4 +378,37 @@ void QuadrupedTask::TransitionLocked(mjModel *model, mjData *data) {
   // ---------- Set goal ----------
   mju_copy3(data->mocap_pos, model->key_mpos + 3 * residual_.current_mode_);
   mju_copy4(data->mocap_quat, model->key_mquat + 4 * residual_.current_mode_);
+}
+
+// initial residual parameters from model
+void QuadrupedTask::SetParameters(const mjModel* model) {
+  // set counter
+  int num_parameters = 0;
+
+  // search custom numeric in model for "residual"
+  for (int i = 0; i < model->nnumeric; i++) {
+    if (absl::StartsWith(model->names + model->name_numericadr[i],
+                         "residual_")) {
+      num_parameters += model->numeric_size[i];
+    }
+  }
+
+  // allocate memory
+  parameters.resize(num_parameters);
+
+  // set values
+  int shift = 0;
+  for (int i = 0; i < model->nnumeric; i++) {
+    // residual_select_ not taken into account here.
+    // Incrementally fill parameters
+    if (absl::StartsWith(model->names + model->name_numericadr[i], "residual_")) {
+      int startIdx = model->numeric_adr[i];
+      int endIdx = startIdx + model->numeric_size[i];
+
+      // Incrementally fill parameters
+      for (int j = startIdx; j < endIdx; j++) {
+        parameters[shift++] = model->numeric_data[j];
+      }
+    }
+  }
 }

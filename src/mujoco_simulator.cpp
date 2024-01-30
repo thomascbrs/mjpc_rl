@@ -109,6 +109,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // task_ = new mjpc::Cartpole();
   task_ = new QuadrupedTask();
   task_->Reset(model);
+  task_->SetParameters(model);
 
   // set data
   mj_forward(model, data);

@@ -16,6 +16,7 @@
 #include "ndcurves/bezier_curve.h"
 #include <mujoco/mujoco.h>
 #include <string>
+#include <absl/strings/match.h>
 
 class QuadrupedTask : public mjpc::Task {
 public:
@@ -79,6 +80,7 @@ public:
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
+  void SetParameters(const mjModel* model);
 
   // draw task-related geometry in the scene
   void ModifyScene(const mjModel *model, const mjData *data,
