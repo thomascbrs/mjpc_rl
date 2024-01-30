@@ -1,6 +1,10 @@
 #ifndef CONTACTDATA_H
 #define CONTACTDATA_H
 
+#include "mjpc/utilities.h"
+#include "mujoco/mujoco.h"
+#include <iostream>
+
 struct ContactData {
   // Naming informations.
   std::vector<std::string> foot_names;
