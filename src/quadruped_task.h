@@ -56,10 +56,16 @@ public:
     // Update function override
     void Update() override;
     void getPitch(double pitch[1], double wpitch[1], double t) const;
+    // TODO : Either a function get parameters indexes, called at each iteration
+    // updating [startIdx, endIdx]. Or a dictionnary containing these values
+    // computed only once (require modifying mjpc::Task and adding std::unorder_map)
+    void ParameterIndexes(int indexes[2], const mjModel* model, const std::string_view name) const;
 
   private:
     friend class QuadrupedTask;
     int current_mode_;
+    std::unordered_map<std::string,int> param_index_;
+    std::unordered_map<std::string,int> param_size_;
 
     // Control points
     Eigen::Vector3d P0;

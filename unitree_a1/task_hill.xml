@@ -11,15 +11,15 @@
     <numeric name="sampling_spline_points" data="5" />
     <numeric name="sampling_exploration" data="0.6" />
     <numeric name="gradient_spline_points" data="5" />
-    <numeric name="residual_Height Goal" data="0.25" />
-    <numeric name="residual_nn" size="7" data="0.1 0.2 0.3 0.4 0.5 0.6 0.7" />
-    <numeric name="residual_air_time_FR" data="0." />
-    <numeric name="residual_air_time_FL" data="0." />
-    <numeric name="residual_air_time_HR" data="0.3" />
-    <numeric name="residual_air_time_HL" data="0." />
     <numeric name="sampling_trajectories" data="128" />
     <numeric name="gradient_num_trajectory" data="64" />
     <numeric name="ilqg_num_rollouts" data="16" />
+    <numeric name="residual_Height" data="0.25" />
+    <numeric name="residual_nn" size="7" data="0.1 0.2 0.3 0.4 0.5 0.6 0.7" />
+    <numeric name="residual_air_time_FR" size="1" data="0." />
+    <numeric name="residual_air_time_FL" data="0." />
+    <numeric name="residual_air_time_HR" data="0." />
+    <numeric name="residual_air_time_HL" data="0." />
   </custom>
 
   <worldbody>
@@ -97,6 +97,7 @@
     <user name="Body Rot." dim="9" user="0 1. 0.0 10.0" />
     <user name="Body Vel" dim="3" user="0 0.45 0. 1.0 90." />
     <user name="Body Ang vel" dim="3" user="0 0. 0.0 1.0 90." />
+    <user name="Air-time-cost" dim="12" user="0 0.0 0.0 1.0" />
     <!-- <user name="Forces" dim="12" user="0 0.0 0.0 1.0" /> -->
     <user name="Foot-Vel" dim="12" user="0 0. 0.0 1.0" />
     <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
