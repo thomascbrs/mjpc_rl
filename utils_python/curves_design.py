@@ -1,71 +1,138 @@
 import matplotlib.pyplot as plt
 
 #importing the bezier curve class
-from ndcurves import (bezier)
+from ndcurves import bezier,exact_cubic, curve_constraints, polynomial
 from ndcurves.optimization import (problem_definition, setup_control_points)
 from ndcurves.optimization import constraint_flag
 import quadprog
 
 import numpy as np
 
-# N_int = 20
-# degree = 8
-# n_constraints  = 5
-# weight_pos = np.diag([1.] * 3 * (degree - n_constraints))
-# weight_vel = np.diag([0.1] * 3 * (degree - n_constraints))
-# dim = 3
+def update_coeffs(curve, new_pt, T = 0.4):
+    assert len(new_pt) == 3, "point should be size 3"
+    a , b, c = curve.coeff().T
+    a2 = a + b*T + c*(T**2)
+    b2 = b + 2*c*T
+    c2 = (T ** -2) * (new_pt - a2 - b2*T)
+    curve = polynomial(np.array([a2,b2,c2]).T, 0. , 0.4)
+    return curve
 
-# x0 = [0.,0.,0.]
-# v0 = [0.,0.,0.]
-# x1 = [0.,0.,0.]
-# v1 = [0.,0.,0.]
+def update_coeffs2(curve, new_pt, T = 0.4):
+    assert len(new_pt) == 3, "point should be size 3"
+    a, b, c, d = [0.,0.,0.,0.]
+    if curve.degree() == 2:
+        a , b, c = curve.coeff().T
+        d = 0.
+    else:
+        a , b, c, d = curve.coeff().T
+    a2 = a + b*T + c*(T**2) + d*(T**3)
+    b2 = b + 2*c*T + 3*d*(T**2)
+    c2 = c + 3*d*T
+    d2 = (T ** -3) * (new_pt - a2 - b2*T - c2*(T**2))
+    curve = polynomial(np.array([a2,b2,c2,d2]).T, 0. , 0.4)
+    return curve
 
-# # Results
-# res_size = dim * (degree + 1)
-# res = []
+def plot_curve_x(curve,current_curve, T, title=False, color="b", marker="o"):
+    ax = plt.subplot(3,2,1)
+    X = [curve(min(t-T[0], 0.4))[0] for t in T]
+    ax.plot(T,X,"-", color=color)
+    ax.plot(T[-1],current_curve[-1][0], color="r",marker=marker, markersize=3)
+    ax.set_title("vx(t)") if title else None
 
-# pD = problem_definition(dim)
-# pD.degree = degree
+    ax = plt.subplot(3,2,3)
+    X = [curve.derivate(min(t-T[0], 0.4),1)[0] for t in T]
+    ax.plot(T,X,"-", color=color)
+    # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
+    ax.set_title("ax(t)") if title else None
 
-# # Reduce the size of the problem by fixing intial and final points
-# pD.init_pos = np.array([x0[0], x0[1], x0[2]]).T
-# pD.init_vel = np.array([v0]).T
-# pD.init_acc = np.array([[0., 0., 0.]]).T
+    ax = plt.subplot(3,2,5)
+    X = [curve.derivate(min(t-T[0], 0.4),2)[0] for t in T]
+    ax.plot(T,X,"-", color=color)
+    # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
+    ax.set_title("jx(t)") if title else None
 
-# pD.end_pos = np.array([x1]).T
-# pD.end_vel = np.array([v1]).T
-# pD.end_acc = np.array([[0., 0., 0.]]).T
 
-P0 = [0.007, 0., 0.243]
-P1 = [1.25, 0., -0.6]
-P2 = [1.25, 0., 3.]
-P3 = [4., 0., 0.173]
-curve = bezier(np.array([P0, P1, P2, P3]).T)
+def plot_curve_z(curve,current_curve, T, title=False, color="b"):
+    ax = plt.subplot(3,2,2)
+    X = [curve(min(t-T[0], 0.4))[2] for t in T]
+    ax.plot(T,X,"-", color=color)
+    ax.plot(T[-1],current_curve[-1][2], color="r",marker="o", markersize=3)
+    ax.set_title("vz(t)") if title else None
+
+    ax = plt.subplot(3,2,4)
+    X = [curve.derivate(min(t-T[0], 0.4),1)[2] for t in T]
+    ax.plot(T,X,"-", color=color)
+    # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
+    ax.set_title("az(t)") if title else None
+
+    ax = plt.subplot(3,2,6)
+    X = [curve.derivate(min(t-T[0], 0.4),2)[2] for t in T]
+    ax.plot(T,X,"-", color=color)
+    # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
+    ax.set_title("jz(t)") if title else None
+
+timings = [0.,0.4,0.8]
+P0 = [0., 0.0, 0.]
+P1 = [0., 0.0, 0.]
+P2 = [0., 0.0, 0.]
+
+current_curve = [P0,P1,P2]
+added_points = [[0.5, 0.0, 0.],[1., 0.0, -0.28],[0.2, 0.0, 0.245],[0.6, 0.0, 0.245] ]
+curve =  polynomial(np.array(current_curve).T, 0. , 0.4)
 
 plt.ion()
 plt.figure()
-T = np.linspace(0., 1., 100)
-X = [curve(t)[0] for t in T]
-Z = [curve(t)[2] for t in T]
-plt.plot(X, Z, "x-")
-plt.plot(P0[0], P0[2], "o")
-plt.plot(P1[0], P1[2], "o")
-plt.plot(P2[0], P2[2], "o")
-plt.plot(P3[0], P3[2], "o")
+
+# Create a color gradient from dark blue to light blue
+color_gradient = np.linspace(0.2, 1., len(added_points))
+delta = 0.
+T = np.linspace(delta, delta + 0.4, 100)
+color = plt.cm.Blues(color_gradient[0])
+plot_curve_x(curve, current_curve,T, True)
+plot_curve_z(curve, current_curve,T, True)
+
+
+for i,point in enumerate(added_points):
+    delta += 0.4
+    T = np.linspace(delta, delta + 0.4, 100)
+    curve = update_coeffs(curve, point, 0.4)
+    current_curve.pop(0)
+    current_curve.append(point)
+
+    # Adjust color based on the gradient
+    color = plt.cm.Blues(color_gradient[i])
+
+    plot_curve_x(curve, current_curve,T, True,color)
+    plot_curve_z(curve, current_curve,T, True, color)
+
 
 plt.figure()
-T = np.linspace(0., 1., 100)
-dt = 0.002
-pitch = []
-for t in T:
-    if (t + dt) <= 1.:
-        dy = curve(t + dt)[2] - curve(t)[2]
-        dx = curve(t + dt)[0] - curve(t)[0]
-        if dx != 0.:
-            pitch.append(dy / dx)
-        else:
-            pitch.append(dy / dx)
-    else:
-        pitch.append(pitch[-1])
 
-plt.plot(T, pitch, "x-")
+# Create a color gradient from dark blue to light blue
+
+n_points = 5
+Ntotal = 20
+color_gradient = np.linspace(0.15, 1., Ntotal)
+for k in range(Ntotal):
+    delta = 0.
+    T = np.linspace(delta, delta + 0.4, 100)
+    color = plt.cm.gist_rainbow(color_gradient[k])
+    plot_curve_x(curve, current_curve,T, True, color)
+    plot_curve_z(curve, current_curve,T, True, color)
+
+    point = np.zeros(3)
+    for i in range(n_points):
+        delta += 0.4
+        T = np.linspace(delta, delta + 0.4, 100)
+        a,b = -0.5, 0.5
+        point += a + (b-a)*np.random.rand(3)
+        # point += -1 + 2*np.random.rand(3)
+        curve = update_coeffs(curve, point, 0.4)
+        current_curve.pop(0)
+        current_curve.append(point)
+
+        # Adjust color based on the gradient
+        color = plt.cm.gist_rainbow(color_gradient[k])
+
+        plot_curve_x(curve, current_curve,T, True,color)
+        plot_curve_z(curve, current_curve,T, True, color)
