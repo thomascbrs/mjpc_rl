@@ -218,12 +218,35 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     std::string prefix = "residual_air_time_";
     std::string foot_names[4] = {"FR","FL","HR","HL"};
     int indexes[2];
+    ParameterIndexes(indexes, model,prefix + "limit");
+    double time_limit = parameters_[indexes[0]];
+    ParameterIndexes(indexes, model,prefix + "time0");
+    double time0 = parameters_[indexes[0]];
+
+    double z_positions[4];
+    double z_positions_ref[4] = {0.,0.,0.,0.};
+    int shift = 0;
+
     for (const auto& name : foot_names){
       ParameterIndexes(indexes, model,prefix + name);
+      z_positions[shift] = 0.;
+      // std::cout << "\ndata->time : " << data->time << std::endl;
+      if (parameters_[indexes[0]] > 0.05){ // Foot currently the air
+        if (data->time - time0 + parameters_[indexes[0]] > time_limit  ){
+          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2  ){
+            // mju_sub3(residual + res_index, mjpc::SensorByName(model, data, name)[2], 0.);
+            // std::cout << "Activate air time cost on " << name << std::endl;
+            z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
+            // z_positions[shift] = 0.;
+          }
+        }
+      }
+      shift++;
       // std::cout << name << " = " <<  parameters_[indexes[0]] << std::endl;
     }
-    res_index += 12;
-
+    // std::cout << "[" << z_positions[0] << z_positions[1] << z_positions[2] << z_positions[3] << "]" << std::endl;
+    mju_sub3(residual + res_index, z_positions, z_positions_ref);
+    res_index += 4;
     // ---------- Residual (7) ----------
     // Force feet penalisation
     // std::vector<std::string> force_name = {"FR_force","FL_force","HR_force","HL_force"};

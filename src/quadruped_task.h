@@ -27,12 +27,21 @@ public:
     explicit ResidualFn(const QuadrupedTask *task, int current_mode = 0)
         : mjpc::BaseResidualFn(task), current_mode_(current_mode) {
       // Initialize Bezier points;
-      P0 = Eigen::Vector3d(0.007, 0.0, 0.243);
-      P1 = Eigen::Vector3d(0.656, 0.0, 0.009);
-      P2 = Eigen::Vector3d(1.764, 0.0, 0.209);
-      P3 = Eigen::Vector3d(0.756, 0.0, 0.938);
-      P4 = Eigen::Vector3d(1.678, 0.0, 0.052);
-      P5 = Eigen::Vector3d(2.801, 0.0, 0.324);
+      // P0 = Eigen::Vector3d(0.007, 0.0, 0.243);
+      // P1 = Eigen::Vector3d(0.656, 0.0, 0.009);
+      // P2 = Eigen::Vector3d(1.764, 0.0, 0.209);
+      // P3 = Eigen::Vector3d(0.756, 0.0, 0.938);
+      // P4 = Eigen::Vector3d(1.678, 0.0, 0.052);
+      // P5 = Eigen::Vector3d(2.801, 0.0, 0.324);
+
+      P0 = Eigen::Vector3d(0., 0.0, 0.245);
+      P1 = Eigen::Vector3d(0.1, 0.0, 0.245);
+      P2 = Eigen::Vector3d(0.3, 0.0, 0.245);
+      P3 = Eigen::Vector3d(0.5, 0.0, 0.5);
+      P4 = Eigen::Vector3d(0.8, 0.0, 0.245);
+      P5 = Eigen::Vector3d(1.1, 0.0, 0.28);
+      P6 = Eigen::Vector3d(1.3, 0.0, 0.245);
+
 
       // Update the container of points.
       cp.push_back(P0);
@@ -41,6 +50,7 @@ public:
       cp.push_back(P3);
       cp.push_back(P4);
       cp.push_back(P5);
+      cp.push_back(P6);
 
       // Create the Bezier curve and its derivatives.
       curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(

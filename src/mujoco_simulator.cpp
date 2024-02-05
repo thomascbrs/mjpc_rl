@@ -377,6 +377,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
             ParameterIndexes(indexes, model,prefix + name);
             task_->parameters[indexes[0]] = mcontactData.air_timings[name];
           }
+          // Update time0.
+          ParameterIndexes(indexes, model,prefix + "time0");
+          task_->parameters[indexes[0]] = data->time;
 
           task_->UpdateResidual();
 
