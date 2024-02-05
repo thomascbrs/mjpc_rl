@@ -2,6 +2,97 @@ from build_release.libmjpc_rl_pywrap import loadData
 import numpy as np
 import pinocchio as pin
 from ndcurves import bezier
+from copy import copy
+
+def plot_contact_MPCs(data):
+    """ Plot the main contact status.
+    """
+    import example_robot_data
+    robot = example_robot_data.load("a1")
+    model = robot.model
+    mdata = model.createData()
+
+    fig, axs = plt.subplots(3, 4)
+    names = ["FR", "FL", "HR", "HL"]
+    frames = ["FR_foot", "FL_foot", "RR_foot", "RL_foot"]
+
+
+    dt = data.dt_simu
+    rfactor_mpc = 4
+    rfactor_state = 10
+    T = np.arange(0., dt * len(data.qpos), dt)
+
+    # Define colors
+    color_r = plt.cm.Reds(0.7)
+    color_b = plt.cm.Blues(0.8)
+    # Define the color values for replays
+    cmap = plt.cm.Greys
+
+    order_ = [1,5,9,2,6,10,3,7,11,4,8,12]
+
+    for i, mpc_data in enumerate(data.mpc_traj):
+        # Timeline i-MPC
+        t_start = i * data.k_mpc * dt
+        t_end = t_start + data.dt_mpc * (data.horizon - 1)
+        T_tmp = np.linspace(t_start, t_end, data.horizon)
+
+        # Colors for horizon
+        colors = np.linspace(0.6, 0.35, len(T_tmp))
+        norm = plt.Normalize(colors.min(), colors.max())
+
+        ##################
+        # Angular position
+        mpc_pos = {name: [] for name in frames}
+        x = [state[:19] for state in mpc_data]
+        for i,q in enumerate(x):
+            q_tmp = copy(q)
+            q_tmp[3:7] = q[4], q[5], q[6],q[3]
+            q_tmp[7:] =  robot.q0[7:] + q[7:]
+            pin.forwardKinematics(model, mdata, np.array(q_tmp))
+            for i, frame in enumerate(frames):
+                frame_id = model.getFrameId(frame)
+                oMf = pin.updateFramePlacement(model, mdata, frame_id)
+                mpc_pos[frame].append(oMf.translation[:])
+
+        for i, frame in enumerate(frames):
+            ax = plt.subplot(3, 4, order_[3*i])
+            x = [pos[0] for pos in mpc_pos[frame]]
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+            ax = plt.subplot(3, 4, order_[3*i+1])
+            x = [pos[1] for pos in mpc_pos[frame]]
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+            ax = plt.subplot(3, 4, order_[3*i+2])
+            x = [pos[2] for pos in mpc_pos[frame]]
+            plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
+
+    T = np.arange(0., dt * len(data.foot_status[names[0]]), dt)
+    for i, name in enumerate(names):
+
+        ax = plt.subplot(3, 4, order_[3*i])
+        pos_x = [pos[0] for pos in data.foot_position[name]]
+        max = np.max(pos_x)
+        plot_state(ax,T, pos_x, color="b",  label="pos_x")
+
+        ax = plt.subplot(3, 4, order_[3*i+1])
+        pos_x = [pos[1] for pos in data.foot_position[name]]
+        max = np.max(pos_x)
+        plot_state(ax,T, pos_x, color="b",  label="pos_y")
+
+        ax = plt.subplot(3, 4, order_[3*i+2])
+        pos_x = [pos[2] for pos in data.foot_position[name]]
+        max = np.max(pos_x)
+        plot_state(ax,T, pos_x, color="b",  label="pos_z")
+        ax.legend()
+
+    # Adjust the vertical space between subplots
+    plt.subplots_adjust(hspace=0.5)  # You can adjust the value as needed
+    fig.suptitle("Foot contact")
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("Foot contact")
 
 
 def plot_contact(data):
@@ -116,7 +207,7 @@ def plot_contact_forces(data):
     fig_manager.set_window_title("Contact Forces")
 
 
-def plot_state(data):
+def plot_state_simple(data):
     """ Plot the state.
     """
     fig, axs = plt.subplots(4, 3)
@@ -530,11 +621,12 @@ if __name__ == "__main__":
     # Load the data.
     data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
 
+    plot_contact_MPCs(data)
     # plot_contact(data)
     # plot_velocity(data)
     # plot_contact_forces(data)
-    # plot_state(data)
+    plot_state_simple(data)
     # plot_state_mpc(data)
-    plot_angular_velocities_MPCs(data)
-    plot_angular_position_MPCs(data)
+    # plot_angular_velocities_MPCs(data)
+    # plot_angular_position_MPCs(data)
     plt.show()

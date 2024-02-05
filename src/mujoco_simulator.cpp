@@ -20,7 +20,7 @@ std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
 MujocoSimulator::MujocoSimulator(const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
-      mcontactData(foot_names_) {
+      mcontactData(foot_names_, 0.002) {
 
   // Load Mujoco model
   char loadError[1024] = "";
@@ -98,6 +98,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   horizon_ = 0.4;
   timestep_planner_ = 1.0e-2;
   timestep_ = 0.002;
+  mcontactData.dt_simu = timestep_; // TODO, find a better way.
   options->timestep = timestep_;
   kMaxTrajectoryHorizon_ = 128;
   steps_ = horizon_ / timestep_planner_ + 1; // planning steps
@@ -108,6 +109,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // task_ = new mjpc::Cartpole();
   task_ = new QuadrupedTask();
   task_->Reset(model);
+  task_->SetParameters(model);
 
   // set data
   mj_forward(model, data);
@@ -347,9 +349,6 @@ void MujocoSimulator::runSimulation(int numSteps) {
         // task_->Residual(model, data, data->sensordata);task_->Residual(model,
         // data, data->sensordata);
 
-        // Contact detection code. TODO: Write a proper function/ class to
-        // handle this.
-
         // Reset the contact status to 0.
         mcontactData.update(model, data);
         logger_.log(model, data, &mcontactData);
@@ -372,6 +371,16 @@ void MujocoSimulator::runSimulation(int numSteps) {
           // task_->Reset();
 
           task_->parameters[0] = 1.;
+          int indexes[2];
+          std::string prefix = "residual_air_time_";
+          for (const auto& name : foot_names_){
+            ParameterIndexes(indexes, model,prefix + name);
+            task_->parameters[indexes[0]] = mcontactData.air_timings[name];
+          }
+          // Update time0.
+          ParameterIndexes(indexes, model,prefix + "time0");
+          task_->parameters[indexes[0]] = data->time;
+
           task_->UpdateResidual();
 
           state_.Set(model, data);

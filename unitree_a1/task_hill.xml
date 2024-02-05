@@ -11,11 +11,17 @@
     <numeric name="sampling_spline_points" data="5" />
     <numeric name="sampling_exploration" data="0.6" />
     <numeric name="gradient_spline_points" data="5" />
-    <numeric name="residual_Height Goal" data="0.25" />
-    <numeric name="residual_nn" size="3" data="0. 0. 0." />
     <numeric name="sampling_trajectories" data="128" />
     <numeric name="gradient_num_trajectory" data="64" />
     <numeric name="ilqg_num_rollouts" data="16" />
+    <numeric name="residual_Height" data="0.25" />
+    <numeric name="residual_nn" size="7" data="0.1 0.2 0.3 0.4 0.5 0.6 0.7" />
+    <numeric name="residual_air_time_limit" size="1" data="0.2" />
+    <numeric name="residual_air_time_time0" size="1" data="0." />
+    <numeric name="residual_air_time_FR" size="1" data="0." />
+    <numeric name="residual_air_time_FL" data="0." />
+    <numeric name="residual_air_time_HR" data="0." />
+    <numeric name="residual_air_time_HL" data="0." />
   </custom>
 
   <worldbody>
@@ -24,15 +30,16 @@
     <!-- <body name="goal" mocap="true" pos="-0.125 -0.625 0.25" quat="0.7071 0 0 -0.7071">
         <geom type="capsule" size="0.1 0.1 0.05" contype="0" conaffinity="0" rgba="0 1 0 .02" fromto="-0.1 0 0 0.1 0 0"/>
     </body> -->
-    <!-- <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/> -->
+    <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/>
 
     <!-- <body name="box" mocap="true" pos="-2.5 0 0">
       <geom name="box" class="prop" size="1 1 0.3"/>
     </body> -->
     <!-- <geom name="ramp" class="prop" pos="3.13 2.5 -.18" size="1.6 1 .5" euler="0 -0.2 0"/> -->
     <!-- <geom name="hill" class="prop" pos="0 6 -5.5" size="6" type="sphere"/> -->
-    <geom name="box1" class="prop" pos="0 0 -.4" size="0.47 1 .4" euler="0 0 0" type="box"/>
-    <geom name="box2" class="prop" pos="2.7 0 -.4" size="2. 1 .4" euler="0 0 0" type="box"/>
+
+    <!-- <geom name="box1" class="prop" pos="0 0 -.4" size="0.47 1 .4" euler="0 0 0" type="box"/>
+    <geom name="box2" class="prop" pos="2.7 0 -.4" size="2. 1 .4" euler="0 0 0" type="box"/> -->
   </worldbody>
 
   <include file="a1.xml" />
@@ -88,15 +95,17 @@
   <!-- <include file="assets/fractal.xml" /> -->
 
   <sensor>
-    <user name="Fly-high" dim="12" user="9 0.1 0.0 1.0 90. 1. 1." />
+    <!-- <user name="Fly-high" dim="12" user="9 0.5 0.0 1.0 90. 1. 1." /> -->
+    <user name="Fly-high" dim="12" user="9 0. 0.0 1.0 90. 1. 1." />
     <user name="Body Pos." dim="3" user="0 0. 0.0 100.0" />
-    <user name="Body Rot." dim="9" user="0 1. 0.0 10.0" />
-    <user name="Body Vel" dim="3" user="0 0.45 0. 1.0 90." />
-    <user name="Body Ang vel" dim="3" user="0 0. 0.0 1.0 90." />
+    <user name="Body Rot." dim="9" user="0 4. 0.0 10.0" />
+    <user name="Body Vel" dim="3" user="0 1. 0. 1.0 90." />
+    <user name="Body Ang vel" dim="3" user="0 1. 0.0 1.0 90." />
+    <user name="Air-time-cost" dim="4" user="5 0 0.0 1.0 4" />
+    <!-- <user name="Forces" dim="12" user="0 0.0 0.0 1.0" /> -->
+    <user name="Foot-Vel" dim="12" user="0 0. 0.0 1.0" />
     <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
-    <user name="Forces" dim="12" user="0 0. 0.0 1.0" />
     <!-- <user name="Body Rot.Vel" dim="3" user="0 0.5 0.0 100.0" /> -->
-    <!-- <user name="Foot-target-position" dim="8" user="0 0. 0.0 100.0" /> -->
     <!-- <user name="Body Acc" dim="3" user="0 0. 0.0 1.0 90." /> -->
 
     <!-- <framepos      name="trace0" objtype="body" objname="trunk"/> -->
@@ -106,16 +115,22 @@
     <!-- <subtreelinvel name="torso_subtreelinvel" body="trunk"/> -->
     <!-- <framezaxis    name="torso_zaxis" objtype="xbody" objname="trunk"/> -->
 
-    <framepos      name="FR" objtype="site" objname="FR" reftype="world" refname="world"/>
-    <framepos      name="FL" objtype="site" objname="FL" reftype="world" refname="world"/>
-    <framepos      name="HR" objtype="site" objname="RR" reftype="world" refname="world"/>
-    <framepos      name="HL" objtype="site" objname="RL" reftype="world" refname="world"/>
 
     <framelinvel   name="FR_vel" objtype="site" objname="FR" reftype="world" refname="world"/>
     <framelinvel   name="FL_vel" objtype="site" objname="FL" reftype="world" refname="world"/>
     <framelinvel   name="HR_vel" objtype="site" objname="RR" reftype="world" refname="world"/>
     <framelinvel   name="HL_vel" objtype="site" objname="RL" reftype="world" refname="world"/>
 
+    <framelinacc   name="FR_acc" objtype="site" objname="FR"/>
+    <framelinacc   name="FL_acc" objtype="site" objname="FL"/>
+    <framelinacc   name="HR_acc" objtype="site" objname="RR"/>
+    <framelinacc   name="HL_acc" objtype="site" objname="RL"/>
+
+    <framepos      name="FR" objtype="site" objname="FR" reftype="world" refname="world"/>
+    <framepos      name="FL" objtype="site" objname="FL" reftype="world" refname="world"/>
+    <framepos      name="HR" objtype="site" objname="RR" reftype="world" refname="world"/>
+    <framepos      name="HL" objtype="site" objname="RL" reftype="world" refname="world"/>
+    
     <touch         name="FR_touch" site="FR"/>
     <touch         name="FL_touch" site="FL"/>
     <touch         name="HR_touch" site="RR"/>

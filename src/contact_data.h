@@ -10,21 +10,25 @@ struct ContactData {
   std::vector<std::string> foot_names;
   std::string force_suffix;
   std::unordered_map<std::string, std::string> foot_site_names;
+  double dt_simu;
 
   // Informations dictionary.
   std::unordered_map<std::string, int> contact_status;
   std::unordered_map<std::string, std::array<double, 3>> contact_forces;
   std::unordered_map<std::string, std::array<double, 3>> contact_forces_sensors;
+  std::unordered_map<std::string, double> air_timings;
 
   // Constructor to initialize the struct
-  ContactData(const std::vector<std::string> &foot_names)
+  ContactData(const std::vector<std::string> &foot_names, double dt)
       : foot_names(foot_names), force_suffix("_force") {
+    dt_simu = dt;
     // TODO: Find a better way to initialize this. Modify .xml ?
     foot_site_names = {{"FR", "FR"}, {"FL", "FL"}, {"HR", "RR"}, {"HL", "RL"}};
     for (const auto &name : foot_names) {
       contact_status[name] = 0;
       contact_forces[name] = {0., 0., 0.};
       contact_forces_sensors[name] = {0., 0., 0.};
+      air_timings[name] = 0.;
     }
   }
 
@@ -102,12 +106,24 @@ struct ContactData {
         }
       }
     }
+  };
+
+  // To use once the contact has been updated
+  void update_air_time() {
+    for (const auto &name : foot_names) {
+      if (contact_status[name] == 0) {
+        air_timings[name] += dt_simu;
+      } else {
+        air_timings[name] = 0.;
+      }
+    }
   }
 
   void update(const mjModel *model, mjData *data) {
     reset();
     update_contact(model, data);
     update_force_sensors(model, data);
+    update_air_time();
   }
 };
 
