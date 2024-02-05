@@ -14,9 +14,9 @@
 
 #include "mjpc/task.h"
 #include "ndcurves/bezier_curve.h"
+#include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <string>
-#include <absl/strings/match.h>
 
 class QuadrupedTask : public mjpc::Task {
 public:
@@ -41,7 +41,6 @@ public:
       P4 = Eigen::Vector3d(0.8, 0.0, 0.245);
       P5 = Eigen::Vector3d(1.1, 0.0, 0.28);
       P6 = Eigen::Vector3d(1.3, 0.0, 0.245);
-
 
       // Update the container of points.
       cp.push_back(P0);
@@ -68,14 +67,16 @@ public:
     void getPitch(double pitch[1], double wpitch[1], double t) const;
     // TODO : Either a function get parameters indexes, called at each iteration
     // updating [startIdx, endIdx]. Or a dictionnary containing these values
-    // computed only once (require modifying mjpc::Task and adding std::unorder_map)
-    void ParameterIndexes(int indexes[2], const mjModel* model, const std::string_view name) const;
+    // computed only once (require modifying mjpc::Task and adding
+    // std::unorder_map)
+    void ParameterIndexes(int indexes[2], const mjModel *model,
+                          const std::string_view name) const;
 
   private:
     friend class QuadrupedTask;
     int current_mode_;
-    std::unordered_map<std::string,int> param_index_;
-    std::unordered_map<std::string,int> param_size_;
+    std::unordered_map<std::string, int> param_index_;
+    std::unordered_map<std::string, int> param_size_;
 
     // Control points
     Eigen::Vector3d P0;
@@ -96,7 +97,7 @@ public:
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
-  void SetParameters(const mjModel* model);
+  void SetParameters(const mjModel *model);
 
   // draw task-related geometry in the scene
   void ModifyScene(const mjModel *model, const mjData *data,

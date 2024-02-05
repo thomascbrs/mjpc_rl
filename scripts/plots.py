@@ -4,6 +4,7 @@ import pinocchio as pin
 from ndcurves import bezier
 from copy import copy
 
+
 def plot_contact_MPCs(data):
     """ Plot the main contact status.
     """
@@ -16,7 +17,6 @@ def plot_contact_MPCs(data):
     names = ["FR", "FL", "HR", "HL"]
     frames = ["FR_foot", "FL_foot", "RR_foot", "RL_foot"]
 
-
     dt = data.dt_simu
     rfactor_mpc = 4
     rfactor_state = 10
@@ -28,7 +28,7 @@ def plot_contact_MPCs(data):
     # Define the color values for replays
     cmap = plt.cm.Greys
 
-    order_ = [1,5,9,2,6,10,3,7,11,4,8,12]
+    order_ = [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
 
     for i, mpc_data in enumerate(data.mpc_traj):
         # Timeline i-MPC
@@ -44,10 +44,10 @@ def plot_contact_MPCs(data):
         # Angular position
         mpc_pos = {name: [] for name in frames}
         x = [state[:19] for state in mpc_data]
-        for i,q in enumerate(x):
+        for i, q in enumerate(x):
             q_tmp = copy(q)
-            q_tmp[3:7] = q[4], q[5], q[6],q[3]
-            q_tmp[7:] =  robot.q0[7:] + q[7:]
+            q_tmp[3:7] = q[4], q[5], q[6], q[3]
+            q_tmp[7:] = robot.q0[7:] + q[7:]
             pin.forwardKinematics(model, mdata, np.array(q_tmp))
             for i, frame in enumerate(frames):
                 frame_id = model.getFrameId(frame)
@@ -55,35 +55,35 @@ def plot_contact_MPCs(data):
                 mpc_pos[frame].append(oMf.translation[:])
 
         for i, frame in enumerate(frames):
-            ax = plt.subplot(3, 4, order_[3*i])
+            ax = plt.subplot(3, 4, order_[3 * i])
             x = [pos[0] for pos in mpc_pos[frame]]
             plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
 
-            ax = plt.subplot(3, 4, order_[3*i+1])
+            ax = plt.subplot(3, 4, order_[3 * i + 1])
             x = [pos[1] for pos in mpc_pos[frame]]
             plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
 
-            ax = plt.subplot(3, 4, order_[3*i+2])
+            ax = plt.subplot(3, 4, order_[3 * i + 2])
             x = [pos[2] for pos in mpc_pos[frame]]
             plot_MCP_horizon(ax, T_tmp, x, cmap, colors, norm, rfactor_mpc)
 
     T = np.arange(0., dt * len(data.foot_status[names[0]]), dt)
     for i, name in enumerate(names):
 
-        ax = plt.subplot(3, 4, order_[3*i])
+        ax = plt.subplot(3, 4, order_[3 * i])
         pos_x = [pos[0] for pos in data.foot_position[name]]
         max = np.max(pos_x)
-        plot_state(ax,T, pos_x, color="b",  label="pos_x")
+        plot_state(ax, T, pos_x, color="b", label="pos_x")
 
-        ax = plt.subplot(3, 4, order_[3*i+1])
+        ax = plt.subplot(3, 4, order_[3 * i + 1])
         pos_x = [pos[1] for pos in data.foot_position[name]]
         max = np.max(pos_x)
-        plot_state(ax,T, pos_x, color="b",  label="pos_y")
+        plot_state(ax, T, pos_x, color="b", label="pos_y")
 
-        ax = plt.subplot(3, 4, order_[3*i+2])
+        ax = plt.subplot(3, 4, order_[3 * i + 2])
         pos_x = [pos[2] for pos in data.foot_position[name]]
         max = np.max(pos_x)
-        plot_state(ax,T, pos_x, color="b",  label="pos_z")
+        plot_state(ax, T, pos_x, color="b", label="pos_z")
         ax.legend()
 
     # Adjust the vertical space between subplots

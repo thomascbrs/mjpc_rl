@@ -98,11 +98,11 @@ void infos_models(const mjModel *model) {
   }
 }
 
-
-void ParameterIndexes(int indexes[2], const mjModel* model, const std::string_view name) {
+void ParameterIndexes(int indexes[2], const mjModel *model,
+                      const std::string_view name) {
   int id =
-      // mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
-      // Use residual in name.
+      // mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_",
+      // name).c_str()); Use residual in name.
       mj_name2id(model, mjOBJ_NUMERIC, std::string(name).c_str());
 
   if (id == -1) {
@@ -114,8 +114,8 @@ void ParameterIndexes(int indexes[2], const mjModel* model, const std::string_vi
   int i;
   // Suppose all residual are defined at in block
   for (i = 0; i < model->nnumeric; i++) {
-    const char* obj_name = mj_id2name(model, mjOBJ_NUMERIC, i);
-    if (i == id){
+    const char *obj_name = mj_id2name(model, mjOBJ_NUMERIC, i);
+    if (i == id) {
       break;
     }
     if (absl::StartsWith(obj_name, "residual_")) {

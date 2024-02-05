@@ -26,10 +26,11 @@ std::string QuadrupedTask::XmlPath() const {
 
 std::string QuadrupedTask::Name() const { return "Quadruped Task"; }
 
-void QuadrupedTask::ResidualFn::ParameterIndexes(int indexes[2], const mjModel* model, const std::string_view name) const {
+void QuadrupedTask::ResidualFn::ParameterIndexes(
+    int indexes[2], const mjModel *model, const std::string_view name) const {
   int id =
-      // mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_", name).c_str());
-      // Use residual in name.
+      // mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_",
+      // name).c_str()); Use residual in name.
       mj_name2id(model, mjOBJ_NUMERIC, std::string(name).c_str());
 
   if (id == -1) {
@@ -41,8 +42,8 @@ void QuadrupedTask::ResidualFn::ParameterIndexes(int indexes[2], const mjModel* 
   int i;
   // Suppose all residual are defined at in block
   for (i = 0; i < model->nnumeric; i++) {
-    const char* obj_name = mj_id2name(model, mjOBJ_NUMERIC, i);
-    if (i == id){
+    const char *obj_name = mj_id2name(model, mjOBJ_NUMERIC, i);
+    if (i == id) {
       break;
     }
     if (absl::StartsWith(obj_name, "residual_")) {
@@ -204,38 +205,40 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     res_index += 3;
 
     // ---------- Residual (6) ----------
-    // std::string list_names[6] = {"nn", "Height", "air_time_FR", "air_time_FL", "air_time_HR", "air_time_HL"};
-    // for (const auto& name:list_names){
+    // std::string list_names[6] = {"nn", "Height", "air_time_FR",
+    // "air_time_FL", "air_time_HR", "air_time_HL"}; for (const auto&
+    // name:list_names){
     //   double indexes[2];
     //   ParameterIndexes(indexes, model,"residual_" + name);
-    //   std::cout << name << " : [" << indexes[0] << " , " << indexes[1] <<  "]" << std::endl;
-    //   std::cout << "param = [";
-    //   for (int k=indexes[0];k < indexes[1] ; k++ ){
+    //   std::cout << name << " : [" << indexes[0] << " , " << indexes[1] << "]"
+    //   << std::endl; std::cout << "param = ["; for (int k=indexes[0];k <
+    //   indexes[1] ; k++ ){
     //     std::cout << parameters_[k] << ",";
     //   }
     //   std::cout << "]" << std::endl;
     // }
     std::string prefix = "residual_air_time_";
-    std::string foot_names[4] = {"FR","FL","HR","HL"};
+    std::string foot_names[4] = {"FR", "FL", "HR", "HL"};
     int indexes[2];
-    ParameterIndexes(indexes, model,prefix + "limit");
+    ParameterIndexes(indexes, model, prefix + "limit");
     double time_limit = parameters_[indexes[0]];
-    ParameterIndexes(indexes, model,prefix + "time0");
+    ParameterIndexes(indexes, model, prefix + "time0");
     double time0 = parameters_[indexes[0]];
 
     double z_positions[4];
-    double z_positions_ref[4] = {0.,0.,0.,0.};
+    double z_positions_ref[4] = {0., 0., 0., 0.};
     int shift = 0;
 
-    for (const auto& name : foot_names){
-      ParameterIndexes(indexes, model,prefix + name);
+    for (const auto &name : foot_names) {
+      ParameterIndexes(indexes, model, prefix + name);
       z_positions[shift] = 0.;
       // std::cout << "\ndata->time : " << data->time << std::endl;
-      if (parameters_[indexes[0]] > 0.05){ // Foot currently the air
-        if (data->time - time0 + parameters_[indexes[0]] > time_limit  ){
-          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2  ){
-            // mju_sub3(residual + res_index, mjpc::SensorByName(model, data, name)[2], 0.);
-            // std::cout << "Activate air time cost on " << name << std::endl;
+      if (parameters_[indexes[0]] > 0.05) { // Foot currently the air
+        if (data->time - time0 + parameters_[indexes[0]] > time_limit) {
+          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2) {
+            // mju_sub3(residual + res_index, mjpc::SensorByName(model, data,
+            // name)[2], 0.); std::cout << "Activate air time cost on " << name
+            // << std::endl;
             z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
             // z_positions[shift] = 0.;
           }
@@ -244,14 +247,15 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
       shift++;
       // std::cout << name << " = " <<  parameters_[indexes[0]] << std::endl;
     }
-    // std::cout << "[" << z_positions[0] << z_positions[1] << z_positions[2] << z_positions[3] << "]" << std::endl;
+    // std::cout << "[" << z_positions[0] << z_positions[1] << z_positions[2] <<
+    // z_positions[3] << "]" << std::endl;
     mju_sub3(residual + res_index, z_positions, z_positions_ref);
     res_index += 4;
     // ---------- Residual (7) ----------
     // Force feet penalisation
-    // std::vector<std::string> force_name = {"FR_force","FL_force","HR_force","HL_force"};
-    // double forces_ref[3] = {33.,0.,0.};
-    // for (const auto& name:force_name){
+    // std::vector<std::string> force_name =
+    // {"FR_force","FL_force","HR_force","HL_force"}; double forces_ref[3] =
+    // {33.,0.,0.}; for (const auto& name:force_name){
     //   double *forces = mjpc::SensorByName(model, data, name);
     //   mju_sub3(residual + res_index, forces, forces_ref);
     //   res_index += 3;
@@ -259,9 +263,10 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
     // ---------- Residual (7) ----------
     // Feet velocity
-    std::vector<std::string> force_name = {"FR_vel","FL_vel","HR_vel","HL_vel"};
-    double feet_acc_ref[3] = {0.,0.,0.};
-    for (const auto& name:force_name){
+    std::vector<std::string> force_name = {"FR_vel", "FL_vel", "HR_vel",
+                                           "HL_vel"};
+    double feet_acc_ref[3] = {0., 0., 0.};
+    for (const auto &name : force_name) {
       double *feet_acc = mjpc::SensorByName(model, data, name);
       mju_sub3(residual + res_index, feet_acc, feet_acc_ref);
       res_index += 3;
@@ -446,7 +451,7 @@ void QuadrupedTask::TransitionLocked(mjModel *model, mjData *data) {
 }
 
 // initial residual parameters from model
-void QuadrupedTask::SetParameters(const mjModel* model) {
+void QuadrupedTask::SetParameters(const mjModel *model) {
   // set counter
   int num_parameters = 0;
 
@@ -466,7 +471,8 @@ void QuadrupedTask::SetParameters(const mjModel* model) {
   for (int i = 0; i < model->nnumeric; i++) {
     // residual_select_ not taken into account here.
     // Incrementally fill parameters
-    if (absl::StartsWith(model->names + model->name_numericadr[i], "residual_")) {
+    if (absl::StartsWith(model->names + model->name_numericadr[i],
+                         "residual_")) {
       int startIdx = model->numeric_adr[i];
       int endIdx = startIdx + model->numeric_size[i];
 
