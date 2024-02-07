@@ -22,10 +22,10 @@
         <position ctrlrange="-0.89653 0.883702"/>
       </default>
       <default class="visual">
-        <geom type="mesh" contype="0" conaffinity="0" group="3" material="dark"/>
+        <geom type="mesh" contype="0" conaffinity="0" group="0" material="dark"/>
       </default>
       <default class="collision">
-        <geom group="0" type="capsule"/>
+        <geom group="3" type="capsule"/>
         <default class="hip_left">
           <geom size="0.04 0.04" quat="1 1 0 0" type="cylinder" pos="0 0.055 0"/>
         </default>
@@ -52,7 +52,7 @@
               condim="3" friction="0.8 0.02 0.01"/>  priority="1"
         </default> -->
         <default class="foot">
-          <geom type="sphere" size="0.015" pos="0 0 -0.2" solimp="0.9 0.95 0.04 0.5 2" solref="0.02 1"
+          <geom type="sphere" size="0.015" pos="0 0 -0.2" solimp="0.015 0.7 0.04 0.5 2" solref="0.02 1"
               condim="3" friction="0.8 0.02 0.01"/>
         </default>
       </default>
