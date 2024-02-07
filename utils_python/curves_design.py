@@ -17,6 +17,19 @@ def update_coeffs(curve, new_pt, T = 0.4):
     curve = polynomial(np.array([a2,b2,c2]).T, 0. , 0.4)
     return curve
 
+def update_coeffs_rebase(curve, new_pt, T, T2):
+    assert len(new_pt) == 3, "point should be size 3"
+    m = np.array([[1, 0., 0.], [0.,1.,0.], [1.,(T2-T),(T2-T)**2]])
+    minv = np.array([[1, 0., 0.], [0.,1.,0.], [-(T2-T)**-2,-(T2-T)**-1,(T2-T)**-2]])
+    # minv = np.linalg.inv(m)
+    b = np.matrix([curve(T), curve.derivate(T,1), new_pt])
+    res = np.dot(minv, b)
+
+    print("\n----")
+    print(res.T)
+    curve = polynomial(res.T, T, T2)
+    return curve
+
 def update_coeffs2(curve, new_pt, T = 0.4):
     assert len(new_pt) == 3, "point should be size 3"
     a, b, c, d = [0.,0.,0.,0.]
@@ -34,19 +47,19 @@ def update_coeffs2(curve, new_pt, T = 0.4):
 
 def plot_curve_x(curve,current_curve, T, title=False, color="b", marker="o"):
     ax = plt.subplot(3,2,1)
-    X = [curve(min(t-T[0], 0.4))[0] for t in T]
+    X = [curve(t)[0] for t in T]
     ax.plot(T,X,"-", color=color)
     ax.plot(T[-1],current_curve[-1][0], color="r",marker=marker, markersize=3)
     ax.set_title("vx(t)") if title else None
 
     ax = plt.subplot(3,2,3)
-    X = [curve.derivate(min(t-T[0], 0.4),1)[0] for t in T]
+    X = [curve.derivate( t,1)[0] for t in T]
     ax.plot(T,X,"-", color=color)
     # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
     ax.set_title("ax(t)") if title else None
 
     ax = plt.subplot(3,2,5)
-    X = [curve.derivate(min(t-T[0], 0.4),2)[0] for t in T]
+    X = [curve.derivate( t,2)[0] for t in T]
     ax.plot(T,X,"-", color=color)
     # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
     ax.set_title("jx(t)") if title else None
@@ -54,19 +67,19 @@ def plot_curve_x(curve,current_curve, T, title=False, color="b", marker="o"):
 
 def plot_curve_z(curve,current_curve, T, title=False, color="b"):
     ax = plt.subplot(3,2,2)
-    X = [curve(min(t-T[0], 0.4))[2] for t in T]
+    X = [curve( t)[2] for t in T]
     ax.plot(T,X,"-", color=color)
     ax.plot(T[-1],current_curve[-1][2], color="r",marker="o", markersize=3)
     ax.set_title("vz(t)") if title else None
 
     ax = plt.subplot(3,2,4)
-    X = [curve.derivate(min(t-T[0], 0.4),1)[2] for t in T]
+    X = [curve.derivate( t,1)[2] for t in T]
     ax.plot(T,X,"-", color=color)
     # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
     ax.set_title("az(t)") if title else None
 
     ax = plt.subplot(3,2,6)
-    X = [curve.derivate(min(t-T[0], 0.4),2)[2] for t in T]
+    X = [curve.derivate( t,2)[2] for t in T]
     ax.plot(T,X,"-", color=color)
     # ax.plot(T[-1],current_curve[-1][0], color="r",marker="o", markersize=10)
     ax.set_title("jz(t)") if title else None
@@ -77,7 +90,8 @@ P1 = [0., 0.0, 0.]
 P2 = [0., 0.0, 0.]
 
 current_curve = [P0,P1,P2]
-added_points = [[0.5, 0.0, 0.],[1., 0.0, -0.28],[0.2, 0.0, 0.245],[0.6, 0.0, 0.245] ]
+added_points = [[0.5, 0.0, 0.],[1., 0.0, -0.],[0.2, 0.0, 0.],[0.6, 0.0, 0.] ]
+# added_points = [[0.5, 0.0, 0.]]
 curve =  polynomial(np.array(current_curve).T, 0. , 0.4)
 
 plt.ion()
@@ -94,8 +108,12 @@ plot_curve_z(curve, current_curve,T, True)
 
 for i,point in enumerate(added_points):
     delta += 0.4
+    delta = np.around(delta, decimals=2)
     T = np.linspace(delta, delta + 0.4, 100)
-    curve = update_coeffs(curve, point, 0.4)
+    print("T[0], T[-1] : ", str([T[0], T[-1]]))
+    print("[curve.min(), curve.max()]", str([curve.min(), curve.max()]))
+    curve = update_coeffs_rebase(curve, point, T[0], T[-1])
+    print("[curve.min(), curve.max()]", str([curve.min(), curve.max()]))
     current_curve.pop(0)
     current_curve.append(point)
 
@@ -106,33 +124,33 @@ for i,point in enumerate(added_points):
     plot_curve_z(curve, current_curve,T, True, color)
 
 
-plt.figure()
+# plt.figure()
 
-# Create a color gradient from dark blue to light blue
+# # Create a color gradient from dark blue to light blue
 
-n_points = 5
-Ntotal = 20
-color_gradient = np.linspace(0.15, 1., Ntotal)
-for k in range(Ntotal):
-    delta = 0.
-    T = np.linspace(delta, delta + 0.4, 100)
-    color = plt.cm.gist_rainbow(color_gradient[k])
-    plot_curve_x(curve, current_curve,T, True, color)
-    plot_curve_z(curve, current_curve,T, True, color)
+# n_points = 5
+# Ntotal = 20
+# color_gradient = np.linspace(0.15, 1., Ntotal)
+# for k in range(Ntotal):
+#     delta = 0.
+#     T = np.linspace(delta, delta + 0.4, 100)
+#     color = plt.cm.gist_rainbow(color_gradient[k])
+#     plot_curve_x(curve, current_curve,T, True, color)
+#     plot_curve_z(curve, current_curve,T, True, color)
 
-    point = np.zeros(3)
-    for i in range(n_points):
-        delta += 0.4
-        T = np.linspace(delta, delta + 0.4, 100)
-        a,b = -0.5, 0.5
-        point += a + (b-a)*np.random.rand(3)
-        # point += -1 + 2*np.random.rand(3)
-        curve = update_coeffs(curve, point, 0.4)
-        current_curve.pop(0)
-        current_curve.append(point)
+#     point = np.zeros(3)
+#     for i in range(n_points):
+#         delta += 0.4
+#         T = np.linspace(delta, delta + 0.4, 100)
+#         a,b = -0.5, 0.5
+#         point += a + (b-a)*np.random.rand(3)
+#         # point += -1 + 2*np.random.rand(3)
+#         curve = update_coeffs(curve, point, 0.4)
+#         current_curve.pop(0)
+#         current_curve.append(point)
 
-        # Adjust color based on the gradient
-        color = plt.cm.gist_rainbow(color_gradient[k])
+#         # Adjust color based on the gradient
+#         color = plt.cm.gist_rainbow(color_gradient[k])
 
-        plot_curve_x(curve, current_curve,T, True,color)
-        plot_curve_z(curve, current_curve,T, True, color)
+#         plot_curve_x(curve, current_curve,T, True,color)
+#         plot_curve_z(curve, current_curve,T, True, color)
