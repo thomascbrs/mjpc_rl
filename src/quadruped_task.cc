@@ -143,16 +143,19 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   res_index += 12;
 
   // Time varying references.
-  if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
-    Eigen::Vector3d pos_ref = curve_(data->time - 1.);
-    Eigen::Vector3d vel_ref = curve_vel_(data->time - 1.);
-    Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
+  if (data->time - 1. >= 0. && data->time - 1. <= 5.) {
+    Eigen::Vector3d pos_ref = {0.,0.,0.};
+    // std::cout << "data->time - 1. : " << data->time - 1. << std::endl;
+    Eigen::Vector3d vel_ref = pc_(data->time - 1.);
+    // std::cout << "vel_ref : [" << vel_ref[0] << "," << vel_ref[1] << "," << vel_ref[2] << "]" << std::endl ;
+    // std::cout << "data->time - 1.2 : " << data->time - 1. << std::endl;
+    // Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
 
     // Compute derivative of the curve wrt to x to retrieve pitch angle.
     double pitch[1];
     double wpitch[1];
     double fwd = 0.0;
-    getPitch(pitch, wpitch, data->time + fwd - 1.);
+    // getPitch(pitch, wpitch, data->time + fwd - 1.);
 
     mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
@@ -343,11 +346,42 @@ void QuadrupedTask::ResidualFn::Update() {
   norm_parameter_ = task_->norm_parameter;
   risk_ = task_->risk;
   parameters_ = task_->parameters;
-  // cp[3] = Eigen::Vector3d(1.678, 0.0, 0.052);
-  // curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(
-  //     cp.begin(), cp.end());
-  // std::cout << "Hello" << std::endl;
+  // parameters_[0] --> residual_nn_updated
+  if (parameters_[0] > 0){
+    // Update the reference curve.
+    std::cout << "Update Reference curve." << std::endl;
+
+    // Does not work : Update does not take model.
+    // int indexes[2];
+    // ParameterIndexes(indexes, model, "residual_nn");
+    // const double *params_nn = &parameters_[0];
+
+    updateCurves(parameters_.begin() + 1, parameters_.begin() + 6);
+    n_update += 1;
+  }
 }
+
+void QuadrupedTask::ResidualFn::updateCurves(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
+  double T = lin_velocity_.max();
+  double T2 = lin_velocity_.max() + 0.4;
+  Eigen::MatrixXd minv(3, 3);
+  Eigen::MatrixXd coeffs(3,3);
+  Eigen::MatrixXd b(3, 3);
+  minv << 1, 0, 0,
+          0, 1, 0,
+          -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+
+  b.row(0) = pc_(pc_.max());
+  b.row(1) = pc_.derivate(pc_.max(),1);
+  b.row(2) << *start, *(start +1), *(start +2);
+  std::cout << "b = " << b << std::endl;
+  coeffs = minv * b;
+
+  Polynomial curve_tmp;
+  curve_tmp = Polynomial(coeffs.transpose(),pc_.max(),pc_.max() + 0.4);
+  pc_.add_curve(curve_tmp);
+}
+
 
 // / draw task-related geometry in the scene
 void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,

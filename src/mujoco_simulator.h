@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <mujoco/mjvisualize.h>
 #include <vector>
+#include <Eigen/Dense>
 
 #include "mjpc/planners/gradient/planner.h"
 #include "mjpc/planners/ilqg/planner.h"
@@ -65,6 +66,9 @@ private:
 
   std::vector<double> original_friction_values;
   std::vector<double> original_solref_values;
+
+  std::vector<Eigen::Vector3d> list_points;
+  int idx_nn_;
 
   // residual function for the active task, updated once per planning iteration
   std::unique_ptr<mjpc::ResidualFn> residual_fn_;

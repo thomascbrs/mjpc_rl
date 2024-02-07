@@ -13,10 +13,18 @@
 // limitations under the License.
 
 #include "mjpc/task.h"
-#include "ndcurves/bezier_curve.h"
+// #include "ndcurves/bezier_curve.h"
+#include "ndcurves/polynomial.h"
+#include "ndcurves/piecewise_curve.h"
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <string>
+
+typedef Eigen::Vector3d point3;
+typedef std::vector<point3, Eigen::aligned_allocator<point3> > t_point3;
+
+typedef ndcurves::polynomial<double, double, true, point3> Polynomial;
+typedef ndcurves::piecewise_curve<double, double, true,point3 ,point3, Polynomial> PieceWise;
 
 class QuadrupedTask : public mjpc::Task {
 public:
@@ -26,36 +34,25 @@ public:
   public:
     explicit ResidualFn(const QuadrupedTask *task, int current_mode = 0)
         : mjpc::BaseResidualFn(task), current_mode_(current_mode) {
-      // Initialize Bezier points;
-      // P0 = Eigen::Vector3d(0.007, 0.0, 0.243);
-      // P1 = Eigen::Vector3d(0.656, 0.0, 0.009);
-      // P2 = Eigen::Vector3d(1.764, 0.0, 0.209);
-      // P3 = Eigen::Vector3d(0.756, 0.0, 0.938);
-      // P4 = Eigen::Vector3d(1.678, 0.0, 0.052);
-      // P5 = Eigen::Vector3d(2.801, 0.0, 0.324);
-
-      P0 = Eigen::Vector3d(0., 0.0, 0.245);
-      P1 = Eigen::Vector3d(0.1, 0.0, 0.245);
-      P2 = Eigen::Vector3d(0.3, 0.0, 0.245);
-      P3 = Eigen::Vector3d(0.5, 0.0, 0.5);
-      P4 = Eigen::Vector3d(0.8, 0.0, 0.245);
-      P5 = Eigen::Vector3d(1.1, 0.0, 0.28);
-      P6 = Eigen::Vector3d(1.3, 0.0, 0.245);
 
       // Update the container of points.
-      cp.push_back(P0);
-      cp.push_back(P1);
-      cp.push_back(P2);
-      cp.push_back(P3);
-      cp.push_back(P4);
-      cp.push_back(P5);
-      cp.push_back(P6);
+      for (int i = 0; i < 3; i++) {
+        cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+        cp_rot.push_back(Eigen::Vector3d(0., 0., 0.));
+        cp_pos.push_back(Eigen::Vector3d(0., 0., 0.));
+      }
 
-      // Create the Bezier curve and its derivatives.
-      curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(
-          cp.begin(), cp.end());
-      curve_vel_ = curve_.compute_derivate(1);
-      curve_acc_ = curve_.compute_derivate(2);
+      // Create the polynomial curve, constraining the velocity.
+      curve_ = Polynomial(
+          cp_pos.begin(), cp_pos.end(),0.,0.4);
+      lin_velocity_ = Polynomial(
+          cp_lin.begin(), cp_lin.end(),0.,0.4);
+      ang_rotation_ = Polynomial(
+          cp_rot.begin(), cp_rot.end(),0.,0.4);
+      ang_velocity_ = ang_rotation_.compute_derivate(1);
+
+
+      pc_.add_curve(lin_velocity_);
     }
 
     // --------------------- Residuals for quadruped task --------------------
@@ -71,6 +68,9 @@ public:
     // std::unorder_map)
     void ParameterIndexes(int indexes[2], const mjModel *model,
                           const std::string_view name) const;
+    /// @brief Update the ref curves
+    /// @param param
+    void updateCurves(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
 
   private:
     friend class QuadrupedTask;
@@ -78,22 +78,25 @@ public:
     std::unordered_map<std::string, int> param_index_;
     std::unordered_map<std::string, int> param_size_;
 
-    // Control points
-    Eigen::Vector3d P0;
-    Eigen::Vector3d P1;
-    Eigen::Vector3d P2;
-    Eigen::Vector3d P3;
-    Eigen::Vector3d P4;
-    Eigen::Vector3d P5;
-    Eigen::Vector3d P6;
-
     // Creation of the container of control points
-    std::vector<Eigen::Vector3d> cp;
+    std::vector<Eigen::Vector3d> cp_pos;
+    std::vector<Eigen::Vector3d> cp_lin;
+    std::vector<Eigen::Vector3d> cp_rot;
+
+    double t0 = 0.;
+    double t1 = 0.4;
+    int n_update = 0.;
 
     // Bezier curves
-    ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_;
-    ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_vel_;
-    ndcurves::bezier_curve<double, double, true, Eigen::Vector3d> curve_acc_;
+    Polynomial curve_; // Won't be used in current setup.
+    Polynomial lin_velocity_;
+    Polynomial ang_velocity_;
+    Polynomial ang_rotation_;
+
+    std::vector<double> try_={0.,1.};
+
+    // Trajectories
+    PieceWise pc_;
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
