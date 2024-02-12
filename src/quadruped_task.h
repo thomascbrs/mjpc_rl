@@ -52,7 +52,8 @@ public:
       ang_velocity_ = ang_rotation_.compute_derivate(1);
 
 
-      pc_.add_curve(lin_velocity_);
+      pcVel_.add_curve(lin_velocity_);
+      pcRot_.add_curve(ang_rotation_);
 
       C2 << 0,1.,0,0,0,0,0,0,0,0,-1., 0,
             0,0,1.,0,0,0,0,0,0,0, 0,-1.,
@@ -110,7 +111,8 @@ public:
     Eigen::Matrix<double, 4,12> C2;
 
     // Trajectories
-    PieceWise pc_;
+    PieceWise pcVel_;
+    PieceWise pcRot_;
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;

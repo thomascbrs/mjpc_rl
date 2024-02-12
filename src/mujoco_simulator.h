@@ -17,6 +17,8 @@
 #include "contact_data.h"
 #include "logger.h"
 
+typedef Eigen::Matrix<double, 6, 1> Vector6d;
+
 class MujocoSimulator {
 public:
   MujocoSimulator(const char *modelFile);
@@ -67,7 +69,7 @@ private:
   std::vector<double> original_friction_values;
   std::vector<double> original_solref_values;
 
-  std::vector<Eigen::Vector3d> list_points;
+  std::vector<Vector6d> list_points;
   int idx_nn_;
 
   // residual function for the active task, updated once per planning iteration

@@ -160,17 +160,29 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   logger_.Initialize(foot_names_, timestep_planner_, steps_, k_mpc, timestep_);
 
   // Simulate NN decision for reference velocity curve.
-  list_points.push_back(Eigen::Vector3d({0.5,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({0.7,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({1.1,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({1.3,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({1.5,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({1.7,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({1.9,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.1,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.3,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.5,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.7,0.,0.}));
+  Vector6d point;
+  point << 0.5, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 0.7,0.,0. ,0.,-0.2,0.;
+  list_points.push_back(point);
+  point << 1.1, 0.0, 0.0, 0.0, -0.3, 0.0;
+  list_points.push_back(point);
+  point << 1.3, 0.0, 0.0, 0.0, -0.4, 0.0;
+  list_points.push_back(point);
+  point << 1.5, 0.0, 1.5, 0.0, -0.4, 0.0;
+  list_points.push_back(point);
+  point << 1.7, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 1.9, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.1, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.3, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.5, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.7, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
   idx_nn_ = 0;
 }
 
@@ -399,6 +411,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
             task_->parameters[indexes[0]] = list_points[idx_nn_][0];
             task_->parameters[indexes[0]+1] = list_points[idx_nn_][1];
             task_->parameters[indexes[0]+2] = list_points[idx_nn_][2];
+            task_->parameters[indexes[0]+3] = list_points[idx_nn_][3];
+            task_->parameters[indexes[0]+4] = list_points[idx_nn_][4];
+            task_->parameters[indexes[0]+5] = list_points[idx_nn_][5];
             std::cout << "Point added : " << list_points[idx_nn_] << std::endl;
             idx_nn_ ++;
           }

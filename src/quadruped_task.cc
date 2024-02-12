@@ -146,7 +146,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   if (data->time - 1. >= 0. && data->time - 1. <= 8.) {
     Eigen::Vector3d pos_ref = {0.,0.,0.};
     // std::cout << "data->time - 1. : " << data->time - 1. << std::endl;
-    Eigen::Vector3d vel_ref = pc_(data->time - 1.);
+    Eigen::Vector3d vel_ref = pcVel_(data->time - 1.);
+    Eigen::Vector3d rot_ref = pcRot_(data->time - 1.);
     // std::cout << "vel_ref : [" << vel_ref[0] << "," << vel_ref[1] << "," << vel_ref[2] << "]" << std::endl ;
     // std::cout << "data->time - 1.2 : " << data->time - 1. << std::endl;
     // Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
@@ -161,7 +162,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
     mju_axisAngle2Quat(quat, axis,
-                       pitch[0]);   // Convert axis-angle to quaternion
+                       rot_ref[1]);   // Convert axis-angle to quaternion
     mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
 
     // ---------- Residual (1) ----------
@@ -384,15 +385,25 @@ void QuadrupedTask::ResidualFn::updateCurves(const std::vector<double>::iterator
           0, 1, 0,
           -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
 
-  b.row(0) = pc_(pc_.max());
-  b.row(1) = pc_.derivate(pc_.max(),1);
+  // Linear velocities.
+  b.row(0) = pcVel_(pcVel_.max());
+  b.row(1) = pcVel_.derivate(pcVel_.max(),1);
   b.row(2) << *start, *(start +1), *(start +2);
-  std::cout << "b = " << b << std::endl;
   coeffs = minv * b;
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pc_.max(),pc_.max() + 0.4);
-  pc_.add_curve(curve_tmp);
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  pcVel_.add_curve(curve_tmp);
+
+  // Rotation angles.
+  b.row(0) = pcRot_(pcRot_.max());
+  b.row(1) = pcRot_.derivate(pcRot_.max(),1);
+  b.row(2) << *start+3, *(start +4), *(start +5);
+  coeffs = minv * b;
+
+  Polynomial curveRot_tmp;
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  pcRot_.add_curve(curveRot_tmp);
 }
 
 
