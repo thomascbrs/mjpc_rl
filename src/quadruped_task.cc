@@ -143,7 +143,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   res_index += 12;
 
   // Time varying references.
-  if (data->time - 1. >= 0. && data->time - 1. <= 5.) {
+  if (data->time - 1. >= 0. && data->time - 1. <= 8.) {
     Eigen::Vector3d pos_ref = {0.,0.,0.};
     // std::cout << "data->time - 1. : " << data->time - 1. << std::endl;
     Eigen::Vector3d vel_ref = pc_(data->time - 1.);
@@ -229,7 +229,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double time0 = parameters_[indexes[0]];
 
     double z_positions[4];
-    double z_positions_ref[4] = {0., 0., 0., 0.};
+    double z_positions_ref[4] = {-0.0, -0.0, -0.05, -0.05};
     int shift = 0;
 
     for (const auto &name : foot_names) {
@@ -238,12 +238,18 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
       // std::cout << "\ndata->time : " << data->time << std::endl;
       if (parameters_[indexes[0]] > 0.05) { // Foot currently the air
         if (data->time - time0 + parameters_[indexes[0]] > time_limit) {
-          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2) {
+          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2 ) {
+            // std::cout << name << "indexes[0] : " << indexes[0] << std::endl;
             // mju_sub3(residual + res_index, mjpc::SensorByName(model, data,
             // name)[2], 0.); std::cout << "Activate air time cost on " << name
             // << std::endl;
             z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
-            // z_positions[shift] = 0.;
+            // z_positions[shift] = std::pow(mjpc::SensorByName(model, data, name + "_touch")[0],-2);
+            // std::cout << name << " : " << z_positions[shift] << std::endl;
+            // std::cout << name << " : " << mjpc::SensorByName(model, data, name + "_touch")[0] << std::endl;
+            // if (z_positions[shift] < 0.){
+            //   z_positions[shift] = 0.;
+            // }
           }
         }
       }
@@ -274,6 +280,13 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
       mju_sub3(residual + res_index, feet_acc, feet_acc_ref);
       res_index += 3;
     }
+
+    // ---------- Residual (8) -----------
+    // Symmetric term
+    Eigen::Map<Eigen::Matrix<double, 12, 1>> u(data->ctrl);
+    Eigen::Matrix<double, 4, 1> C2_u = C2 * u;
+    mju_copy(residual + res_index, C2_u.data() , 4);
+    res_index += 4;
 
   } else {
     // ---------- Residual (1) ----------

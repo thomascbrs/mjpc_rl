@@ -89,7 +89,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   mjr_makeContext(model, &con, mjFONTSCALE_100);
 
   // Adjust camera distance
-  cam.azimuth = 90.0;    // Set azimuth angle
+  cam.azimuth = 70.0;    // Set azimuth angle
   cam.elevation = -20.0; // Set elevation angle
   cam.distance = 3.5;    // Set camera distance to 1.0
 
@@ -162,16 +162,15 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Simulate NN decision for reference velocity curve.
   list_points.push_back(Eigen::Vector3d({0.5,0.,0.}));
   list_points.push_back(Eigen::Vector3d({0.7,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({0.9,0.,0.}));
   list_points.push_back(Eigen::Vector3d({1.1,0.,0.}));
   list_points.push_back(Eigen::Vector3d({1.3,0.,0.}));
   list_points.push_back(Eigen::Vector3d({1.5,0.,0.}));
   list_points.push_back(Eigen::Vector3d({1.7,0.,0.}));
   list_points.push_back(Eigen::Vector3d({1.9,0.,0.}));
   list_points.push_back(Eigen::Vector3d({2.1,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.1,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.1,0.,0.}));
-  list_points.push_back(Eigen::Vector3d({2.1,0.,0.}));
+  list_points.push_back(Eigen::Vector3d({2.3,0.,0.}));
+  list_points.push_back(Eigen::Vector3d({2.5,0.,0.}));
+  list_points.push_back(Eigen::Vector3d({2.7,0.,0.}));
   idx_nn_ = 0;
 }
 
@@ -368,7 +367,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         mcontactData.update(model, data);
         logger_.log(model, data, &mcontactData);
 
-        if (data->time > 4.) {
+        if (data->time > 6.) {
           logger_.saveData(
               "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           Data data = logger_.loadData(
