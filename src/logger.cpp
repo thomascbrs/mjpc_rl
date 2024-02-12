@@ -27,12 +27,12 @@ void Logger::Initialize(const std::vector<std::string> &foot_names,
     std::vector<std::array<double, 3>> tmp_vel;
     std::vector<std::array<double, 3>> tmp_forces;
     std::vector<std::array<double, 3>> tmp_sforces;
-    tmp.reserve(5000);
-    tmp_pos.reserve(5000);
-    tmp_touch.reserve(5000);
-    tmp_vel.reserve(5000);
-    tmp_forces.reserve(5000);
-    tmp_sforces.reserve(5000);
+    tmp.reserve(10000);
+    tmp_pos.reserve(10000);
+    tmp_touch.reserve(10000);
+    tmp_vel.reserve(10000);
+    tmp_forces.reserve(10000);
+    tmp_sforces.reserve(10000);
     data_.foot_status[name] = tmp;
     data_.foot_status_touch[name] = tmp;
     data_.foot_position[name] = tmp_pos;

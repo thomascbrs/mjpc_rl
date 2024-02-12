@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <mujoco/mjvisualize.h>
 #include <vector>
+#include <Eigen/Dense>
 
 #include "mjpc/planners/gradient/planner.h"
 #include "mjpc/planners/ilqg/planner.h"
@@ -15,6 +16,8 @@
 // #include "mjpc/tasks/cartpole/cartpole.h"
 #include "contact_data.h"
 #include "logger.h"
+
+typedef Eigen::Matrix<double, 6, 1> Vector6d;
 
 class MujocoSimulator {
 public:
@@ -65,6 +68,9 @@ private:
 
   std::vector<double> original_friction_values;
   std::vector<double> original_solref_values;
+
+  std::vector<Vector6d> list_points;
+  int idx_nn_;
 
   // residual function for the active task, updated once per planning iteration
   std::unique_ptr<mjpc::ResidualFn> residual_fn_;

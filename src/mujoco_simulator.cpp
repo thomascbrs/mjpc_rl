@@ -71,8 +71,8 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   mjv_defaultPerturb(&pert);
   mjv_defaultOption(&opt);
   // opt.flags[mjVIS_CONTACTPOaINT] = 1;
-  opt.flags[mjVIS_CONTACTFORCE] = 1;
-  opt.flags[mjVIS_CONTACTSPLIT] = 1;
+  // opt.flags[mjVIS_CONTACTFORCE] = 1;
+  // opt.flags[mjVIS_CONTACTSPLIT] = 1;
   // opt.flags[mjVIS_CONSTRAINT] = 1;
   std::cout << "FLAGS : " << opt.flags[mjVIS_CONTACTPOINT] << "\n"
             << std::endl; // Set desired visualization flags
@@ -89,7 +89,7 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   mjr_makeContext(model, &con, mjFONTSCALE_100);
 
   // Adjust camera distance
-  cam.azimuth = 90.0;    // Set azimuth angle
+  cam.azimuth = 70.0;    // Set azimuth angle
   cam.elevation = -20.0; // Set elevation angle
   cam.distance = 3.5;    // Set camera distance to 1.0
 
@@ -158,6 +158,32 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Initialize logger.
   int k_mpc = 10;
   logger_.Initialize(foot_names_, timestep_planner_, steps_, k_mpc, timestep_);
+
+  // Simulate NN decision for reference velocity curve.
+  Vector6d point;
+  point << 0.5, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 0.7,0.,0. ,0.,-0.2,0.;
+  list_points.push_back(point);
+  point << 1.1, 0.0, 0.0, 0.0, -0.3, 0.0;
+  list_points.push_back(point);
+  point << 1.3, 0.0, 0.0, 0.0, -0.4, 0.0;
+  list_points.push_back(point);
+  point << 1.5, 0.0, 1.5, 0.0, -0.4, 0.0;
+  list_points.push_back(point);
+  point << 1.7, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 1.9, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.1, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.3, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.5, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  point << 2.7, 0.0, 0.0, 0.0, 0.0, 0.0;
+  list_points.push_back(point);
+  idx_nn_ = 0;
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -245,7 +271,7 @@ void MujocoSimulator::PlanIteration(mjpc::ThreadPool *pool) {
     // rollout threads
     residual_fn_ = task_->Residual();
 
-    task_->ModifyScene(model, data, &scn);
+    // task_->ModifyScene(model, data, &scn);
 
     if (plan_enabled) {
       // planner policy
@@ -353,7 +379,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
         mcontactData.update(model, data);
         logger_.log(model, data, &mcontactData);
 
-        if (data->time > 1.9) {
+        if (data->time > 6.) {
           logger_.saveData(
               "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
           Data data = logger_.loadData(
@@ -370,8 +396,32 @@ void MujocoSimulator::runSimulation(int numSteps) {
           // data->sensordata[1] = data->qpos[0] - 0.9;
           // task_->Reset();
 
-          task_->parameters[0] = 1.;
           int indexes[2];
+          if (counter_wbc % 200 == 0){
+            // Update the reference curve inside the task planner.
+            // Boolean to update the curve or not.
+            std::cout << "I AM HERE" << std::endl;
+            ParameterIndexes(indexes, model, "residual_nn_updated");
+            // std::cout << "indexes[0] : " << indexes[0] << std::endl;
+            task_->parameters[indexes[0]] = 1.;
+
+            std::string prefix = "residual_";
+            ParameterIndexes(indexes, model, prefix + "nn");
+            // Velocity point target (x3).
+            task_->parameters[indexes[0]] = list_points[idx_nn_][0];
+            task_->parameters[indexes[0]+1] = list_points[idx_nn_][1];
+            task_->parameters[indexes[0]+2] = list_points[idx_nn_][2];
+            task_->parameters[indexes[0]+3] = list_points[idx_nn_][3];
+            task_->parameters[indexes[0]+4] = list_points[idx_nn_][4];
+            task_->parameters[indexes[0]+5] = list_points[idx_nn_][5];
+            std::cout << "Point added : " << list_points[idx_nn_] << std::endl;
+            idx_nn_ ++;
+          }
+          else{
+            ParameterIndexes(indexes, model, "residual_nn_updated");
+            task_->parameters[indexes[0]] = -1.;
+          }
+
           std::string prefix = "residual_air_time_";
           for (const auto &name : foot_names_) {
             ParameterIndexes(indexes, model, prefix + name);
@@ -459,7 +509,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
     mjv_updateScene(model, data, &opt, NULL, &cam, mjCAT_ALL, &scn);
 
     // Add visualisation.
-    task_->ModifyScene(model, data, &scn);
+    // task_->ModifyScene(model, data, &scn);
 
     // Add contact-related geoms to the visualization scene
     // addContactGeom(model, data, 0, nullptr, &scn);

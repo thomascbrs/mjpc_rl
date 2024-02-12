@@ -143,22 +143,26 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   res_index += 12;
 
   // Time varying references.
-  if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
-    Eigen::Vector3d pos_ref = curve_(data->time - 1.);
-    Eigen::Vector3d vel_ref = curve_vel_(data->time - 1.);
-    Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
+  if (data->time - 1. >= 0. && data->time - 1. <= 8.) {
+    Eigen::Vector3d pos_ref = {0.,0.,0.};
+    // std::cout << "data->time - 1. : " << data->time - 1. << std::endl;
+    Eigen::Vector3d vel_ref = pcVel_(data->time - 1.);
+    Eigen::Vector3d rot_ref = pcRot_(data->time - 1.);
+    // std::cout << "vel_ref : [" << vel_ref[0] << "," << vel_ref[1] << "," << vel_ref[2] << "]" << std::endl ;
+    // std::cout << "data->time - 1.2 : " << data->time - 1. << std::endl;
+    // Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
 
     // Compute derivative of the curve wrt to x to retrieve pitch angle.
     double pitch[1];
     double wpitch[1];
     double fwd = 0.0;
-    getPitch(pitch, wpitch, data->time + fwd - 1.);
+    // getPitch(pitch, wpitch, data->time + fwd - 1.);
 
     mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
     mjtNum quat[4];
     mjtNum ref_rotmat[9];
     mju_axisAngle2Quat(quat, axis,
-                       pitch[0]);   // Convert axis-angle to quaternion
+                       rot_ref[1]);   // Convert axis-angle to quaternion
     mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
 
     // ---------- Residual (1) ----------
@@ -226,7 +230,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
     double time0 = parameters_[indexes[0]];
 
     double z_positions[4];
-    double z_positions_ref[4] = {0., 0., 0., 0.};
+    double z_positions_ref[4] = {-0.0, -0.0, -0.05, -0.05};
     int shift = 0;
 
     for (const auto &name : foot_names) {
@@ -235,12 +239,18 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
       // std::cout << "\ndata->time : " << data->time << std::endl;
       if (parameters_[indexes[0]] > 0.05) { // Foot currently the air
         if (data->time - time0 + parameters_[indexes[0]] > time_limit) {
-          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2) {
+          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2 ) {
+            // std::cout << name << "indexes[0] : " << indexes[0] << std::endl;
             // mju_sub3(residual + res_index, mjpc::SensorByName(model, data,
             // name)[2], 0.); std::cout << "Activate air time cost on " << name
             // << std::endl;
             z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
-            // z_positions[shift] = 0.;
+            // z_positions[shift] = std::pow(mjpc::SensorByName(model, data, name + "_touch")[0],-2);
+            // std::cout << name << " : " << z_positions[shift] << std::endl;
+            // std::cout << name << " : " << mjpc::SensorByName(model, data, name + "_touch")[0] << std::endl;
+            // if (z_positions[shift] < 0.){
+            //   z_positions[shift] = 0.;
+            // }
           }
         }
       }
@@ -271,6 +281,13 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
       mju_sub3(residual + res_index, feet_acc, feet_acc_ref);
       res_index += 3;
     }
+
+    // ---------- Residual (8) -----------
+    // Symmetric term
+    Eigen::Map<Eigen::Matrix<double, 12, 1>> u(data->ctrl);
+    Eigen::Matrix<double, 4, 1> C2_u = C2 * u;
+    mju_copy(residual + res_index, C2_u.data() , 4);
+    res_index += 4;
 
   } else {
     // ---------- Residual (1) ----------
@@ -343,11 +360,52 @@ void QuadrupedTask::ResidualFn::Update() {
   norm_parameter_ = task_->norm_parameter;
   risk_ = task_->risk;
   parameters_ = task_->parameters;
-  // cp[3] = Eigen::Vector3d(1.678, 0.0, 0.052);
-  // curve_ = ndcurves::bezier_curve<double, double, true, Eigen::Vector3d>(
-  //     cp.begin(), cp.end());
-  // std::cout << "Hello" << std::endl;
+  // parameters_[0] --> residual_nn_updated
+  if (parameters_[0] > 0){
+    // Update the reference curve.
+    std::cout << "Update Reference curve." << std::endl;
+
+    // Does not work : Update does not take model.
+    // int indexes[2];
+    // ParameterIndexes(indexes, model, "residual_nn");
+    // const double *params_nn = &parameters_[0];
+
+    updateCurves(parameters_.begin() + 1, parameters_.begin() + 6);
+    n_update += 1;
+  }
 }
+
+void QuadrupedTask::ResidualFn::updateCurves(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
+  double T = lin_velocity_.max();
+  double T2 = lin_velocity_.max() + 0.4;
+  Eigen::MatrixXd minv(3, 3);
+  Eigen::MatrixXd coeffs(3,3);
+  Eigen::MatrixXd b(3, 3);
+  minv << 1, 0, 0,
+          0, 1, 0,
+          -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+
+  // Linear velocities.
+  b.row(0) = pcVel_(pcVel_.max());
+  b.row(1) = pcVel_.derivate(pcVel_.max(),1);
+  b.row(2) << *start, *(start +1), *(start +2);
+  coeffs = minv * b;
+
+  Polynomial curve_tmp;
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  pcVel_.add_curve(curve_tmp);
+
+  // Rotation angles.
+  b.row(0) = pcRot_(pcRot_.max());
+  b.row(1) = pcRot_.derivate(pcRot_.max(),1);
+  b.row(2) << *start+3, *(start +4), *(start +5);
+  coeffs = minv * b;
+
+  Polynomial curveRot_tmp;
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  pcRot_.add_curve(curveRot_tmp);
+}
+
 
 // / draw task-related geometry in the scene
 void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
