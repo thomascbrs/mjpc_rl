@@ -208,6 +208,15 @@ void MujocoSimulator::enableInteractionForGeoms(mjModel *m) {
   }
 }
 
+void MujocoSimulator::print_planner_timings() {
+  std::cout << "\nTotal time [ms] : " << 1e-3*planner.nominal_compute_time << std::endl;
+  std::cout << "Model derivative [ms] : " << 1e-3*planner.model_derivative_compute_time << std::endl;
+  std::cout << "Cost derivative [ms] : " << 1e-3*planner.cost_derivative_compute_time << std::endl;
+  std::cout << "Rollout [ms] : " << 1e-3*planner.rollouts_compute_time << std::endl;
+  std::cout << "Backward pass [ms] : " << 1e-3*planner.backward_pass_compute_time << std::endl;
+  std::cout << "Policy update [ms] : " << 1e-3*planner.policy_update_compute_time << std::endl;
+}
+
 // simple controller applying damping to each dof
 void mycontroller(const mjModel *m, mjData *d) {
   // if (m->nu == m->nv) {
@@ -500,6 +509,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
             // iteration
             // planner.Iteration(steps_, plan_pool);
           }
+          print_planner_timings();
           // Log OCP best trajectory.
           logger_.logMPC(planner.BestTrajectory());
         }

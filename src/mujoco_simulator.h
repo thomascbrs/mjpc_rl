@@ -36,6 +36,7 @@ public:
   std::vector<std::vector<double>> getLoggedJointPositions() const;
   void disableInteractionForGeoms(mjModel *m);
   void enableInteractionForGeoms(mjModel *m);
+  void print_planner_timings();
 
 private:
   mjModel *model;
