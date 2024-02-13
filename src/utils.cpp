@@ -66,6 +66,14 @@ const char *enumToString(mjtObj value) {
 // Print informations relative to the model.
 void infos_models(const mjModel *model) {
   std::cout << "\nModel Informations" << std::endl;
+
+  // Mass informations.
+  double mass = 0.;
+  for (int i = 0; i < model->nbody; i++) {
+    mass += model->body_mass[i];
+  }
+  std::cout << "\nMass : " << mass << std::endl;
+
   for (int objType = mjOBJ_UNKNOWN; objType < mjOBJ_PLUGIN; ++objType) {
     mjtObj enumValue = static_cast<mjtObj>(objType);
 

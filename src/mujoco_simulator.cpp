@@ -2,6 +2,7 @@
 #include "quadruped_task.h"
 #include "utils.cpp"
 #include <iostream>
+#include <thread>
 
 // Define the task outisde the class function.
 // mjpc::QuadrupedFlat *task_;
@@ -18,7 +19,7 @@ mjpc::iLQGPlanner planner;
 // Logger path.
 std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
-MujocoSimulator::MujocoSimulator(const char *modelFile)
+MujocoSimulator::MujocoSimulator(int n_threads, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
       mcontactData(foot_names_, 0.002) {
 
@@ -33,13 +34,14 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   // Access the simulation options
   mjOption *options = &model->opt;
   options->integrator = mjINT_EULER; // mjINT_RK4
-  options->cone = mjCONE_ELLIPTIC;
+  options->cone = mjCONE_ELLIPTIC; // mjCONE_PYRAMIDAL
+  // options->cone = mjCONE_PYRAMIDAL;
   options->jacobian = mjJAC_AUTO;
   options->solver = mjSOL_NEWTON; // mjSOL_CG, mjSOL_PGS
-  options->iterations = 100;
-  options->tolerance = 1e-8;
+  options->iterations = 100; // 100
+  options->tolerance = 1e-8; // 1e-8
   options->noslip_tolerance = 1e-6;
-  options->noslip_iterations = 3;
+  options->noslip_iterations = 3; // 3
   options->mpr_tolerance = 1e-6;
 
   // Initialize Mujoco simulation
@@ -57,44 +59,8 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
     data->qpos[i] = q0_[i];
   }
 
-  // Mujoco visualisation
-  // init GLFW, create window, make OpenGL context current, request v-sync
-  glfwInit();
-  window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
-  glfwMakeContextCurrent(window);
-  glfwSwapInterval(1);
-
-  // initialize visualization data structures
-  // Declare mjvPerturb variable
-  mjvPerturb pert;
-  mjv_defaultCamera(&cam);
-  mjv_defaultPerturb(&pert);
-  mjv_defaultOption(&opt);
-  // opt.flags[mjVIS_CONTACTPOaINT] = 1;
-  // opt.flags[mjVIS_CONTACTFORCE] = 1;
-  // opt.flags[mjVIS_CONTACTSPLIT] = 1;
-  // opt.flags[mjVIS_CONSTRAINT] = 1;
-  std::cout << "FLAGS : " << opt.flags[mjVIS_CONTACTPOINT] << "\n"
-            << std::endl; // Set desired visualization flags
-  mjr_defaultContext(&con);
-
-  double mass = 0.;
-  for (int i = 0; i < model->nbody; i++) {
-    mass += model->body_mass[i];
-  }
-  std::cout << "Mass : " << mass << std::endl;
-
-  // create scene and context
-  mjv_makeScene(model, &scn, 1000);
-  mjr_makeContext(model, &con, mjFONTSCALE_100);
-
-  // Adjust camera distance
-  cam.azimuth = 70.0;    // Set azimuth angle
-  cam.elevation = -20.0; // Set elevation angle
-  cam.distance = 3.5;    // Set camera distance to 1.0
-
   // Params
-  planner_threads_ = 5;
+  planner_threads_ = n_threads;
   horizon_ = 0.4;
   timestep_planner_ = 1.0e-2;
   timestep_ = 0.002;
@@ -163,27 +129,52 @@ MujocoSimulator::MujocoSimulator(const char *modelFile)
   Vector6d point;
   point << 0.5, 0.0, 0.0, 0.0, 0.0, 0.0;
   list_points.push_back(point);
-  point << 0.7,0.,0. ,0.,-0.2,0.;
+  point << 0.7,0.,0. ,0.,-0.,0.;
   list_points.push_back(point);
-  point << 1.1, 0.0, 0.0, 0.0, -0.3, 0.0;
+  point << 1.1, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 1.3, 0.0, 0.0, 0.0, -0.4, 0.0;
+  point << 1.3, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 1.5, 0.0, 1.5, 0.0, -0.4, 0.0;
+  point << 1.5, 0.0, 0., 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 1.7, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 1.7, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 1.9, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 1.9, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 2.1, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 2.1, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 2.3, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 2.3, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 2.5, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 2.5, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
-  point << 2.7, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 2.7, 0.0, 0.0, 0.0, -0.1, 0.0;
   list_points.push_back(point);
   idx_nn_ = 0;
+
+  initialize_viewer();
+
+}
+
+void MujocoSimulator::reset(Eigen::VectorXd q0) {
+  if (q0.size() != 19) {
+    throw std::runtime_error("q0 should be size 19");
+  }
+  mj_resetData(model,data);
+  for (int i = 0; i < model->nq; ++i) {
+    data->qpos[i] = q0[i];
+  }
+  task_->Reset(model);
+  task_->SetParameters(model);
+
+  state_.Reset();
+  state_.Set(model, data);
+
+  planner.Reset(kMaxTrajectoryHorizon_);
+  task_->UpdateResidual();
+
+  mj_step(model, data);
+  update_viewer();
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -312,15 +303,72 @@ void MujocoSimulator::Plan(std::atomic<bool> &exitrequest,
   } // exitrequest sent -- stop planning
 }
 
-void MujocoSimulator::initialize() {
-  // Additional initialization steps if needed
+void MujocoSimulator::initialize_viewer() {
+  // Mujoco visualisation
+  // init GLFW, create window, make OpenGL context current, request v-sync
+  glfwInit();
+  window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
+  glfwMakeContextCurrent(window);
+  glfwSwapInterval(1);
+
+  // initialize visualization data structures
+  mjvPerturb pert;  // Declare mjvPerturb variable
+  mjv_defaultCamera(&cam);
+  mjv_defaultPerturb(&pert);
+  mjv_defaultOption(&opt);
+
+  // Flags options.
+  // opt.flags[mjVIS_CONTACTPOaINT] = 1;
+  // opt.flags[mjVIS_CONTACTFORCE] = 1;
+  // opt.flags[mjVIS_CONTACTSPLIT] = 1;
+  // opt.flags[mjVIS_CONSTRAINT] = 1;
+  mjr_defaultContext(&con);
+
+  // create scene and context
+  mjv_makeScene(model, &scn, 1000);
+  mjr_makeContext(model, &con, mjFONTSCALE_100);
+
+  // Adjust camera distance
+  cam.azimuth = 70.0;     // Set azimuth angle
+  cam.elevation = -20.0;  // Set elevation angle
+  cam.distance = 3.5;     // Set camera distance to 1.0
+}
+
+void MujocoSimulator::update_viewer() {
+  // Get trunk posiiton and update the camera position.
+  int trunkBodyId = mj_name2id(model, mjOBJ_BODY, "trunk");
+  // Adjust the camera position based on the trunk body position
+  cam.lookat[0] = data->xpos[trunkBodyId * 3];
+  cam.lookat[1] = data->xpos[trunkBodyId * 3 + 1];
+  // scn.cam.lookat[2] = data->xpos[trunkBodyId * 3 + 2];
+
+  // get framebuffer viewport
+  mjrRect viewport = {0, 0, 0, 0};
+  glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
+
+  // update scene and render
+  mjv_updateScene(model, data, &opt, NULL, &cam, mjCAT_ALL, &scn);
+
+  // Add visualisation.
+  // task_->ModifyScene(model, data, &scn);
+
+  // Add contact-related geoms to the visualization scene
+  // addContactGeom(model, data, 0, nullptr, &scn);
+
+  mjr_render(viewport, &scn, &con);
+
+  // swap OpenGL buffers (blocking call due to v-sync)
+  glfwSwapBuffers(window);
+
+  // process pending GUI events, call GLFW callbacks
+  glfwPollEvents();
 }
 
 void MujocoSimulator::runSimulation(int numSteps) {
 
   // Start planner in separate thread.
-  std::atomic<bool> exitrequest(false);
-  std::atomic<int> uiloadrequest(0);
+  // std::atomic<bool> exitrequest(false);
+  // std::atomic<int> uiloadrequest(0);
   mjpc::ThreadPool plan_pool(planner_threads_);
   // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() {
   // Plan(exitrequest, uiloadrequest); });
@@ -379,12 +427,17 @@ void MujocoSimulator::runSimulation(int numSteps) {
         mcontactData.update(model, data);
         logger_.log(model, data, &mcontactData);
 
-        if (data->time > 6.) {
-          logger_.saveData(
-              "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          Data data = logger_.loadData(
-              "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          // logger_.writeToCsvFile(filename);
+        if (data->time > 5.2) {
+          Eigen::VectorXd q_pos(19);
+          q_pos << 1., 0.5, 0.3, 1., 0., 0., 0., 0., 0., 0.,0., 0.,  0.,  0., 0., 0., 0., 0., 0.;
+          reset(q_pos);
+          // mj_resetData(model,data);
+          // logger_.saveData(
+          //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          // Data data = logger_.loadData(
+          //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+          // // logger_.writeToCsvFile(filename);
+          // std::this_thread::sleep_for(std::chrono::seconds(2));
           return;
         }
 
@@ -450,10 +503,9 @@ void MujocoSimulator::runSimulation(int numSteps) {
           // Log OCP best trajectory.
           logger_.logMPC(planner.BestTrajectory());
         }
-        state_.Set(model, data);
-        std::cout << "state_.time() : " << state_.time() << std::endl;
         double timestep_simu = 0.002;
         model->opt.timestep = timestep_simu;
+        state_.Set(model, data);
 
         // Direct torques from policy.
         planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
@@ -493,34 +545,7 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
       mj_step(model, data);
     }
-
-    // Get trunk posiiton and update the camera position.
-    int trunkBodyId = mj_name2id(model, mjOBJ_BODY, "trunk");
-    // Adjust the camera position based on the trunk body position
-    cam.lookat[0] = data->xpos[trunkBodyId * 3];
-    cam.lookat[1] = data->xpos[trunkBodyId * 3 + 1];
-    // scn.cam.lookat[2] = data->xpos[trunkBodyId * 3 + 2];
-
-    // get framebuffer viewport
-    mjrRect viewport = {0, 0, 0, 0};
-    glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
-
-    // update scene and render
-    mjv_updateScene(model, data, &opt, NULL, &cam, mjCAT_ALL, &scn);
-
-    // Add visualisation.
-    // task_->ModifyScene(model, data, &scn);
-
-    // Add contact-related geoms to the visualization scene
-    // addContactGeom(model, data, 0, nullptr, &scn);
-
-    mjr_render(viewport, &scn, &con);
-
-    // swap OpenGL buffers (blocking call due to v-sync)
-    glfwSwapBuffers(window);
-
-    // process pending GUI events, call GLFW callbacks
-    glfwPollEvents();
+    update_viewer();
   }
 
   // close GLFW, free visualization storage

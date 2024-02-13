@@ -21,10 +21,12 @@ typedef Eigen::Matrix<double, 6, 1> Vector6d;
 
 class MujocoSimulator {
 public:
-  MujocoSimulator(const char *modelFile);
+  MujocoSimulator(int n_threads, const char *modelFile);
   ~MujocoSimulator();
 
-  void initialize();
+  void initialize_viewer();
+  void update_viewer();
+  void reset(Eigen::VectorXd q0);
   void runSimulation(int numSteps);
   void step();
   static void sensor(const mjModel *model, mjData *data, int stage);
