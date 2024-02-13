@@ -346,7 +346,23 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
   // ---------- Residual (4) ----------
   // Cost on the command
-  mju_copy(residual + res_index, data->ctrl, model->nu);
+  // double *ctrl = data->ctrl;
+  // double factor = 100;
+  // ctrl[0] *= factor;
+  // ctrl[3] *= factor;
+  // ctrl[6] *= factor;
+  // ctrl[9] *= factor;
+  // Eigen::Map<Eigen::Matrix<double, 12, 1>> ctrl(data->ctrl);
+  int indexes[2];
+  ParameterIndexes(indexes, model, "residual_ctrl_factor_hip");
+  double factor = parameters_[indexes[0]];
+  double ctrl[12];
+  std::copy(data->ctrl, data->ctrl + 12, ctrl);
+  ctrl[0] *= factor;
+  ctrl[3] *= factor;
+  ctrl[6] *= factor;
+  ctrl[9] *= factor;
+  mju_copy(residual + res_index, ctrl, model->nu);
 }
 
 void QuadrupedTask::ResidualFn::Update() {

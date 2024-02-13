@@ -14,6 +14,7 @@
     <numeric name="sampling_trajectories" data="128" />
     <numeric name="gradient_num_trajectory" data="64" />
     <numeric name="ilqg_num_rollouts" data="16" />
+    <numeric name="ilqg_regularization_type" data="1" />
     <numeric name="residual_nn_updated" size="1" data="-1." />
     <numeric name="residual_nn" size="6" data="0.5 0. 0. 0. 0. 0.33333" />
     <numeric name="residual_Height" data="0.25" />
@@ -23,6 +24,7 @@
     <numeric name="residual_air_time_FL" data="0." />
     <numeric name="residual_air_time_HR" data="0." />
     <numeric name="residual_air_time_HL" data="0." />
+    <numeric name="residual_ctrl_factor_hip" size="1" data="50." />
   </custom>
 
   <worldbody>
