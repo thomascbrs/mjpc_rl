@@ -5,7 +5,7 @@
 
 int main() {
 
-  MujocoSimulator mjsimulator = MujocoSimulator(5,
+  MujocoSimulator mjsimulator = MujocoSimulator(5,true,
       "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml");
   // MujocoSimulator mjsimulator = MujocoSimulator(
   //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/cartpole/task.xml");

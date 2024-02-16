@@ -19,7 +19,7 @@ mjpc::iLQGPlanner planner;
 // Logger path.
 std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
-MujocoSimulator::MujocoSimulator(int n_threads, const char *modelFile)
+MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
       mcontactData(foot_names_, 0.002) {
 
@@ -30,6 +30,9 @@ MujocoSimulator::MujocoSimulator(int n_threads, const char *modelFile)
   if (!model) {
     std::cerr << "Error loading Mujoco model: " << loadError << std::endl;
   }
+
+  // Rendering flag
+  RENDERING_ = rendering;
 
   // Access the simulation options
   mjOption *options = &model->opt;
@@ -47,19 +50,20 @@ MujocoSimulator::MujocoSimulator(int n_threads, const char *modelFile)
   // Initialize Mujoco simulation
   data = mj_makeData(model);
 
-  // Define reference joint configuration and assign values to data->qpos
-  // q0_ = {0.0, 0.9, 0.3,   // Joint 1
-  //         0.0, 0.9, 0.3,   // Joint 2
-  //         0.0, 0.9, 0.3,   // Joint 3
-  //         0.0, 0.9, 0.3};  // Joint 4
-  q0_ = {0., -0., 0.3, 1., 0., 0., 0., 0., 0., 0.,
-         0., 0.,  0.,  0., 0., 0., 0., 0., 0.};
+  // Define reference configuration
+  q0_ << 0., -0., 0.3,  // position
+      1., 0., 0., 0.,  // orientation
+      0., 0., 0.,      // FR
+      0., 0., 0.,      // FL
+      0., 0., 0.,      // HR
+      0., 0., 0.;      // HL
 
-  for (int i = 0; i < model->nv; ++i) {
+  // Assign q0_ to data->qpos
+  for (int i = 0; i < model->nq; ++i) {
     data->qpos[i] = q0_[i];
   }
 
-  // Params
+  // General simulation parameters
   planner_threads_ = n_threads;
   horizon_ = 0.4;
   timestep_planner_ = 1.0e-2;
@@ -90,7 +94,9 @@ MujocoSimulator::MujocoSimulator(int n_threads, const char *modelFile)
   planner.Initialize(model, *task_);
   planner.Allocate();
   planner.Reset(kMaxTrajectoryHorizon_);
+  task_->num_trace = 0;
   // planner.settings.verbose = 1;
+  // planner.settings.fd_tolerance = 1.0e-8;
 
   // cost
   terms_.resize(task_->num_term * kMaxTrajectoryHorizon_);
@@ -131,23 +137,23 @@ MujocoSimulator::MujocoSimulator(int n_threads, const char *modelFile)
   list_points.push_back(point);
   point << 0.7,0.,0. ,0.,-0.,0.;
   list_points.push_back(point);
-  point << 1.1, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 1.1, 0.0, 0.0, 0.0, -0., 0.1;
   list_points.push_back(point);
-  point << 1.3, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 1.3, 0.0, 0.0, 0.0, -0., 0.2;
   list_points.push_back(point);
-  point << 1.5, 0.0, 0., 0.0, -0.1, 0.0;
+  point << 1.5, 0.0, 0., 0.0, -0., 0.3;
   list_points.push_back(point);
-  point << 1.7, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 1.7, 0.0, 0.0, 0.0, -0., 0.5;
   list_points.push_back(point);
-  point << 1.9, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 1.9, 0.0, 0.0, 0.0, -0., 0.7;
   list_points.push_back(point);
-  point << 2.1, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 2.1, 0.0, 0.0, 0.0, -0., 0.0;
   list_points.push_back(point);
-  point << 2.3, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 2.3, 0.0, 0.0, 0.0, -0., 0.0;
   list_points.push_back(point);
-  point << 2.5, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 2.5, 0.0, 0.0, 0.0, -0., 0.0;
   list_points.push_back(point);
-  point << 2.7, 0.0, 0.0, 0.0, -0.1, 0.0;
+  point << 2.7, 0.0, 0.0, 0.0, -0., 0.0;
   list_points.push_back(point);
   idx_nn_ = 0;
 
@@ -163,17 +169,24 @@ void MujocoSimulator::reset(Eigen::VectorXd q0) {
   for (int i = 0; i < model->nq; ++i) {
     data->qpos[i] = q0[i];
   }
+
+  // Reset task
   task_->Reset(model);
   task_->SetParameters(model);
 
+  // Reset state
   state_.Reset();
   state_.Set(model, data);
 
+  // Reset planner
   planner.Reset(kMaxTrajectoryHorizon_);
   task_->UpdateResidual();
 
   mj_step(model, data);
   update_viewer();
+
+  put_robot_on_floor(200,q0_.tail(12));
+
   std::this_thread::sleep_for(std::chrono::seconds(2));
 }
 
@@ -327,7 +340,7 @@ void MujocoSimulator::initialize_viewer() {
   mjv_defaultOption(&opt);
 
   // Flags options.
-  // opt.flags[mjVIS_CONTACTPOaINT] = 1;
+  // opt.flags[mjVIS_CONTACTPOINT] = 1;
   // opt.flags[mjVIS_CONTACTFORCE] = 1;
   // opt.flags[mjVIS_CONTACTSPLIT] = 1;
   // opt.flags[mjVIS_CONSTRAINT] = 1;
@@ -373,6 +386,51 @@ void MujocoSimulator::update_viewer() {
   glfwPollEvents();
 }
 
+void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
+  if (qref.size() != 12){
+    throw std::runtime_error("qref should be size 12");
+  }
+  mjtNum simstart;
+  simstart = data->time;
+  for (int k=0; k < n_steps; k++){
+    for (int i = 0; i < model->nu; ++i) {
+      double error = qref[i] - data->qpos[i + 7];
+      double vel_error =
+          data->qvel[i + 6];  // Assuming you have access to velocity information
+      // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error -
+      // kd_ * vel_error;
+      double control_signal = kp_ * error - kd_ * vel_error;
+      // double control_signal = qref[i];
+
+      // Apply control signal to actuators or joints
+      data->ctrl[i] = control_signal;
+      // data->ctrl[i] = 0.;
+    }
+    mj_step(model, data);
+    std::cout << "time [s] : " << data->time << std::endl;
+    if (RENDERING_ && data->time - simstart < 1.0 / 60.0){
+      update_viewer();
+      simstart = data->time;
+    }
+  }
+}
+
+void MujocoSimulator::update_ref_curve(int idx){
+  // Update the reference curve inside the task planner.
+  int indexes[2];
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = 1.; // Boolean for update
+
+  ParameterIndexes(indexes, model, "residual_nn");
+  // Velocity point target (x3) + angle position target.
+  task_->parameters[indexes[0]] = list_points[idx][0];
+  task_->parameters[indexes[0]+1] = list_points[idx][1];
+  task_->parameters[indexes[0]+2] = list_points[idx][2];
+  task_->parameters[indexes[0]+3] = list_points[idx][3];
+  task_->parameters[indexes[0]+4] = list_points[idx][4];
+  task_->parameters[indexes[0]+5] = list_points[idx][5];
+}
+
 void MujocoSimulator::runSimulation(int numSteps) {
 
   // Start planner in separate thread.
@@ -390,178 +448,101 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
   int counter_wbc = 0;
 
-  mj_step(model, data);
-  while (!glfwWindowShouldClose(window)) {
-    // advance interactive simulation for 1/60 sec
-    //  Assuming MuJoCo can simulate faster than real-time, which it usually
-    //  can, this loop will finish on time for the next frame to be rendered at
-    //  60 fps. Otherwise add a cpu timer and exit this loop when it is time to
-    //  render.
-    mjtNum simstart = data->time;
-    while (data->time - simstart < 1.0 / 60.0) {
-      if (data->time < 1.) {
-        // mju_zero(data->ctrl, model->nu);
-        // mju_zero(data->qfrc_applied, model->nv);
-        // mju_zero(data->xfrc_applied, 6 * model->nbody);
-        for (int i = 0; i < model->nu; ++i) {
-          double error = q0_[i + 7] - data->qpos[i + 7];
-          double vel_error =
-              data->qvel[i +
-                         6]; // Assuming you have access to velocity information
-          // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error -
-          // kd_ * vel_error;
-          double control_signal = kp_ * error - kd_ * vel_error;
+  // mj_step(model, data);
+  put_robot_on_floor(500, q0_.tail(12)); // Initialisation
 
-          // Apply control signal to actuators or joints
-          data->ctrl[i] = control_signal;
-          // data->ctrl[i] = 0.;
-        }
-      } else {
-        data->mocap_pos[0] = 1.2;
-        data->mocap_pos[1] = 0.;
-        data->mocap_pos[2] = 0.25;
-        data->mocap_quat[0] = 1.;
-        data->mocap_quat[1] = 0.;
-        data->mocap_quat[2] = 0.;
-        data->mocap_quat[3] = 0.;
+  mjtNum simstart = data->time;
 
-        // task_->Residual(model, data, data->sensordata);
-        // uiloadrequest.fetch_add(1);
-        // task_->Reset(model);
-        // planner.task->UpdateResidual();
-        // task_->Residual(model, data, data->sensordata);task_->Residual(model,
-        // data, data->sensordata);
-
-        // Reset the contact status to 0.
-        mcontactData.update(model, data);
-        logger_.log(model, data, &mcontactData);
-
-        if (data->time > 5.2) {
-          Eigen::VectorXd q_pos(19);
-          q_pos << 1., 0.5, 0.3, 1., 0., 0., 0., 0., 0., 0.,0., 0.,  0.,  0., 0., 0., 0., 0., 0.;
-          reset(q_pos);
-          // mj_resetData(model,data);
-          // logger_.saveData(
-          //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          // Data data = logger_.loadData(
-          //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-          // // logger_.writeToCsvFile(filename);
-          // std::this_thread::sleep_for(std::chrono::seconds(2));
-          return;
-        }
-
-        if (counter_wbc % 10 == 0) {
-          // PlanIteration(&plan_pool);
-          // set state
-          // task_->SetFeatureParameters(model);
-          // task_->parameters[0] = -0.9;
-          // data->sensordata[1] = data->qpos[0] - 0.9;
-          // task_->Reset();
-
-          int indexes[2];
-          if (counter_wbc % 200 == 0){
-            // Update the reference curve inside the task planner.
-            // Boolean to update the curve or not.
-            std::cout << "I AM HERE" << std::endl;
-            ParameterIndexes(indexes, model, "residual_nn_updated");
-            // std::cout << "indexes[0] : " << indexes[0] << std::endl;
-            task_->parameters[indexes[0]] = 1.;
-
-            std::string prefix = "residual_";
-            ParameterIndexes(indexes, model, prefix + "nn");
-            // Velocity point target (x3).
-            task_->parameters[indexes[0]] = list_points[idx_nn_][0];
-            task_->parameters[indexes[0]+1] = list_points[idx_nn_][1];
-            task_->parameters[indexes[0]+2] = list_points[idx_nn_][2];
-            task_->parameters[indexes[0]+3] = list_points[idx_nn_][3];
-            task_->parameters[indexes[0]+4] = list_points[idx_nn_][4];
-            task_->parameters[indexes[0]+5] = list_points[idx_nn_][5];
-            std::cout << "Point added : " << list_points[idx_nn_] << std::endl;
-            idx_nn_ ++;
-          }
-          else{
-            ParameterIndexes(indexes, model, "residual_nn_updated");
-            task_->parameters[indexes[0]] = -1.;
-          }
-
-          std::string prefix = "residual_air_time_";
-          for (const auto &name : foot_names_) {
-            ParameterIndexes(indexes, model, prefix + name);
-            task_->parameters[indexes[0]] = mcontactData.air_timings[name];
-          }
-          // Update time0.
-          ParameterIndexes(indexes, model, prefix + "time0");
-          task_->parameters[indexes[0]] = data->time;
-
-          task_->UpdateResidual();
-
-          state_.Set(model, data);
-          planner.SetState(state_);
-          residual_fn_ = task_->Residual();
-          task_->risk = 0.;
-          // planner policy
-          for (int i = 0; i <= 1; i++) {
-            // Setup model timestep.
-            model->opt.timestep = timestep_planner_;
-            planner.OptimizePolicy(steps_, plan_pool);
-            // planner.NominalTrajectory(steps_, plan_pool);
-
-            // iteration
-            // planner.Iteration(steps_, plan_pool);
-          }
-          print_planner_timings();
-          // Log OCP best trajectory.
-          logger_.logMPC(planner.BestTrajectory());
-        }
-        double timestep_simu = 0.002;
-        model->opt.timestep = timestep_simu;
-        state_.Set(model, data);
-
-        // Direct torques from policy.
-        planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
-                                 false);
-
-        // std::vector<double>
-        // for (int i = 0; i < model->nu; ++i) {
-        //   double error = planner.BestTrajectory()->states[37*1 + 7 + i] -
-        //   data->qpos[i + 7]; double vel_error = data->qvel[i + 6]; //
-        //   Assuming you have access to velocity information
-        //   // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error
-        //
-        //   // kd_ * vel_error;
-        //   double control_signal = kp_ * error - kd_ * vel_error;
-
-        //   // Apply control signal to actuators or joints
-        //   data->ctrl[i] += control_signal;
-        // }
-
-        // for (int i = 0; i < model->nu; ++i) {
-        // data->ctrl[i] = 0.;
-        // data->ctrl[i] = planner.BestTrajectory()->actions[i];
-        // }
-        int counting = 0;
-        // std::this_thread::sleep_for(std::chrono::milliseconds(30));
-        // data->ctrl[7] = 5.;
-        counter_wbc += 1;
+  for (int k_wbc = 0; k_wbc < numSteps; k_wbc++) {
+    // Check if windows is open on rendering.
+    if (RENDERING_) {
+      if (glfwWindowShouldClose(window)) {
+        // close GLFW, free visualization storage
+        glfwTerminate();
+        mjv_freeScene(&scn);
+        mjr_freeContext(&con);
+        break;
       }
-      model->opt.timestep = timestep_;
-
-      // Monitoring real values of the sensors from data and datasensors.
-      // double* FR = mjpc::SensorByName(model, data, "FR_vel");
-      // int siteId = mj_name2id(model, mjOBJ_SITE, "FR_vel");
-      // const double* sitePos = data->site_xpos + 3 * siteId;
-      // std::cout << "FR (sensor) : " << FR[2] << std::endl;
-      // std::cout << "FR (data)   : " << sitePos[2] << std::endl;
-
-      mj_step(model, data);
     }
-    update_viewer();
-  }
+    // Reset the contact status to 0.
+    mcontactData.update(model, data);
+    logger_.log(model, data, &mcontactData);
 
+    // Update reference curve.
+    if (k_wbc % 200 == 0){
+      update_ref_curve(idx_nn_);
+      idx_nn_ ++;
+    }
+    else{
+      // TODO call this function at each loop. Once to reset to -1 is enough.
+      int indexes[2];
+      ParameterIndexes(indexes, model, "residual_nn_updated");
+      task_->parameters[indexes[0]] = -1.;
+    }
+
+    // if (data->time > 5.2) {
+    //       Eigen::VectorXd q_pos(19);
+    //       q_pos << 1., 0.5, 0.3, 1., 0., 0., 0., 0., 0., 0.,0., 0.,  0.,  0., 0., 0., 0., 0., 0.;
+    //       reset(q_pos);
+    //       // mj_resetData(model,data);
+    //       // logger_.saveData(
+    //       //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+    //       // Data data = logger_.loadData(
+    //       //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+    //       // // logger_.writeToCsvFile(filename);
+    //       // std::this_thread::sleep_for(std::chrono::seconds(2));
+    //       return;
+    // }
+
+    // Planner iteration
+    if (k_wbc % 10 == 0) {
+      int indexes[2];
+      std::string prefix = "residual_air_time_";
+      for (const auto &name : foot_names_) {
+        ParameterIndexes(indexes, model, prefix + name);
+        task_->parameters[indexes[0]] = mcontactData.air_timings[name];
+      }
+      // Update time0.
+      ParameterIndexes(indexes, model, prefix + "time0");
+      task_->parameters[indexes[0]] = data->time;
+
+      // Update task
+      task_->UpdateResidual();
+
+      state_.Set(model, data);
+      planner.SetState(state_);
+      task_->risk = 0.;
+      // residual_fn_ = task_->Residual();
+      // planner policy
+      for (int i = 0; i <= 1; i++) {
+        // Setup model timestep.
+        model->opt.timestep = timestep_planner_;
+        planner.OptimizePolicy(steps_, plan_pool);
+      }
+      // print_planner_timings();
+      // Log best OCP trajectory.
+      logger_.logMPC(planner.BestTrajectory());
+    }
+    std::cout << "time [s] : " << data->time << std::endl;
+    model->opt.timestep = timestep_;
+    state_.Set(model, data);
+
+    // Direct position control from policy.
+    planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
+                              false);
+
+    // Simulation step.
+    mj_step(model, data);
+
+    if (RENDERING_ && data->time - simstart < 1.0 / 60.0){
+      update_viewer();
+      simstart = data->time;
+    }
+  }
   // close GLFW, free visualization storage
-  glfwTerminate();
-  mjv_freeScene(&scn);
-  mjr_freeContext(&con);
+  // glfwTerminate();
+  // mjv_freeScene(&scn);
+  // mjr_freeContext(&con);
 }
 
 std::vector<std::vector<double>>

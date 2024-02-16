@@ -18,14 +18,16 @@
 #include "logger.h"
 
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
+typedef Eigen::VectorXd VectorXd;
 
 class MujocoSimulator {
 public:
-  MujocoSimulator(int n_threads, const char *modelFile);
+  MujocoSimulator(int n_threads, bool rendering, const char *modelFile);
   ~MujocoSimulator();
 
   void initialize_viewer();
   void update_viewer();
+  void put_robot_on_floor(int n_steps, VectorXd qref);
   void reset(Eigen::VectorXd q0);
   void runSimulation(int numSteps);
   void step();
@@ -37,6 +39,7 @@ public:
   void disableInteractionForGeoms(mjModel *m);
   void enableInteractionForGeoms(mjModel *m);
   void print_planner_timings();
+  void update_ref_curve(int idx_nn);
 
 private:
   mjModel *model;
@@ -54,12 +57,14 @@ private:
   // Define PD controller parameters
   double kp_ = 5.;  // Proportional gain
   double kd_ = 0.2; // Derivative gain
-  std::vector<double> q0_;
+  Eigen::Matrix<double,19,1 > q0_;
   std::vector<double> terms_;
   bool allocate_enabled;
   bool plan_enabled;
   int count_;
   double agent_compute_time_ = 0.;
+
+  bool RENDERING_;
 
   // Simulation parameters.
   int planner_threads_;
