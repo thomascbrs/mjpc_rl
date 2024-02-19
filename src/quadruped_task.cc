@@ -143,11 +143,11 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   res_index += 12;
 
   // Time varying references.
-  if (data->time - 1. >= 0. && data->time - 1. <= 8.) {
+  if (data->time >= 0.) {
     Eigen::Vector3d pos_ref = {0.,0.,0.};
     // std::cout << "data->time - 1. : " << data->time - 1. << std::endl;
-    Eigen::Vector3d vel_ref = pcVel_(data->time - 1.);
-    Eigen::Vector3d rot_ref = pcRot_(data->time - 1.);
+    Eigen::Vector3d vel_ref = pcVel_(data->time);
+    Eigen::Vector3d rot_ref = pcRot_(data->time);
     // std::cout << "vel_ref : [" << vel_ref[0] << "," << vel_ref[1] << "," << vel_ref[2] << "]" << std::endl ;
     // std::cout << "data->time - 1.2 : " << data->time - 1. << std::endl;
     // Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);

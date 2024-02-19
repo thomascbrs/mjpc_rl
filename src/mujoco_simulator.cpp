@@ -16,12 +16,21 @@ mjpc::iLQGPlanner planner;
 // mjpc::SamplingPlanner planner;
 // mjpc::GradientPlanner planner;
 
+// simple controller applying damping to each dof
+void mycontroller(const mjModel *m, mjData *d) {
+  // if (m->nu == m->nv) {
+  // mju_scl(d->ctrl, d->qvel, -0.8, m->nv);
+  // }
+  // planner.ActionFromPolicy(
+  //       d->ctrl, &state_.state()[0],state_.time());
+}
+
 // Logger path.
 std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
-MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, const char *modelFile)
+MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
-      mcontactData(foot_names_, 0.002) {
+      mcontactData(foot_names_, 0.002),plan_pool(5) {
 
   // Load Mujoco model
   char loadError[1024] = "";
@@ -33,6 +42,7 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, const char *mode
 
   // Rendering flag
   RENDERING_ = rendering;
+  LOGGING_ = logging;
 
   // Access the simulation options
   mjOption *options = &model->opt;
@@ -108,16 +118,6 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, const char *mode
   // task_->
   task_->UpdateResidual();
 
-  // Initialize vectors for friction  parameters.
-  if (original_friction_values.empty()) {
-    original_friction_values.resize(model->ngeom);
-    original_solref_values.resize(model->ngeom * 3);
-    // Save the original properties for later restoration
-    for (int geom_idx = 0; geom_idx < model->ngeom; ++geom_idx) {
-      original_friction_values[geom_idx] = model->geom_friction[geom_idx];
-      original_solref_values[geom_idx * 3] = model->geom_solref[geom_idx * 3];
-    }
-  }
 
   ///////////////////////
   // Model description
@@ -157,8 +157,31 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, const char *mode
   list_points.push_back(point);
   idx_nn_ = 0;
 
-  initialize_viewer();
+  if (RENDERING_) {
+    initialize_viewer();
+  }
 
+  // Start planner in separate thread.
+  // std::atomic<bool> exitrequest(false);
+  // std::atomic<int> uiloadrequest(0);
+  // plan_pool = mjpc::ThreadPool(planner_threads_);
+  // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() {
+  // Plan(exitrequest, uiloadrequest); });
+  // Set control callback
+  mjcb_control = mycontroller;
+
+  // Set sensor callback
+  mjcb_sensor = &MujocoSimulator::sensor;
+
+  // Initialisation
+  idx_nn_ ++;
+  put_robot_on_floor(200, q0_.tail(12));
+  update_ref_curve(idx_nn_);
+  idx_nn_ ++;
+  // Update task
+  task_->UpdateResidual();
+  // update_ref_curve(idx_nn_);
+  // idx_nn_ ++;
 }
 
 void MujocoSimulator::reset(Eigen::VectorXd q0) {
@@ -186,8 +209,7 @@ void MujocoSimulator::reset(Eigen::VectorXd q0) {
   update_viewer();
 
   put_robot_on_floor(200,q0_.tail(12));
-
-  std::this_thread::sleep_for(std::chrono::seconds(2));
+  simstart = data->time;
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -206,15 +228,6 @@ void MujocoSimulator::print_planner_timings() {
   std::cout << "Policy update [ms] : " << 1e-3*planner.policy_update_compute_time << std::endl;
 }
 
-// simple controller applying damping to each dof
-void mycontroller(const mjModel *m, mjData *d) {
-  // if (m->nu == m->nv) {
-  // mju_scl(d->ctrl, d->qvel, -0.8, m->nv);
-  // }
-  // planner.ActionFromPolicy(
-  //       d->ctrl, &state_.state()[0],state_.time());
-}
-
 // sensor
 extern "C" {
 void sensor(const mjModel *m, mjData *d, int stage);
@@ -222,26 +235,9 @@ void sensor(const mjModel *m, mjData *d, int stage);
 
 // sensor callback
 void MujocoSimulator::sensor(const mjModel *model, mjData *data, int stage) {
-  //   if (stage == mjSTAGE_ACC) {
-  //     if (!sim->agent->allocate_enabled && sim->uiloadrequest.load() == 0) {
-  //       if (sim->agent->IsPlanningModel(model)) {
-  //         // the planning thread and rollout threads don't need
-  //         // synchronization when using PlanningResidual.
-  //         const mjpc::ResidualFn* residual = sim->agent->PlanningResidual();
-  //         residual->Residual(model, data, data->sensordata);
-  //       } else {
-  //         // this residual is used by the physics thread and the UI thread
-  //         (for
-  //         // plots), and is run with a shared lock, to safely run with
-  //         changes to
-  //         // weights and parameters
-  //         sim->agent->ActiveTask()->Residual(model, data, data->sensordata);
-  //       }
-  //     }
-  //   }
-  // if (stage == mjSTAGE_ACC) {
-  task_->Residual(model, data, data->sensordata);
-  // }
+  if (stage == mjSTAGE_ACC) {
+    task_->Residual(model, data, data->sensordata);
+  }
 }
 
 void MujocoSimulator::initialize_viewer() {
@@ -309,7 +305,6 @@ void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
   if (qref.size() != 12){
     throw std::runtime_error("qref should be size 12");
   }
-  mjtNum simstart;
   simstart = data->time;
   for (int k=0; k < n_steps; k++){
     for (int i = 0; i < model->nu; ++i) {
@@ -350,27 +345,31 @@ void MujocoSimulator::update_ref_curve(int idx){
   task_->parameters[indexes[0]+5] = list_points[idx][5];
 }
 
+void MujocoSimulator::update_ref_curve(std::vector<double> points){
+  // Update the reference curve inside the task planner.
+  int indexes[2];
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = 1.; // Boolean for update
+
+  ParameterIndexes(indexes, model, "residual_nn");
+  // Velocity point target (x3) + angle position target.
+  task_->parameters[indexes[0]] = points[0];
+  task_->parameters[indexes[0]+1] = points[1];
+  task_->parameters[indexes[0]+2] = points[2];
+  task_->parameters[indexes[0]+3] = points[3];
+  task_->parameters[indexes[0]+4] = points[4];
+  task_->parameters[indexes[0]+5] = points[5];
+
+  // Update task
+  task_->UpdateResidual();
+
+  // Reset boolean to not update curve on next Update().
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = -1.;
+}
+
 void MujocoSimulator::runSimulation(int numSteps) {
-
-  // Start planner in separate thread.
-  // std::atomic<bool> exitrequest(false);
-  // std::atomic<int> uiloadrequest(0);
-  mjpc::ThreadPool plan_pool(planner_threads_);
-  // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() {
-  // Plan(exitrequest, uiloadrequest); });
-
-  // Set control callback
-  mjcb_control = mycontroller;
-
-  // Set sensor callback
-  mjcb_sensor = &MujocoSimulator::sensor;
-
-  int counter_wbc = 0;
-
-  // mj_step(model, data);
-  put_robot_on_floor(500, q0_.tail(12)); // Initialisation
-
-  mjtNum simstart = data->time;
+  simstart = data->time;
 
   for (int k_wbc = 0; k_wbc < numSteps; k_wbc++) {
     // Check if windows is open on rendering.
@@ -388,30 +387,15 @@ void MujocoSimulator::runSimulation(int numSteps) {
     logger_.log(model, data, &mcontactData);
 
     // Update reference curve.
-    if (k_wbc % 200 == 0){
+    if (k_wbc % 200 == 0) {
       update_ref_curve(idx_nn_);
-      idx_nn_ ++;
-    }
-    else{
+      idx_nn_++;
+    } else {
       // TODO call this function at each loop. Once to reset to -1 is enough.
       int indexes[2];
       ParameterIndexes(indexes, model, "residual_nn_updated");
       task_->parameters[indexes[0]] = -1.;
     }
-
-    // if (data->time > 5.2) {
-    //       Eigen::VectorXd q_pos(19);
-    //       q_pos << 1., 0.5, 0.3, 1., 0., 0., 0., 0., 0., 0.,0., 0.,  0.,  0., 0., 0., 0., 0., 0.;
-    //       reset(q_pos);
-    //       // mj_resetData(model,data);
-    //       // logger_.saveData(
-    //       //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-    //       // Data data = logger_.loadData(
-    //       //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
-    //       // // logger_.writeToCsvFile(filename);
-    //       // std::this_thread::sleep_for(std::chrono::seconds(2));
-    //       return;
-    // }
 
     // Planner iteration
     if (k_wbc % 10 == 0) {
@@ -448,12 +432,12 @@ void MujocoSimulator::runSimulation(int numSteps) {
 
     // Direct position control from policy.
     planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
-                              false);
+                             false);
 
     // Simulation step.
     mj_step(model, data);
 
-    if (RENDERING_ && data->time - simstart < 1.0 / 60.0){
+    if (RENDERING_ && data->time - simstart < 1.0 / 60.0) {
       update_viewer();
       simstart = data->time;
     }
@@ -462,6 +446,78 @@ void MujocoSimulator::runSimulation(int numSteps) {
   // glfwTerminate();
   // mjv_freeScene(&scn);
   // mjr_freeContext(&con);
+}
+
+void MujocoSimulator::step(std::vector<double> actions) {
+  if (actions.size() != 6) {
+    throw std::runtime_error("Action size should be 6.");
+  }
+  std::cout << "n_step : " << n_iteration << std::endl;
+  update_ref_curve(actions); // Extend reference curve with point.
+
+  if (n_iteration == 0) {
+    // Robot initilized with put_on_floor function.
+    // Extend horizon with actions.
+    n_iteration++;
+    return;
+  }
+
+  for (int k_wbc = 0; k_wbc < 200; k_wbc++) {
+    // Reset the contact status to 0.
+    // mcontactData.update(model, data);
+    if (LOGGING_){
+      logger_.log(model, data, &mcontactData);
+    }
+
+    if (k_wbc % 10 == 0) {
+      int indexes[2];
+      std::string prefix = "residual_air_time_";
+      for (const auto &name : foot_names_) {
+        ParameterIndexes(indexes, model, prefix + name);
+        task_->parameters[indexes[0]] = mcontactData.air_timings[name];
+      }
+      // Update time0.
+      ParameterIndexes(indexes, model, prefix + "time0");
+      task_->parameters[indexes[0]] = data->time;
+
+      // Update task
+      task_->UpdateResidual();
+
+      state_.Set(model, data);
+      planner.SetState(state_);
+      task_->risk = 0.;
+
+      // planner policy
+      for (int i = 0; i <= 1; i++) {
+        // Setup model timestep.
+        model->opt.timestep = timestep_planner_;
+        planner.OptimizePolicy(steps_, plan_pool);
+      }
+      // print_planner_timings();
+      // Log best OCP trajectory.
+      if (LOGGING_){
+        logger_.logMPC(planner.BestTrajectory());
+      }
+      std::cout << "time [s] : " << data->time << std::endl;
+    }
+    model->opt.timestep = timestep_;
+    state_.Set(model, data);
+
+    // Direct position control from policy.
+    planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
+                             false);
+
+    // Simulation step.
+    mj_step(model, data);
+
+    if (RENDERING_ && data->time - simstart < 1.0 / 60.0) {
+      update_viewer();
+      simstart = data->time;
+    }
+  }
+
+  n_iteration++;
+  return;
 }
 
 std::vector<std::vector<double>>

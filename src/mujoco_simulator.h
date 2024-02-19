@@ -22,7 +22,7 @@ typedef Eigen::VectorXd VectorXd;
 
 class MujocoSimulator {
 public:
-  MujocoSimulator(int n_threads, bool rendering, const char *modelFile);
+  MujocoSimulator(int n_threads, bool rendering, bool loggin, const char *modelFile);
   ~MujocoSimulator();
 
   void initialize_viewer();
@@ -30,11 +30,12 @@ public:
   void put_robot_on_floor(int n_steps, VectorXd qref);
   void reset(Eigen::VectorXd q0);
   void runSimulation(int numSteps);
-  void step();
+  void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);
   std::vector<std::vector<double>> getLoggedJointPositions() const;
   void print_planner_timings();
   void update_ref_curve(int idx_nn);
+  void update_ref_curve(std::vector<double> points);
 
 private:
   mjModel *model;
@@ -60,6 +61,7 @@ private:
   double agent_compute_time_ = 0.;
 
   bool RENDERING_;
+  bool LOGGING_;
 
   // Simulation parameters.
   int planner_threads_;
@@ -68,9 +70,9 @@ private:
   double timestep_planner_;   // planner timestep.
   int kMaxTrajectoryHorizon_; // maximum lenght trajectory.
   int steps_;
-
-  std::vector<double> original_friction_values;
-  std::vector<double> original_solref_values;
+  double simstart;
+  mjpc::ThreadPool plan_pool;
+  int n_iteration = 0;
 
   std::vector<Vector6d> list_points;
   int idx_nn_;
