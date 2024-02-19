@@ -32,12 +32,7 @@ public:
   void runSimulation(int numSteps);
   void step();
   static void sensor(const mjModel *model, mjData *data, int stage);
-  void PlanIteration(mjpc::ThreadPool *pool);
-  void Plan(std::atomic<bool> &exitrequest, std::atomic<int> &uiloadrequest);
-  // void mycontroller(const mjModel* m, mjData* d);
   std::vector<std::vector<double>> getLoggedJointPositions() const;
-  void disableInteractionForGeoms(mjModel *m);
-  void enableInteractionForGeoms(mjModel *m);
   void print_planner_timings();
   void update_ref_curve(int idx_nn);
 

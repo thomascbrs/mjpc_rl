@@ -197,30 +197,6 @@ MujocoSimulator::~MujocoSimulator() {
     mj_deleteData(data);
 }
 
-// Function to disable interaction for specific geoms during Jacobian
-// computation
-void MujocoSimulator::disableInteractionForGeoms(mjModel *m) {
-  // Iterate over the geoms you want to disable
-  for (int geom_idx = 0; geom_idx < m->ngeom; ++geom_idx) {
-    // Modify relevant geom properties (friction, solref, etc.)
-    m->geom_friction[geom_idx] = 1e9;
-    m->geom_solref[geom_idx * 3] = 1e9;
-    // You may need to adjust other properties based on your specific
-    // requirements
-  }
-}
-
-// Function to enable interaction for specific geoms after Jacobian computation
-void MujocoSimulator::enableInteractionForGeoms(mjModel *m) {
-  // Iterate over the geoms you disabled
-  for (int geom_idx = 0; geom_idx < m->ngeom; ++geom_idx) {
-    // Restore original geom properties
-    m->geom_friction[geom_idx] = original_friction_values[geom_idx];
-    m->geom_solref[geom_idx * 3] = original_solref_values[geom_idx];
-    // Restore other properties if necessary
-  }
-}
-
 void MujocoSimulator::print_planner_timings() {
   std::cout << "\nTotal time [ms] : " << 1e-3*planner.nominal_compute_time << std::endl;
   std::cout << "Model derivative [ms] : " << 1e-3*planner.model_derivative_compute_time << std::endl;
