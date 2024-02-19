@@ -268,63 +268,6 @@ void MujocoSimulator::sensor(const mjModel *model, mjData *data, int stage) {
   // }
 }
 
-void MujocoSimulator::PlanIteration(mjpc::ThreadPool *pool) {
-  // start agent timer
-  auto agent_start = std::chrono::steady_clock::now();
-
-  // plan
-  if (!allocate_enabled) {
-
-    // set state
-    state_.Set(model, data);
-    planner.SetState(state_);
-
-    // copy the task's residual function parameters into a new object, which
-    // remains constant during planning and doesn't require locking from the
-    // rollout threads
-    residual_fn_ = task_->Residual();
-
-    // task_->ModifyScene(model, data, &scn);
-
-    if (plan_enabled) {
-      // planner policy
-      planner.OptimizePolicy(steps_, *pool);
-
-      // compute time
-      agent_compute_time_ =
-          std::chrono::duration_cast<std::chrono::microseconds>(
-              std::chrono::steady_clock::now() - agent_start)
-              .count();
-
-      // counter
-      count_ += 1;
-    } else {
-      // rollout nominal policy
-      planner.NominalTrajectory(steps_, *pool);
-
-      // set timers
-      agent_compute_time_ = 0.0;
-    }
-
-    // release the planning residual function
-    residual_fn_.reset();
-  }
-}
-
-// call planner to update nominal policy
-void MujocoSimulator::Plan(std::atomic<bool> &exitrequest,
-                           std::atomic<int> &uiloadrequest) {
-  // instantiate thread pool
-  mjpc::ThreadPool pool_planner(planner_threads_);
-
-  // main loop
-  while (!exitrequest.load()) {
-    if (model && uiloadrequest.load() == 0) {
-      PlanIteration(&pool_planner);
-    }
-  } // exitrequest sent -- stop planning
-}
-
 void MujocoSimulator::initialize_viewer() {
   // Mujoco visualisation
   // init GLFW, create window, make OpenGL context current, request v-sync
