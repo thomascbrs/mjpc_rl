@@ -386,12 +386,12 @@ void QuadrupedTask::ResidualFn::Update() {
     // ParameterIndexes(indexes, model, "residual_nn");
     // const double *params_nn = &parameters_[0];
 
-    updateCurves(parameters_.begin() + 1, parameters_.begin() + 6);
+    updateCurvesACC(parameters_.begin() + 1, parameters_.begin() + 6);
     n_update += 1;
   }
 }
 
-void QuadrupedTask::ResidualFn::updateCurves(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
+void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
   double T = lin_velocity_.max();
   double T2 = lin_velocity_.max() + 0.4;
   Eigen::MatrixXd minv(3, 3);
@@ -420,6 +420,45 @@ void QuadrupedTask::ResidualFn::updateCurves(const std::vector<double>::iterator
   Polynomial curveRot_tmp;
   curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
   pcRot_.add_curve(curveRot_tmp);
+}
+
+
+void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
+  double T = lin_velocity_.max();
+  double T2 = lin_velocity_.max() + 0.4;
+  Eigen::MatrixXd coeffs(3,3);
+
+  coeffs.row(0) = pcVel_(pcVel_.max());
+  coeffs.row(1) = pcVel_.derivate(pcVel_.max(),1);
+  coeffs.row(2) << *start, *(start +1), *(start +2);
+  coeffs.row(2) -= coeffs.row(1);
+  coeffs.row(2) *= 0.5/(T2 - T);
+
+  Polynomial curve_tmp;
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  pcVel_.add_curve(curve_tmp);
+
+  // Rotation angles.
+  Eigen::MatrixXd b(3, 3);
+  Eigen::MatrixXd minv(3, 3);
+  minv << 1, 0, 0,
+          0, 1, 0,
+          -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  b.row(0) = pcRot_(pcRot_.max());
+  b.row(1) = pcRot_.derivate(pcRot_.max(),1);
+  b.row(2) << *start+3, *(start +4), *(start +5);
+  coeffs = minv * b;
+
+  Polynomial curveRot_tmp;
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  pcRot_.add_curve(curveRot_tmp);
+
+  // double tt = 0.;
+  // std::cout << "\n\n----" << std::endl;
+  // while( tt <= pcVel_.max()){
+  //   std::cout << "pcVel(" << tt << ") = [" << pcVel_(tt)[0] << "," << pcVel_(tt)[1] << "," << pcVel_(tt)[2] << "]" << std::endl;
+  //   tt += 0.01;
+  // }
 }
 
 

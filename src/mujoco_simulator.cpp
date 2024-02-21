@@ -30,7 +30,7 @@ std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
 MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
-      mcontactData(foot_names_, 0.002),plan_pool(5) {
+      mcontactData(foot_names_, 0.002),plan_pool(n_threads) {
 
   // Load Mujoco model
   char loadError[1024] = "";
@@ -133,27 +133,27 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
 
   // Simulate NN decision for reference velocity curve.
   Vector6d point;
-  point << 0.5, 0.0, 0.0, 0.0, 0.0, 0.0;
+  point << 1.8, 0.0, 0.0, 0.0, -0.2, 0.0;
   list_points.push_back(point);
-  point << 0.7,0.,0. ,0.,-0.,0.;
+  point << 1.8,0.,0. ,0.,-0.3,0.;
   list_points.push_back(point);
-  point << 1.1, 0.0, 0.0, 0.0, -0., 0.1;
+  point << 0.5, 0.0, 0.0, 0.0, -0.4, 0.1;
   list_points.push_back(point);
-  point << 1.3, 0.0, 0.0, 0.0, -0., 0.2;
+  point << 0.5, 0.0, 0.0, 0.0, -0.4, 0.2;
   list_points.push_back(point);
-  point << 1.5, 0.0, 0., 0.0, -0., 0.3;
+  point << 0., 0.0, 0., 0.0, -0.4, 0.3;
   list_points.push_back(point);
-  point << 1.7, 0.0, 0.0, 0.0, -0., 0.5;
+  point << 0., 0.0, 0.0, 0.0, -0.4, 0.5;
   list_points.push_back(point);
-  point << 1.9, 0.0, 0.0, 0.0, -0., 0.7;
+  point << 0., 0.0, 0.0, 0.0, -0.4, 0.7;
   list_points.push_back(point);
-  point << 2.1, 0.0, 0.0, 0.0, -0., 0.0;
+  point << 0., 0.0, 0.0, 0.0, -0.4, 0.0;
   list_points.push_back(point);
-  point << 2.3, 0.0, 0.0, 0.0, -0., 0.0;
+  point << 0., 0.0, 0.0, 0.0, -0.3, 0.0;
   list_points.push_back(point);
-  point << 2.5, 0.0, 0.0, 0.0, -0., 0.0;
+  point << 0., 0.0, 0.0, 0.0, -0.3, 0.0;
   list_points.push_back(point);
-  point << 2.7, 0.0, 0.0, 0.0, -0., 0.0;
+  point << 0., 0.0, 0.0, 0.0, -0.3, 0.0;
   list_points.push_back(point);
   idx_nn_ = 0;
 
@@ -174,12 +174,12 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   mjcb_sensor = &MujocoSimulator::sensor;
 
   // Initialisation
-  idx_nn_ ++;
+  // idx_nn_ ++;
   put_robot_on_floor(200, q0_.tail(12));
-  update_ref_curve(idx_nn_);
-  idx_nn_ ++;
+  // update_ref_curve(idx_nn_);
+  // idx_nn_ ++;
   // Update task
-  task_->UpdateResidual();
+  // task_->UpdateResidual();
   // update_ref_curve(idx_nn_);
   // idx_nn_ ++;
 }
@@ -469,7 +469,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
       logger_.log(model, data, &mcontactData);
     }
 
-    if (k_wbc % 10 == 0) {
+    if (k_wbc % 15 == 0) {
       int indexes[2];
       std::string prefix = "residual_air_time_";
       for (const auto &name : foot_names_) {
@@ -488,10 +488,11 @@ void MujocoSimulator::step(std::vector<double> actions) {
       task_->risk = 0.;
 
       // planner policy
-      for (int i = 0; i <= 1; i++) {
+      for (int i = 0; i < 1; i++) {
         // Setup model timestep.
         model->opt.timestep = timestep_planner_;
         planner.OptimizePolicy(steps_, plan_pool);
+        planner.Iteration(steps_, plan_pool);
       }
       // print_planner_timings();
       // Log best OCP trajectory.

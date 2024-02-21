@@ -14,8 +14,18 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
 set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lprofiler")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}-ltcmalloc")
+# Set linker flags to include -lprofiler
+
+# Gperftool from google
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lprofiler -ltcmalloc")
+# gprof
+# SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
 # set(CMAKE_HAVE_THREADS_LIBRARY 1)
@@ -33,6 +43,7 @@ include_directories(${Python_INCLUDE_DIRS})
 find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(ndcurves REQUIRED)
+
 
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
 
@@ -69,16 +80,19 @@ findorfetch(
 set(MJPC_DIR_RELEASE "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build")
 set(INSTALL_DIR "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug/mjpc")
 
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     # Your code for Release build goes here
     message(STATUS "Building in Release mode")
     # Additional Release-specific settings or configurations can be added here
     set(MJPC_DIR_DEBUG ${MJPC_DIR_RELEASE})
+    set(MJPC_PROTOBUF "${MJPC_DIR_RELEASE}/lib/libprotobuf.a")
 else()
     # Your code for other build types (Debug, RelWithDebInfo, etc.) goes here
     message(STATUS "Building in a non-Release mode")
     # Additional non-Release-specific settings or configurations can be added here
     set(MJPC_DIR_DEBUG "/home/thomas_cbrs/Desktop/edin_22/mujoco_mpc/build_debug")
+    set(MJPC_PROTOBUF "${MJPC_DIR_DEBUG}/lib/libprotobufd.a")
 endif()
 
 ###################################################################
@@ -104,7 +118,7 @@ target_link_libraries(mjpc_rl_cpp
     ${MJPC_DIR_DEBUG}/lib/libmjpc.a
     ${MJPC_DIR_DEBUG}/lib/libglfw3.a
     ${MJPC_DIR_DEBUG}/lib/libthreadpool.a
-    ${MJPC_DIR_DEBUG}/lib/libprotobufd.a
+    ${MJPC_PROTOBUF}
     ${MJPC_DIR_DEBUG}/lib/libagent_state_proto_lib.a
     ${MJPC_DIR_RELEASE}/lib/libmujoco.so)
 target_include_directories(mjpc_rl_cpp
@@ -148,3 +162,6 @@ set_target_properties(${MODULE_NAME} PROPERTIES
 add_executable(main_example src/main.cpp)
 target_link_libraries(main_example PRIVATE mjpc_rl_cpp)
 target_link_libraries(main_example PRIVATE GL dl)
+
+
+message("\n\n CMAKE_CXX_FLAGS : ${CMAKE_CXX_FLAGS}")

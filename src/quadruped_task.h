@@ -84,7 +84,8 @@ public:
                           const std::string_view name) const;
     /// @brief Update the ref curves
     /// @param param
-    void updateCurves(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
+    void updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
+    void updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
 
   private:
     friend class QuadrupedTask;
