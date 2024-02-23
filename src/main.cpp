@@ -28,27 +28,27 @@ int main() {
 
   std::vector<std::vector<double>> list_points;
   std::vector<double> point;
-  point = {0.5, 0.0, 0.0, 0.0, -0.05, 0.0};
-  list_points.push_back(point);
   point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
   list_points.push_back(point);
-  point = {0.8, 0.0, 0.0, 0.0, -0.1, 0.0};
+  // point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
+  // list_points.push_back(point);
+  point = {0.5, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.8, 0.0, 0.0, 0.0, -0.1, 0.0};
+  point = {0.5, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.8, 0.0, 0.0, 0.0, -0.1, 0.0};
+  point = {0.8, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.8, 0.0, 0.0, 0.0, -0.1, 0.0};
+  point = {0.8, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.1, 0.0, 0.0, 0.0, -0.1, 0.0};
+  point = {0.8, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.1, 0.0, 0.0, 0.0, -0.1, 0.0};
+  point = {0.8, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.1, 0.0, 0.0, 0.0, -0.07, 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.1, 0.0, 0.0, 0.0, -0.07, 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-  point = {0.1, 0.0, 0.0, 0.0, -0.07, 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
 
   // ProfilerStart("test.prof"); //Start profiling section and save to file
@@ -67,7 +67,7 @@ int main() {
   // Start time before calling function1
 
   // Call function1
-  for (int j = 0; j < 20   ; j++){
+  for (int j = 0; j < 10   ; j++){
     auto start = std::chrono::high_resolution_clock::now();
     std::cout << "j : " << j << std::endl;
     mjsimulator.step(list_points[j]);
@@ -77,8 +77,7 @@ int main() {
     auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "Step function [ms] : " << duration1.count()  << std::endl;
   }
-
-
+  mjsimulator.save_logger("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
 
   // ProfilerFlush();
   // delete &mjsimulator;
