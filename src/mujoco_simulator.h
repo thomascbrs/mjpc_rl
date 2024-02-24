@@ -16,6 +16,7 @@
 // #include "mjpc/tasks/cartpole/cartpole.h"
 #include "contact_data.h"
 #include "logger.h"
+#include "custom_planner.h"
 
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::VectorXd VectorXd;
@@ -33,6 +34,7 @@ public:
   void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);
   std::vector<std::vector<double>> getLoggedJointPositions() const;
+  void save_logger(const std::string &fileName);
   void print_planner_timings();
   void update_ref_curve(int idx_nn);
   void update_ref_curve(std::vector<double> points);
@@ -73,6 +75,7 @@ private:
   double simstart;
   mjpc::ThreadPool plan_pool;
   int n_iteration = 0;
+  int num_trajectory_ = 0;
 
   std::vector<Vector6d> list_points;
   int idx_nn_;

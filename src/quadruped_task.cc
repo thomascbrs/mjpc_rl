@@ -446,7 +446,7 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
           -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
   b.row(0) = pcRot_(pcRot_.max());
   b.row(1) = pcRot_.derivate(pcRot_.max(),1);
-  b.row(2) << *start+3, *(start +4), *(start +5);
+  b.row(2) << *(start+3), *(start +4), *(start +5);
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
@@ -456,7 +456,9 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   // double tt = 0.;
   // std::cout << "\n\n----" << std::endl;
   // while( tt <= pcVel_.max()){
-  //   std::cout << "pcVel(" << tt << ") = [" << pcVel_(tt)[0] << "," << pcVel_(tt)[1] << "," << pcVel_(tt)[2] << "]" << std::endl;
+  //   std::cout << "Vel_ref(" << tt << ") = [" <<
+  //   pcVel_(tt)[0] << "," << pcVel_(tt)[1] << "," << pcVel_(tt)[2] << "," <<
+  //   pcRot_(tt)[0] << "," << pcRot_(tt)[1] << "," << pcRot_(tt)[2] << "]" << std::endl;
   //   tt += 0.01;
   // }
 }
