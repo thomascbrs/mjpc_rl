@@ -1,21 +1,7 @@
 #include "mujoco_simulator.h"
-#include "quadruped_task.h"
 #include "utils.cpp"
-// #include "mjpc/utilities.h"
 #include <iostream>
 #include <thread>
-
-// Define the task outisde the class function.
-// mjpc::QuadrupedFlat *task_;
-// mjpc::QuadrupedHill *task_;
-// mjpc::Cartpole *task_;
-QuadrupedTask *task_;
-
-// State and planner.
-mjpc::State state_;
-CustomiLQGPlanner planner;
-// mjpc::SamplingPlanner planner;
-// mjpc::GradientPlanner planner;
 
 // simple controller applying damping to each dof
 void mycontroller(const mjModel *m, mjData *d) {
@@ -52,8 +38,10 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   // options->cone = mjCONE_PYRAMIDAL;
   options->jacobian = mjJAC_AUTO;
   options->solver = mjSOL_NEWTON; // mjSOL_CG, mjSOL_PGS
-  options->iterations = 100; // 100
+
+  options->iterations = 50; // 100
   options->tolerance = 1e-8; // 1e-8
+
   options->noslip_tolerance = 1e-6;
   options->noslip_iterations = 0; // 3
   options->mpr_tolerance = 1e-6;
@@ -108,7 +96,7 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   planner.Reset(kMaxTrajectoryHorizon_);
   task_->num_trace = 0;
   // planner.settings.verbose = 1;
-  // planner.settings.fd_tolerance = 1.0e-8;
+  planner.settings.fd_tolerance = 1.0e-6;
 
   // cost
   terms_.resize(task_->num_term * kMaxTrajectoryHorizon_);
@@ -231,16 +219,12 @@ void MujocoSimulator::print_planner_timings() {
   std::cout << "Policy update [ms] : " << 1e-3*planner.policy_update_compute_time << std::endl;
 }
 
-// sensor
-extern "C" {
-void sensor(const mjModel *m, mjData *d, int stage);
-}
-
 // sensor callback
 void MujocoSimulator::sensor(const mjModel *model, mjData *data, int stage) {
-  // if (stage == mjSTAGE_ACC) {
-  //   task_->Residual(model, data, data->sensordata);
-  // }
+  // std::cout << "iter : " << data->solver_niter[0] << std::endl;
+  if (stage == mjSTAGE_ACC) {
+    task_->Residual(model, data, data->sensordata);
+  }
 }
 
 void MujocoSimulator::initialize_viewer() {

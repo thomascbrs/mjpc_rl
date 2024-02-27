@@ -12,11 +12,40 @@
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
-// #include "mjpc/tasks/quadruped/quadruped.h"
-// #include "mjpc/tasks/cartpole/cartpole.h"
 #include "contact_data.h"
 #include "logger.h"
 #include "custom_planner.h"
+#include "quadruped_task.h"
+
+// CustomThreadPool class derived from ThreadPool
+class DummyThreadPool : public mjpc::ThreadPool {
+public:
+    // Constructor
+    explicit DummyThreadPool(int num_threads) : mjpc::ThreadPool(num_threads) {
+      SetWorkerId(0);
+    }
+
+    int NumThreads() const override {
+      return 1;
+      }
+
+    void WaitCount(int value) override{
+    }
+
+protected:
+    // Override the WorkerThread function
+    void WorkerThread(int i) override {
+      std::cout << "Creating dummy thread : " << worker_id_ << std::endl;
+    }
+
+    void Schedule(std::function<void()> task) override{
+      task();
+      // Simulated task: increment ctr_
+      ++ctr_;
+    }
+};
+
+// thread_local Task* QuadrupedTask::task_ = nullptr;
 
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::VectorXd VectorXd;
@@ -40,6 +69,8 @@ public:
   void update_ref_curve(std::vector<double> points);
 
 private:
+  inline static thread_local QuadrupedTask* task_;
+
   mjModel *model;
   mjData *data;
   mjvCamera cam;  // abstract camera
@@ -73,7 +104,7 @@ private:
   int kMaxTrajectoryHorizon_; // maximum lenght trajectory.
   int steps_;
   double simstart;
-  mjpc::ThreadPool plan_pool;
+  DummyThreadPool plan_pool;
   int n_iteration = 0;
   int num_trajectory_ = 0;
 
@@ -89,6 +120,9 @@ private:
   ContactData mcontactData;
 
   Logger logger_;
+
+  mjpc::State state_;
+  CustomiLQGPlanner planner;
 };
 
 #endif // MUJOCO_SIMULATOR_H

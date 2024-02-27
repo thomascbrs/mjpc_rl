@@ -86,6 +86,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     message(STATUS "Building in Release mode")
     # Additional Release-specific settings or configurations can be added here
     set(MJPC_DIR_DEBUG ${MJPC_DIR_RELEASE})
+    set(INSTALL_DIR "${MJPC_DIR_RELEASE}/mjpc/")
     set(MJPC_PROTOBUF "${MJPC_DIR_RELEASE}/lib/libprotobuf.a")
 else()
     # Your code for other build types (Debug, RelWithDebInfo, etc.) goes here
@@ -165,5 +166,10 @@ add_executable(main_example src/main.cpp)
 target_link_libraries(main_example PRIVATE mjpc_rl_cpp)
 target_link_libraries(main_example PRIVATE GL dl)
 
+###############################
+# Create benchmark executable.
+###############################
 
-message("\n\n CMAKE_CXX_FLAGS : ${CMAKE_CXX_FLAGS}")
+# add_executable(benchmark src/benchmark.cpp)
+# target_link_libraries(benchmark PRIVATE mjpc_rl_cpp)
+# target_link_libraries(benchmark PRIVATE GL dl)
