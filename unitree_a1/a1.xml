@@ -27,25 +27,25 @@
       <default class="collision">
         <geom group="3" type="capsule" contype="0" conaffinity="0" friction="0." />
         <default class="hip_left" >
-          <geom contype="0" conaffinity="0" group="0" size="0.04 0.04" quat="1 1 0 0" type="cylinder" pos="0 0.055 0"/>
+          <geom contype="0" conaffinity="0" group="3" size="0.04 0.04" quat="1 1 0 0" type="cylinder" pos="0 0.055 0"/>
         </default>
         <default class="hip_right">
-          <geom contype="0" conaffinity="0" group="0" size="0.04 0.04" quat="1 1 0 0" type="cylinder" pos="0 -0.055 0"/>
+          <geom contype="0" conaffinity="0" group="3" size="0.04 0.04" quat="1 1 0 0" type="cylinder" pos="0 -0.055 0"/>
         </default>
         <default class="thigh1">
-          <geom contype="0" conaffinity="0" group="0" size="0.015" fromto="-0.02 0 0 -0.02 0 -0.16"/>
+          <geom contype="0" conaffinity="0" group="3" size="0.015" fromto="-0.02 0 0 -0.02 0 -0.16"/>
         </default>
         <default class="thigh2">
-          <geom contype="0" conaffinity="0" group="0" size="0.015" fromto="0 0 0 -0.02 0 -0.1"/>
+          <geom contype="0" conaffinity="0" group="3" size="0.015" fromto="0 0 0 -0.02 0 -0.1"/>
         </default>
         <default class="thigh3">
-          <geom contype="0" conaffinity="0" group="0" size="0.015" fromto="-0.02 0 -0.16 0 0 -0.2"/>
+          <geom contype="0" conaffinity="0" group="3" size="0.015" fromto="-0.02 0 -0.16 0 0 -0.2"/>
         </default>
         <default class="calf1">
-          <geom contype="0" conaffinity="0" group="0" size="0.01" fromto="0 0 0 0.02 0 -0.13"/>
+          <geom contype="0" conaffinity="0" group="3" size="0.01" fromto="0 0 0 0.02 0 -0.13"/>
         </default>
         <default class="calf2">
-          <geom contype="0" conaffinity="0" group="0" size="0.01" fromto="0.02 0 -0.13 0 0 0."/>
+          <geom contype="0" conaffinity="0" group="3" size="0.01" fromto="0.02 0 -0.13 0 0 0."/>
         </default>
         <!-- <default class="foot">
           <geom type="sphere" size="0.015" pos="0 0 -0.2" priority="1" solimp="0.015 0.95 0.041 0.5 2" solref="0.02 1"
@@ -84,10 +84,10 @@
       <geom name="trunk_02" class="collision" quat="1 0 1 0" pos="0 -0.04 0" size="0.058 0.125" type="cylinder"/>
       <geom name="trunk_03" class="collision" quat="1 0 1 0" pos="0 +0.04 0" size="0.058 0.125" type="cylinder"/>
       <geom name="trunk_04" class="collision" pos="0.25 0 0" size="0.005 0.06 0.05" type="box"/>
-      <geom name="trunk_05" class="collision" pos="0.25 0.06 -0.01" size="0.009 0.035"/>
+      <!-- <geom name="trunk_05" class="collision" pos="0.25 0.06 -0.01" size="0.009 0.035"/>
       <geom name="trunk_06" class="collision" pos="0.25 -0.06 -0.01" size="0.009 0.035"/>
       <geom name="trunk_07" class="collision" pos="0.25 0 -0.05" size="0.005 0.06" quat="1 1 0 0"/>
-      <geom name="trunk_08" class="collision" pos="0.255 0 0.0355" size="0.021 0.052" quat="1 1 0 0"/>
+      <geom name="trunk_08" class="collision" pos="0.255 0 0.0355" size="0.021 0.052" quat="1 1 0 0"/> -->
       <body name="FR_hip" pos="0.183 -0.047 0">
         <inertial mass="0.696" pos="-0.003311 -0.000635 3.1e-05"
             quat="0.507528 0.506268 0.491507 0.494499"

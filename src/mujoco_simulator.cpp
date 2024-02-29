@@ -122,32 +122,6 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   int k_mpc = 10;
   logger_.Initialize(foot_names_, timestep_planner_, steps_, k_mpc, timestep_);
 
-  // Simulate NN decision for reference velocity curve.
-  Vector6d point;
-  point << 1.8, 0.0, 0.0, 0.0, -0.2, 0.0;
-  list_points.push_back(point);
-  point << 1.8,0.,0. ,0.,-0.3,0.;
-  list_points.push_back(point);
-  point << 0.5, 0.0, 0.0, 0.0, -0.4, 0.1;
-  list_points.push_back(point);
-  point << 0.5, 0.0, 0.0, 0.0, -0.4, 0.2;
-  list_points.push_back(point);
-  point << 0., 0.0, 0., 0.0, -0.4, 0.3;
-  list_points.push_back(point);
-  point << 0., 0.0, 0.0, 0.0, -0.4, 0.5;
-  list_points.push_back(point);
-  point << 0., 0.0, 0.0, 0.0, -0.4, 0.7;
-  list_points.push_back(point);
-  point << 0., 0.0, 0.0, 0.0, -0.4, 0.0;
-  list_points.push_back(point);
-  point << 0., 0.0, 0.0, 0.0, -0.3, 0.0;
-  list_points.push_back(point);
-  point << 0., 0.0, 0.0, 0.0, -0.3, 0.0;
-  list_points.push_back(point);
-  point << 0., 0.0, 0.0, 0.0, -0.3, 0.0;
-  list_points.push_back(point);
-  idx_nn_ = 0;
-
   if (RENDERING_) {
     initialize_viewer();
   }
