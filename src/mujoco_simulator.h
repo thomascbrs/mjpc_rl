@@ -65,7 +65,6 @@ public:
   std::vector<std::vector<double>> getLoggedJointPositions() const;
   void save_logger(const std::string &fileName);
   void print_planner_timings();
-  void update_ref_curve(int idx_nn);
   void update_ref_curve(std::vector<double> points);
 
 private:
@@ -107,9 +106,6 @@ private:
   DummyThreadPool plan_pool;
   int n_iteration = 0;
   int num_trajectory_ = 0;
-
-  std::vector<Vector6d> list_points;
-  int idx_nn_;
 
   // residual function for the active task, updated once per planning iteration
   std::unique_ptr<mjpc::ResidualFn> residual_fn_;

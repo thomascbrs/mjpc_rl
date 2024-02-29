@@ -164,15 +164,9 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   mjcb_sensor = &MujocoSimulator::sensor;
 
   // Initialisation
-  // idx_nn_ ++;
   planner.UpdateNumTrajectoriesFromGUI();
   put_robot_on_floor(200, q0_.tail(12));
-  // update_ref_curve(idx_nn_);
-  // idx_nn_ ++;
-  // Update task
-  // task_->UpdateResidual();
-  // update_ref_curve(idx_nn_);
-  // idx_nn_ ++;
+
 }
 
 void MujocoSimulator::reset(Eigen::VectorXd q0) {
@@ -314,22 +308,6 @@ void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
       simstart = data->time;
     }
   }
-}
-
-void MujocoSimulator::update_ref_curve(int idx){
-  // Update the reference curve inside the task planner.
-  int indexes[2];
-  ParameterIndexes(indexes, model, "residual_nn_updated");
-  task_->parameters[indexes[0]] = 1.; // Boolean for update
-
-  ParameterIndexes(indexes, model, "residual_nn");
-  // Velocity point target (x3) + angle position target.
-  task_->parameters[indexes[0]] = list_points[idx][0];
-  task_->parameters[indexes[0]+1] = list_points[idx][1];
-  task_->parameters[indexes[0]+2] = list_points[idx][2];
-  task_->parameters[indexes[0]+3] = list_points[idx][3];
-  task_->parameters[indexes[0]+4] = list_points[idx][4];
-  task_->parameters[indexes[0]+5] = list_points[idx][5];
 }
 
 void MujocoSimulator::update_ref_curve(std::vector<double> points){
