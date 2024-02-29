@@ -49,6 +49,7 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   // Initialize Mujoco simulation
   data = mj_makeData(model);
 
+  col = CollisionChecker();
   // Define reference configuration
   q0_ << 0., -0., 0.3,  // position
       1., 0., 0., 0.,  // orientation
@@ -166,6 +167,8 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   // Initialisation
   planner.UpdateNumTrajectoriesFromGUI();
   put_robot_on_floor(200, q0_.tail(12));
+  col.collision(model, data);
+
 
 }
 
@@ -414,6 +417,8 @@ void MujocoSimulator::step(std::vector<double> actions) {
     // Direct position control from policy.
     planner.ActionFromPolicy(data->ctrl, &state_.state()[0], state_.time(),
                              false);
+
+    col.collision(model, data);
 
     // Simulation step.
     mj_step(model, data);

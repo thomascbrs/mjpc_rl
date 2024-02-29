@@ -12,6 +12,8 @@
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
+
+#include "collision_checker.h"
 #include "contact_data.h"
 #include "logger.h"
 #include "custom_planner.h"
@@ -119,6 +121,7 @@ private:
 
   mjpc::State state_;
   CustomiLQGPlanner planner;
+  CollisionChecker col;
 };
 
 #endif // MUJOCO_SIMULATOR_H
