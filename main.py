@@ -7,10 +7,12 @@ from time import sleep
 # robot.initViewer(windowName="mjpc_rl", loadModel=False)
 # robot.loadViewerModel(rootNodeName="robot")
 
-simulator = MujocoSimulator("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml")
-simulator.run_simulation(1000)
-qs = simulator.get_logged_joint_positions()
-q_tmp = np.zeros(19)
+simulator = MujocoSimulator(5,False,False,"/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml")
+# simulator.run_simulation(500)
+# sleep(0.5)
+# simulator.run_simulation(500)
+# qs = simulator.get_logged_joint_positions()
+# q_tmp = np.zeros(19)
 
 # for i,q in enumerate(qs):
 #     q_tmp[:] = q[:]

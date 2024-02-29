@@ -12,30 +12,65 @@
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
-// #include "mjpc/tasks/quadruped/quadruped.h"
-// #include "mjpc/tasks/cartpole/cartpole.h"
 #include "contact_data.h"
 #include "logger.h"
+#include "custom_planner.h"
+#include "quadruped_task.h"
+
+// CustomThreadPool class derived from ThreadPool
+class DummyThreadPool : public mjpc::ThreadPool {
+public:
+    // Constructor
+    explicit DummyThreadPool(int num_threads) : mjpc::ThreadPool(num_threads) {
+      SetWorkerId(0);
+    }
+
+    int NumThreads() const override {
+      return 1;
+      }
+
+    void WaitCount(int value) override{
+    }
+
+protected:
+    // Override the WorkerThread function
+    void WorkerThread(int i) override {
+      std::cout << "Creating dummy thread : " << worker_id_ << std::endl;
+    }
+
+    void Schedule(std::function<void()> task) override{
+      task();
+      // Simulated task: increment ctr_
+      ++ctr_;
+    }
+};
+
+// thread_local Task* QuadrupedTask::task_ = nullptr;
 
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
+typedef Eigen::VectorXd VectorXd;
 
 class MujocoSimulator {
 public:
-  MujocoSimulator(const char *modelFile);
+  MujocoSimulator(int n_threads, bool rendering, bool loggin, const char *modelFile);
   ~MujocoSimulator();
 
-  void initialize();
+  void initialize_viewer();
+  void update_viewer();
+  void put_robot_on_floor(int n_steps, VectorXd qref);
+  void reset(Eigen::VectorXd q0);
   void runSimulation(int numSteps);
-  void step();
+  void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);
-  void PlanIteration(mjpc::ThreadPool *pool);
-  void Plan(std::atomic<bool> &exitrequest, std::atomic<int> &uiloadrequest);
-  // void mycontroller(const mjModel* m, mjData* d);
   std::vector<std::vector<double>> getLoggedJointPositions() const;
-  void disableInteractionForGeoms(mjModel *m);
-  void enableInteractionForGeoms(mjModel *m);
+  void save_logger(const std::string &fileName);
+  void print_planner_timings();
+  void update_ref_curve(int idx_nn);
+  void update_ref_curve(std::vector<double> points);
 
 private:
+  inline static thread_local QuadrupedTask* task_;
+
   mjModel *model;
   mjData *data;
   mjvCamera cam;  // abstract camera
@@ -51,12 +86,15 @@ private:
   // Define PD controller parameters
   double kp_ = 5.;  // Proportional gain
   double kd_ = 0.2; // Derivative gain
-  std::vector<double> q0_;
+  Eigen::Matrix<double,19,1 > q0_;
   std::vector<double> terms_;
   bool allocate_enabled;
   bool plan_enabled;
   int count_;
   double agent_compute_time_ = 0.;
+
+  bool RENDERING_;
+  bool LOGGING_;
 
   // Simulation parameters.
   int planner_threads_;
@@ -65,9 +103,10 @@ private:
   double timestep_planner_;   // planner timestep.
   int kMaxTrajectoryHorizon_; // maximum lenght trajectory.
   int steps_;
-
-  std::vector<double> original_friction_values;
-  std::vector<double> original_solref_values;
+  double simstart;
+  DummyThreadPool plan_pool;
+  int n_iteration = 0;
+  int num_trajectory_ = 0;
 
   std::vector<Vector6d> list_points;
   int idx_nn_;
@@ -81,6 +120,9 @@ private:
   ContactData mcontactData;
 
   Logger logger_;
+
+  mjpc::State state_;
+  CustomiLQGPlanner planner;
 };
 
 #endif // MUJOCO_SIMULATOR_H

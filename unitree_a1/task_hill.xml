@@ -13,7 +13,9 @@
     <numeric name="gradient_spline_points" data="5" />
     <numeric name="sampling_trajectories" data="128" />
     <numeric name="gradient_num_trajectory" data="64" />
-    <numeric name="ilqg_num_rollouts" data="16" />
+    <numeric name="ilqg_num_rollouts" data="8" />
+    <numeric name="ilqg_regularization_type" data="1" />
+    <numeric name="ilqg_representation" data="2" />
     <numeric name="residual_nn_updated" size="1" data="-1." />
     <numeric name="residual_nn" size="6" data="0.5 0. 0. 0. 0. 0.33333" />
     <numeric name="residual_Height" data="0.25" />
@@ -23,6 +25,7 @@
     <numeric name="residual_air_time_FL" data="0." />
     <numeric name="residual_air_time_HR" data="0." />
     <numeric name="residual_air_time_HL" data="0." />
+    <numeric name="residual_ctrl_factor_hip" size="1" data="50." />
   </custom>
 
   <worldbody>
@@ -97,16 +100,16 @@
 
   <sensor>
     <!-- <user name="Fly-high" dim="12" user="9 0.5 0.0 1.0 90. 1. 1." /> -->
-    <user name="Fly-high" dim="12" user="9 0.01 0.0 1.0 90. 0.5 0.9" />
+    <user name="Fly-high" dim="12" user="9 0.02 0.0 1.0 90. 0.5 0.9" />
     <user name="Body Pos." dim="3" user="0 0. 0.0 100.0" />
-    <user name="Body Rot." dim="9" user="0 3. 0.0 10.0" />
+    <user name="Body Rot." dim="9" user="0 5. 0.0 10.0" />
     <user name="Body Vel" dim="3" user="0 2. 0. 1.0 90." />
-    <user name="Body Ang vel" dim="3" user="0 2. 0.0 1.0 90." />
+    <user name="Body Ang vel" dim="3" user="0 1. 0.0 1.0 90." />
     <user name="Air-time-cost" dim="4" user="5 0. 0.0 1.0 2 2" />
     <!-- <user name="Forces" dim="12" user="0 0.0 0.0 1.0" /> -->
     <user name="Foot-Vel" dim="12" user="0 0. 0.0 1.0" />
-    <user name="Symmetry" dim="4" user="0 0.1 0.0 1.0" />
-    <user name="Control" dim="12" user="0 0.2 0.0 1.0" />
+    <user name="Symmetry" dim="4" user="0 0.05 0.0 1.0" />
+    <user name="Control" dim="12" user="0 0.3 0.0 1.0" />
     <!-- <user name="Body Rot.Vel" dim="3" user="0 0.5 0.0 100.0" /> -->
     <!-- <user name="Body Acc" dim="3" user="0 0. 0.0 1.0 90." /> -->
 
@@ -132,7 +135,7 @@
     <framepos      name="FL" objtype="site" objname="FL" reftype="world" refname="world"/>
     <framepos      name="HR" objtype="site" objname="RR" reftype="world" refname="world"/>
     <framepos      name="HL" objtype="site" objname="RL" reftype="world" refname="world"/>
-    
+
     <touch         name="FR_touch" site="FR"/>
     <touch         name="FL_touch" site="FL"/>
     <touch         name="HR_touch" site="RR"/>
