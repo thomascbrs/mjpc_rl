@@ -20,9 +20,7 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def("initialize_viewer", &MujocoSimulator::initialize_viewer)
       .def("reset", &MujocoSimulator::reset)
       .def("run_simulation", &MujocoSimulator::runSimulation)
-      .def("step", &MujocoSimulator::step)
-      .def("get_logged_joint_positions",
-           &MujocoSimulator::getLoggedJointPositions);
+      .def("step", &MujocoSimulator::step);
 
   py::class_<Data>(m, "Data")
       .def(py::init<>())

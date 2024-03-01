@@ -17,34 +17,22 @@ std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 
 MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
-      mcontactData(foot_names_, 0.002),plan_pool(n_threads) {
-
-  // Load Mujoco model
-  char loadError[1024] = "";
-  constexpr int kErrorLength = 1024;
-  model = mj_loadXML(modelFile, nullptr, loadError, kErrorLength);
-  if (!model) {
-    std::cerr << "Error loading Mujoco model: " << loadError << std::endl;
+      mcontactData(foot_names_, 0.002),
+      plan_pool(n_threads)
+      {
+  if (n_threads == 1 && !flag_thread_local){
+    throw std::runtime_error("1 thread selected. Flag thread only should be activated during conpilation.");
+  }
+  if (n_threads != 1 && flag_thread_local){
+    throw std::runtime_error("Multi-threading selected. Flag thread only should be de-activated during conpilation.");
   }
 
-  // Rendering flag
+  model = load_model(modelFile);
+  settings.set_settings(model);
+
+  // Set flags
   RENDERING_ = rendering;
   LOGGING_ = logging;
-
-  // Access the simulation options
-  mjOption *options = &model->opt;
-  options->integrator = mjINT_EULER; // mjINT_RK4
-  options->cone = mjCONE_ELLIPTIC; // mjCONE_PYRAMIDAL
-  // options->cone = mjCONE_PYRAMIDAL;
-  options->jacobian = mjJAC_AUTO;
-  options->solver = mjSOL_NEWTON; // mjSOL_CG, mjSOL_PGS
-
-  options->iterations = 50; // 100
-  options->tolerance = 1e-8; // 1e-8
-
-  options->noslip_tolerance = 1e-6;
-  options->noslip_iterations = 0; // 3
-  options->mpr_tolerance = 1e-6;
 
   // Initialize Mujoco simulation
   data = mj_makeData(model);
@@ -64,24 +52,14 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   }
 
   // General simulation parameters
-  planner_threads_ = n_threads;
-  horizon_ = 0.25;
-  timestep_planner_ = 1.0e-2;
-  timestep_ = 0.002;
-  mcontactData.dt_simu = timestep_; // TODO, find a better way.
-  options->timestep = timestep_;
-  kMaxTrajectoryHorizon_ = 128;
-  steps_ = horizon_ / timestep_planner_ + 1; // planning steps
+  mcontactData.dt_simu = settings.timestep; // TODO, find a better way.
 
   // Define tasks.
-  // task_ = new mjpc::QuadrupedFlat();
-  // task_ = new mjpc::QuadrupedHill();
-  // task_ = new mjpc::Cartpole();
   task_ = new QuadrupedTask();
   task_->Reset(model);
   task_->SetParameters(model);
 
-  // set data
+  // Set data
   mj_forward(model, data);
 
   // Initialize State.
@@ -94,56 +72,37 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   planner.InitializeCustom(model, *task_);
   // planner.Initialize(model, *task_);
   planner.Allocate();
-  planner.Reset(kMaxTrajectoryHorizon_);
+  planner.Reset(settings.n_steps);
   task_->num_trace = 0;
   // planner.settings.verbose = 1;
   planner.settings.fd_tolerance = 1.0e-6;
-
-  // cost
-  terms_.resize(task_->num_term * kMaxTrajectoryHorizon_);
-  std::fill(terms_.begin(), terms_.end(), 0.0);
-  allocate_enabled = false;
-  plan_enabled = true;
-  count_ = 0;
-
-  // task_->
   task_->UpdateResidual();
 
+  // cost
+  terms_.resize(task_->num_term * settings.n_steps);
+  std::fill(terms_.begin(), terms_.end(), 0.0);
 
-  ///////////////////////
-  // Model description
-  ///////////////////////
+
+  // task_->
+
   foot_names_ = {"FR", "FL", "HR", "HL"};
 
-  // Print model informations.
-  infos_models(model);
-
-  // Initialize logger.
-  int k_mpc = 10;
-  logger_.Initialize(foot_names_, timestep_planner_, steps_, k_mpc, timestep_);
-
   if (RENDERING_) {
+    infos_models(model); // Print infos in terminal.
     initialize_viewer();
   }
+  if (LOGGING_){
+    logger_.Initialize(foot_names_, settings.timestep_planner, settings.n_steps, settings.k_mpc, settings.timestep);
+  }
 
-  // Start planner in separate thread.
-  // std::atomic<bool> exitrequest(false);
-  // std::atomic<int> uiloadrequest(0);
-  // plan_pool = mjpc::ThreadPool(planner_threads_);
-  // plan_pool.Schedule([this,&exitrequest, &uiloadrequest]() {
-  // Plan(exitrequest, uiloadrequest); });
-  // Set control callback
+  // Set engine callbacks
   mjcb_control = mycontroller;
-
-  // Set sensor callback
   mjcb_sensor = &MujocoSimulator::sensor;
 
   // Initialisation
   planner.UpdateNumTrajectoriesFromGUI();
   put_robot_on_floor(200, q0_.tail(12));
   col.collision(model, data);
-
-
 }
 
 void MujocoSimulator::reset(Eigen::VectorXd q0) {
@@ -164,7 +123,7 @@ void MujocoSimulator::reset(Eigen::VectorXd q0) {
   state_.Set(model, data);
 
   // Reset planner
-  planner.Reset(kMaxTrajectoryHorizon_);
+  planner.Reset(settings.n_steps);
   task_->UpdateResidual();
 
   mj_step(model, data);
@@ -175,10 +134,13 @@ void MujocoSimulator::reset(Eigen::VectorXd q0) {
 }
 
 MujocoSimulator::~MujocoSimulator() {
+  // delete plan_pool; // Release the allocated memory in the destructor
   if (model)
     mj_deleteModel(model);
   if (data)
     mj_deleteData(data);
+  if (task_)
+    delete task_;
 }
 
 void MujocoSimulator::print_planner_timings() {
@@ -271,7 +233,7 @@ void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
           data->qvel[i + 6];  // Assuming you have access to velocity information
       // double control_signal = data_i->qfrc_inverse[i+6] + kp_ * error -
       // kd_ * vel_error;
-      double control_signal = kp_ * error - kd_ * vel_error;
+      double control_signal = settings.kp * error - settings.kd * vel_error;
       // double control_signal = qref[i];
 
       // Apply control signal to actuators or joints
@@ -323,7 +285,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     n_iteration++;
     return;
   }
-
+  int k_mpc = 0;
   for (int k_wbc = 0; k_wbc < 202; k_wbc++) {
     // Reset the contact status to 0.
     // mcontactData.update(model, data);
@@ -350,33 +312,16 @@ void MujocoSimulator::step(std::vector<double> actions) {
       task_->risk = 0.;
 
       // planner policy
-      for (int i = 0; i < 1; i++) {
+      int n_max = 1;
+      if (k_mpc % 5 == 0){
+        n_max = 2;
+      }
+      for (int i = 0; i < n_max; i++) {
         // Setup model timestep.
-        model->opt.timestep = timestep_planner_;
-        // options->noslip_tolerance = 1e-6;
-        // options->noslip_iterations = 3; // 3
-        // planner.OptimizePolicy(steps_, plan_pool);
-        // TODO : GO inside optimize policy. Try diff param on contact model (rollout ..)
-        // planner.OptimizePolicy(steps_, plan_pool);
+        model->opt.timestep = settings.timestep_planner;
+        planner.OptimizePolicyCustom(settings.n_steps,plan_pool);
+        k_mpc ++;
 
-         // model->opt.o_solimp[0] = 0.95;
-
-        planner.OptimizePolicyCustom(steps_, plan_pool);
-
-        // planner.IterationCustom(steps_, plan_pool);
-        // planner.Iteration(steps_, plan_pool);
-
-        // get nominal trajectory
-        // options->noslip_tolerance = 1e-6;
-        // options->noslip_iterations = 3; // 3
-
-        // Warning : if object has similar priorities, mean between them for contact
-        // includemargin = 0.001, 
-  // friction = {1, 1, 0.02, 0.01, 0.01}, solref = {0.02, 1}, solreffriction = {0, 0}, solimp = {
-    // 0.45750000000000002, 0.82499999999999996, 0.020500000000000001, 0.5, 2}, 
-  // mu = 0.31622776601683794, H = {0 <repeats 36 times>}, dim = 3, geom1 = 0, geom2 = 19, geom = {0, 
-    // 19}, flex = {-1, -1}, elem = {-1, -1}, vert = {-1, -1}, exclude = 0, efc_address = 12}
-// 
       }
       // print_planner_timings();
       // Log best OCP trajectory.
@@ -385,7 +330,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
       }
       // std::cout << "time [s] : " << data->time << std::endl;
     }
-    model->opt.timestep = timestep_;
+    model->opt.timestep = settings.timestep;
     state_.Set(model, data);
 
     // Direct position control from policy.
@@ -405,11 +350,6 @@ void MujocoSimulator::step(std::vector<double> actions) {
 
   n_iteration++;
   return;
-}
-
-std::vector<std::vector<double>>
-MujocoSimulator::getLoggedJointPositions() const {
-  return jointPositionsLog;
 }
 
 void MujocoSimulator::save_logger(const std::string &fileName) {

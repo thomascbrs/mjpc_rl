@@ -103,6 +103,7 @@ endif()
 
 # Add the source files to the project
 add_library(mjpc_rl_cpp
+    src/settings.h
     src/collision_checker.h
     src/contact_data.h
     src/custom_planner.h

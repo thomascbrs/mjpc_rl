@@ -81,20 +81,6 @@ void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool& pool) {
   // start timer
   auto model_derivative_start = std::chrono::steady_clock::now();
 
-
-  model->opt.enableflags = mjENBL_OVERRIDE;
-  model->opt.o_solimp[0] = 0.45;
-  model->opt.o_solimp[1] = 0.7;
-  model->opt.o_solimp[2] = 0.02;
-  model->opt.o_margin = 0.001;
-
-  model->opt.o_solref[0] = 0.005;
-  model->opt.disableflags = mjDSBL_LIMIT | mjDSBL_EQUALITY | mjDSBL_FILTERPARENT | mjDSBL_MIDPHASE;
-  // model->opt.disableflags &= ~(1 << mjDSBL_EQUALITY);
-  // model->opt.disableflags &= ~(1 << mjDSBL_LIMIT);
-
-  // model->opt.enableflags = mjENBL_ENERGY
-
   // compute model and sensor Jacobians
   model_derivative.Compute(
       model, data_, candidate_policy[0].trajectory.states.data(),

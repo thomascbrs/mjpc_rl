@@ -3,6 +3,18 @@
 #include <iostream>
 #include <vector>
 
+mjModel *load_model(const char *modelFile) {
+  // Load Mujoco model
+  char loadError[1024] = "";
+  constexpr int kErrorLength = 1024;
+  mjModel *model = mj_loadXML(modelFile, nullptr, loadError, kErrorLength);
+  if (!model) {
+    throw std::runtime_error(std::string("Error loading Mujoco model: ") +
+                             loadError);
+  }
+  return model;
+}
+
 // Function to convert enum value to string
 const char *enumToString(mjtObj value) {
   switch (value) {

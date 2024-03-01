@@ -17,7 +17,8 @@ void my_function03(int step){
 }
 
 int main() {
-  MujocoSimulator mjsimulator = MujocoSimulator(1,true,false,
+
+  MujocoSimulator mjsimulator = MujocoSimulator(1,false,false,
       "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml");
   // MujocoSimulator mjsimulator = MujocoSimulator(
   //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/cartpole/task.xml");
@@ -27,7 +28,6 @@ int main() {
 
   std::vector<std::vector<double>> list_points;
   std::vector<double> point;
-  // Forward running.
   point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
   list_points.push_back(point);
   point = {0.5, 0.0, 0.0, 0.0, -0.15, 0.0};
@@ -48,28 +48,6 @@ int main() {
   list_points.push_back(point);
   point = {0., 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
-
-  // Rotation pitch angle.
-  // point = {0., 0.0, 0.0, 0.0, 0.1, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.2, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.4, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.5, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.6, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.7, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.8, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 0.9, 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 1., 0.0};
-  // list_points.push_back(point);
-  // point = {0., 0.0, 0.0, 0.0, 1., 0.0};
-  // list_points.push_back(point);
 
   // ProfilerStart("test.prof"); //Start profiling section and save to file
   // HeapProfilerStart("output_inside.heap");

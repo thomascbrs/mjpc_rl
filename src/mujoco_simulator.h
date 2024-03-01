@@ -13,39 +13,12 @@
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
 
+#include "settings.h"
 #include "collision_checker.h"
 #include "contact_data.h"
 #include "logger.h"
 #include "custom_planner.h"
 #include "quadruped_task.h"
-
-// CustomThreadPool class derived from ThreadPool
-class DummyThreadPool : public mjpc::ThreadPool {
-public:
-    // Constructor
-    explicit DummyThreadPool(int num_threads) : mjpc::ThreadPool(num_threads) {
-      SetWorkerId(0);
-    }
-
-    int NumThreads() const override {
-      return 1;
-      }
-
-    void WaitCount(int value) override{
-    }
-
-protected:
-    // Override the WorkerThread function
-    void WorkerThread(int i) override {
-      std::cout << "Creating dummy thread : " << worker_id_ << std::endl;
-    }
-
-    void Schedule(std::function<void()> task) override{
-      task();
-      // Simulated task: increment ctr_
-      ++ctr_;
-    }
-};
 
 // thread_local Task* QuadrupedTask::task_ = nullptr;
 
@@ -64,13 +37,17 @@ public:
   void runSimulation(int numSteps);
   void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);
-  std::vector<std::vector<double>> getLoggedJointPositions() const;
   void save_logger(const std::string &fileName);
   void print_planner_timings();
   void update_ref_curve(std::vector<double> points);
 
 private:
-  inline static thread_local QuadrupedTask* task_;
+  // Impossible to get a member thread_local specified only at runtime.
+  // Hence, using this tool to flag if thread_only is activated.
+  bool flag_thread_local = true;
+  inline thread_local static QuadrupedTask* task_;
+  // bool flag_thread_local = false;
+  // inline static QuadrupedTask* task_;
 
   mjModel *model;
   mjData *data;
@@ -78,15 +55,10 @@ private:
   mjvOption opt;  // visualization options
   mjvScene scn;   // abstract scene
   mjrContext con; // custom GPU context
-
-  // ----- iLQG planner ----- //
-  // mjpc::iLQGPlanner planner;
-
   GLFWwindow *window;
 
-  // Define PD controller parameters
-  double kp_ = 5.;  // Proportional gain
-  double kd_ = 0.2; // Derivative gain
+  // Settings.
+  Settings settings;
   Eigen::Matrix<double,19,1 > q0_;
   std::vector<double> terms_;
   bool allocate_enabled;
@@ -98,21 +70,9 @@ private:
   bool LOGGING_;
 
   // Simulation parameters.
-  int planner_threads_;
-  double horizon_;
-  double timestep_;           // simulation timestep.
-  double timestep_planner_;   // planner timestep.
-  int kMaxTrajectoryHorizon_; // maximum lenght trajectory.
-  int steps_;
   double simstart;
-  DummyThreadPool plan_pool;
+  mjpc::ThreadPool plan_pool;
   int n_iteration = 0;
-  int num_trajectory_ = 0;
-
-  // residual function for the active task, updated once per planning iteration
-  std::unique_ptr<mjpc::ResidualFn> residual_fn_;
-
-  std::vector<std::vector<double>> jointPositionsLog;
 
   std::vector<std::string> foot_names_;
   ContactData mcontactData;
