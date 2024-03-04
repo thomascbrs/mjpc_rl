@@ -19,6 +19,7 @@
 #include "logger.h"
 #include "custom_planner.h"
 #include "quadruped_task.h"
+#include "observer.h"
 
 // thread_local Task* QuadrupedTask::task_ = nullptr;
 
@@ -76,6 +77,7 @@ private:
 
   std::vector<std::string> foot_names_;
   ContactData mcontactData;
+  Observer observer;
 
   Logger logger_;
 

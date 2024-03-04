@@ -18,6 +18,7 @@ std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
 MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
       mcontactData(foot_names_, 0.002),
+      observer(foot_names_),
       plan_pool(n_threads)
       {
   if (n_threads == 1 && !flag_thread_local){
