@@ -1,5 +1,6 @@
 #include "logger.h"
 #include "mujoco_simulator.h"
+#include "observer.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -20,7 +21,8 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def("initialize_viewer", &MujocoSimulator::initialize_viewer)
       .def("reset", &MujocoSimulator::reset)
       .def("run_simulation", &MujocoSimulator::runSimulation)
-      .def("step", &MujocoSimulator::step);
+      .def("step", &MujocoSimulator::step)
+      .def("getObervation", &MujocoSimulator::getObervation);
 
   py::class_<Data>(m, "Data")
       .def(py::init<>())
@@ -38,6 +40,17 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def_readwrite("contact_forces", &Data::contact_forces)
       .def_readwrite("contact_forces_sensors", &Data::contact_forces_sensors)
       .def_readwrite("mpc_traj", &Data::mpc_traj);
+
+  py::class_<ObserverData>(m, "ObserverData")
+      .def(py::init<>())
+      .def_readwrite("foot_names", &ObserverData::foot_names)
+      .def_readwrite("end_pos", &ObserverData::end_pos)
+      .def_readwrite("end_vel", &ObserverData::end_vel)
+      .def_readwrite("end_acc", &ObserverData::end_acc)
+      .def_readwrite("end_quat", &ObserverData::end_quat)
+      .def_readwrite("end_angVel", &ObserverData::end_angVel)
+      .def_readwrite("feet_pos", &ObserverData::feet_pos)
+      .def_readwrite("feet_vel", &ObserverData::feet_vel);
 
   m.def("loadData", &loadDataWithoutInstance,
         "Load data from file and return as Data struct");

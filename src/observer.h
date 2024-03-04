@@ -29,6 +29,8 @@ class Observer {
     }
   }
 
+  ObserverData getObervation() { return odata_; }
+
   void update(const mjModel *model, const mjData *data) {
     // Fill in end_pos, end_vel, end_acc, end_quat, end_ang
     for (int i = 0; i < 3; ++i) {

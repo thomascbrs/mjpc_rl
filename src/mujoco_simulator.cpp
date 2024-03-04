@@ -357,3 +357,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
 void MujocoSimulator::save_logger(const std::string &fileName) {
   logger_.saveData(fileName);
 }
+
+ObserverData MujocoSimulator::getObervation() {
+  return observer.getObervation();
+}

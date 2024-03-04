@@ -41,6 +41,7 @@ public:
   void save_logger(const std::string &fileName);
   void print_planner_timings();
   void update_ref_curve(std::vector<double> points);
+  ObserverData getObervation();
 
 private:
   // Impossible to get a member thread_local specified only at runtime.
