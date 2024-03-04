@@ -5,55 +5,52 @@
 #include "mjpc/utilities.h"
 #include "mujoco/mujoco.h"
 
-struct Observer {
+// Define ObserverData outside the Observer class
+struct ObserverData {
   std::vector<std::string> foot_names;
-
-  // Final observation
-  std::array<double, 3> end_pos;
-  std::array<double, 3> end_vel;
-  std::array<double, 3> end_acc;
-  std::array<double, 4> end_quat;
-  std::array<double, 3> end_angVel;
-
+  std::array<double, 3> end_pos = {0.0, 0.0, 0.0};
+  std::array<double, 3> end_vel = {0.0, 0.0, 0.0};
+  std::array<double, 3> end_acc = {0.0, 0.0, 0.0};
+  std::array<double, 4> end_quat = {0.0, 0.0, 0.0};
+  std::array<double, 3> end_angVel = {0.0, 0.0, 0.0};
   std::unordered_map<std::string, std::array<double, 3>> feet_pos;
   std::unordered_map<std::string, std::array<double, 3>> feet_vel;
+};
 
-  // Constructor to initialize arrays with zeros
+class Observer {
+ private:
+  ObserverData odata_;
 
-  Observer(const std::vector<std::string> &foot_names)
-      : end_pos({0.0, 0.0, 0.0}),
-        end_vel({0.0, 0.0, 0.0}),
-        end_acc({0.0, 0.0, 0.0}),
-        end_quat({1., 0.0, 0.0, 0.0}),
-        end_angVel({0.0, 0.0, 0.0}) {
+ public:
+  Observer(const std::vector<std::string> &foot_names) : odata_(){
     for (const auto &name : foot_names) {
-      feet_vel[name] = {0., 0., 0.};
-      feet_pos[name] = {0., 0., 0.};
+      odata_.feet_vel[name] = {0., 0., 0.};
+      odata_.feet_pos[name] = {0., 0., 0.};
     }
   }
 
   void update(const mjModel *model, const mjData *data) {
     // Fill in end_pos, end_vel, end_acc, end_quat, end_ang
     for (int i = 0; i < 3; ++i) {
-      end_pos[i] = data->qpos[i];
-      end_vel[i] = data->qvel[i];
-      end_acc[i] = data->qacc[i];
-      end_angVel[i] = data->qvel[i + 3];
+      odata_.end_pos[i] = data->qpos[i];
+      odata_.end_vel[i] = data->qvel[i];
+      odata_.end_acc[i] = data->qacc[i];
+      odata_.end_angVel[i] = data->qvel[i + 3];
     }
 
     // Fill in end_quat (quaternion)
     for (int i = 0; i < 4; ++i) {
-      end_quat[i] = data->qpos[3 + i];
+      odata_.end_quat[i] = data->qpos[3 + i];
     }
 
-    for (auto& elem : feet_pos){
+    for (auto &elem : odata_.feet_pos) {
       double *pos = mjpc::SensorByName(model, data, elem.first);
       elem.second[0] = pos[0];
       elem.second[1] = pos[1];
       elem.second[2] = pos[2];
     }
 
-    for (auto& elem : feet_vel){
+    for (auto &elem : odata_.feet_vel) {
       double *vel = mjpc::SensorByName(model, data, elem.first + "_vel");
       elem.second[0] = vel[0];
       elem.second[1] = vel[1];

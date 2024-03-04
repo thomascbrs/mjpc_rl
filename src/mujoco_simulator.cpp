@@ -349,6 +349,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     }
   }
 
+  observer.update(model, data);
   n_iteration++;
   return;
 }
