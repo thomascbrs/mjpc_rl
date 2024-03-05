@@ -16,10 +16,10 @@
 #include "settings.h"
 #include "collision_checker.h"
 #include "contact_data.h"
+#include "observer.h"
 #include "logger.h"
 #include "custom_planner.h"
 #include "quadruped_task.h"
-#include "observer.h"
 
 // thread_local Task* QuadrupedTask::task_ = nullptr;
 

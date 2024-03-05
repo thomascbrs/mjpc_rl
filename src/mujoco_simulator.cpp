@@ -343,13 +343,16 @@ void MujocoSimulator::step(std::vector<double> actions) {
     // Simulation step.
     mj_step(model, data);
 
+    // Update filtered for observations.
+    observer.update_filter(model, data);
+
     if (RENDERING_ && data->time - simstart < 1.0 / 60.0) {
       update_viewer();
       simstart = data->time;
     }
   }
 
-  observer.update(model, data);
+  observer.update_final_pose(model, data);
   n_iteration++;
   return;
 }

@@ -1,9 +1,11 @@
 # from build_release.libmjpc_rl_pywrap import MujocoSimulator
-from build_release.libmjpc_rl_pywrap import MujocoSimulator
+from build_release.libmjpc_rl_pywrap import MujocoSimulator,loadData
 import example_robot_data
 import numpy as np
 from time import sleep
 from time import perf_counter as clock
+import matplotlib.pyplot as plt
+plt.ion()
 
 # robot = example_robot_data.load("a1")
 # robot.initViewer(windowName="mjpc_rl", loadModel=False)
@@ -22,9 +24,13 @@ for point in list_points:
     t1 = clock()
     print("Step function [ms] : ", 1000 * (t1 - t0))
 
+obs = simulator.getObervation()
 
 filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin"
 simulator.save_logger(filename)
+
+data = loadData(filename)
+
 # simulator.run_simulation(500)
 # sleep(0.5)
 # simulator.run_simulation(500)

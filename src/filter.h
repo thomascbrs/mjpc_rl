@@ -1,3 +1,6 @@
+#ifndef FILTER_H
+#define FILTER_H
+
 #include <cmath>
 #include <iostream>
 #include <numeric>
@@ -156,3 +159,5 @@ class Filter {
     }
   }
 };
+
+#endif  // FILTER_H

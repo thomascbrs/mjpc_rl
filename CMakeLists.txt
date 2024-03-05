@@ -104,8 +104,9 @@ endif()
 # Add the source files to the project
 add_library(mjpc_rl_cpp
     src/filter.h
-    src/types.h
     src/observer.h
+    src/observer.cpp
+    src/types.h
     src/settings.h
     src/collision_checker.h
     src/contact_data.h
