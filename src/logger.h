@@ -1,7 +1,6 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "contact_data.h"
 #include "mjpc/trajectory.h"
 #include "mjpc/utilities.h"
 #include "mujoco/mujoco.h"
@@ -9,6 +8,11 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+
+#include "contact_data.h"
+#include "filter.h"
+#include "types.h"
+#include "utils.h"
 
 struct Data {
   int size = 0;      // Usefull for loading.
@@ -19,8 +23,12 @@ struct Data {
   double dt_simu;
   std::vector<std::array<double, 19>>
       qpos; // qpos of the CoM/Trunk in world frame.
+  std::vector<std::array<double, 6>>
+      qpos_fil; // qpos of the CoM/Trunk in world frame.
   std::vector<std::array<double, 18>>
       qvel; // qvel of the CoM/Trunk in world frame.
+  std::vector<std::array<double, 6>>
+      qvel_fil; // qpos of the CoM/Trunk in world frame.
   std::unordered_map<std::string, std::vector<int>> foot_status;
   std::unordered_map<std::string, std::vector<int>> foot_status_touch;
   std::unordered_map<std::string, std::vector<std::array<double, 3>>>
@@ -66,6 +74,15 @@ public:
 private:
   Data data_;
   std::vector<std::string> foot_names_;
+
+  std::vector<double> cutoff_pos = {2., 2., 2., 2., 2., 2.};
+  double fs_pos = 1 / 0.002;
+  int order_pos = 1;
+  std::vector<double> cutoff_vel = {2., 2., 2., 2., 2., 2.};
+  double fs_vel = 1 / 0.002;
+  int order_vel = 1;
+  Filter filter_pos_;
+  Filter filter_vel_;
 };
 
 #endif // LOGGER_H

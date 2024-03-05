@@ -1,5 +1,5 @@
 #include "mujoco_simulator.h"
-#include "utils.cpp"
+#include "utils.h"
 #include <iostream>
 #include <thread>
 

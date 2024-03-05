@@ -1,22 +1,16 @@
+#ifndef UTILS_H
+#define UTILS_H
+
 #include "mujoco/mujoco.h"
 #include <absl/strings/match.h>
 #include <iostream>
 #include <vector>
 
-mjModel *load_model(const char *modelFile) {
-  // Load Mujoco model
-  char loadError[1024] = "";
-  constexpr int kErrorLength = 1024;
-  mjModel *model = mj_loadXML(modelFile, nullptr, loadError, kErrorLength);
-  if (!model) {
-    throw std::runtime_error(std::string("Error loading Mujoco model: ") +
-                             loadError);
-  }
-  return model;
-}
+#include "types.h"
+
 
 // Function to convert enum value to string
-const char *enumToString(mjtObj value) {
+static inline const char *enumToString(mjtObj value) {
   switch (value) {
   case mjOBJ_UNKNOWN:
     return "mjOBJ_UNKNOWN";
@@ -75,8 +69,33 @@ const char *enumToString(mjtObj value) {
   }
 }
 
+inline mjModel *load_model(const char *modelFile) {
+  // Load Mujoco model
+  char loadError[1024] = "";
+  constexpr int kErrorLength = 1024;
+  mjModel *model = mj_loadXML(modelFile, nullptr, loadError, kErrorLength);
+  if (!model) {
+    throw std::runtime_error(std::string("Error loading Mujoco model: ") +
+                             loadError);
+  }
+  return model;
+}
+
+
+inline void updateMatrix(Matrix3d mat, double raw_data[9]) {
+  mat(0, 0) = raw_data[0];
+  mat(0, 1) = raw_data[1];
+  mat(0, 2) = raw_data[2];
+  mat(1, 0) = raw_data[3];
+  mat(1, 1) = raw_data[4];
+  mat(1, 2) = raw_data[5];
+  mat(2, 0) = raw_data[6];
+  mat(2, 1) = raw_data[7];
+  mat(2, 2) = raw_data[8];
+}
+
 // Print informations relative to the model.
-void infos_models(const mjModel *model) {
+inline void infos_models(const mjModel *model) {
   std::cout << "\nModel Informations" << std::endl;
 
   // Mass informations.
@@ -118,7 +137,7 @@ void infos_models(const mjModel *model) {
   }
 }
 
-void ParameterIndexes(int indexes[2], const mjModel *model,
+inline void ParameterIndexes(int indexes[2], const mjModel *model,
                       const std::string_view name) {
   int id =
       // mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_",
@@ -146,3 +165,5 @@ void ParameterIndexes(int indexes[2], const mjModel *model,
   indexes[0] = shift;
   indexes[1] = shift + model->numeric_size[i];
 }
+
+#endif // UTILS_H

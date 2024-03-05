@@ -20,8 +20,8 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def(py::init<int, bool, bool, const char *>())
       .def("initialize_viewer", &MujocoSimulator::initialize_viewer)
       .def("reset", &MujocoSimulator::reset)
-      .def("run_simulation", &MujocoSimulator::runSimulation)
       .def("step", &MujocoSimulator::step)
+      .def("save_logger", &MujocoSimulator::save_logger)
       .def("getObervation", &MujocoSimulator::getObervation);
 
   py::class_<Data>(m, "Data")
@@ -38,6 +38,8 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def_readwrite("foot_position", &Data::foot_position)
       .def_readwrite("foot_velocity", &Data::foot_velocity)
       .def_readwrite("contact_forces", &Data::contact_forces)
+      .def_readwrite("qvel_fil", &Data::qvel_fil)
+      .def_readwrite("qpos_fil", &Data::qpos_fil)
       .def_readwrite("contact_forces_sensors", &Data::contact_forces_sensors)
       .def_readwrite("mpc_traj", &Data::mpc_traj);
 
