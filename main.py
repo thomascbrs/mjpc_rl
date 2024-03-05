@@ -1,13 +1,30 @@
+# from build_release.libmjpc_rl_pywrap import MujocoSimulator
 from build_release.libmjpc_rl_pywrap import MujocoSimulator
 import example_robot_data
 import numpy as np
 from time import sleep
+from time import perf_counter as clock
 
 # robot = example_robot_data.load("a1")
 # robot.initViewer(windowName="mjpc_rl", loadModel=False)
 # robot.loadViewerModel(rootNodeName="robot")
 
-simulator = MujocoSimulator(5,False,False,"/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml")
+simulator = MujocoSimulator(1, False, True, "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml")
+
+list_points = [[0.5, 0.0, 0.0, 0.0, -0.1, 0.0], [0.5, 0.0, 0.0, 0.0, -0.15, 0.0], [0.5, 0.0, 0.0, 0.0, -0.15, 0.0],
+               [0.8, 0.0, 0.0, 0.0, -0.15, 0.0], [0.8, 0.0, 0.0, 0.0, -0.15, 0.0], [0.8, 0.0, 0.0, 0.0, -0.15, 0.0],
+               [0.8, 0.0, 0.0, 0.0, -0.15, 0.0], [0.0, 0.0, 0.0, 0.0, -0.15, 0.0], [0.0, 0.0, 0.0, 0.0, -0.15, 0.0],
+               [0.0, 0.0, 0.0, 0.0, -0.15, 0.0]]
+
+for point in list_points:
+    t0 = clock()
+    simulator.step(point)
+    t1 = clock()
+    print("Step function [ms] : ", 1000 * (t1 - t0))
+
+
+filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin"
+simulator.save_logger(filename)
 # simulator.run_simulation(500)
 # sleep(0.5)
 # simulator.run_simulation(500)
