@@ -55,6 +55,7 @@ class Filter {
   int _nb, _na;
   std::vector<std::vector<double>> _x_queue, _y_queue;
   bool _is_initialized;
+  bool _is_reset;
   std::vector<std::vector<double>> _b, _a;
 
  public:
@@ -70,6 +71,16 @@ class Filter {
     _nb = _b[0].size();
     _na = _a[0].size();
     _is_initialized = false;
+    _is_reset = true;
+  }
+
+  void reset(){
+    // Otherwise vectors point to nullptr.
+    if (_is_initialized){
+      _x_queue.clear();
+      _y_queue.clear();
+      _is_reset = false;
+    }
   }
 
   std::pair<std::vector<double>, std::vector<double>> butter_lowpass(
@@ -108,7 +119,7 @@ class Filter {
 
     // Return the result
     return result;
-}
+  }
 
 
   std::vector<double> _filter(std::vector<double> q) {
@@ -116,6 +127,16 @@ class Filter {
       _x_queue = std::vector<std::vector<double>>(_nb, q);
       _y_queue = std::vector<std::vector<double>>(_na - 1, q);
       _is_initialized = true;
+    }
+
+    if (!_is_reset) {
+      for (size_t i = 0; i < _nb; ++i) {
+        _x_queue.push_back(q);
+      }
+      for (size_t i = 0; i < _na; ++i) {
+        _y_queue.push_back(q);
+      }
+      _is_reset = true;
     }
 
     if (std::abs(q[5] - _y_queue[0][5]) > 1.5 * M_PI) {
