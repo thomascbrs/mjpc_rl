@@ -19,10 +19,23 @@ void Observer::update_filter(const mjModel *model, const mjData *data){
   // Copy data inside the filtered_pose
   std::copy(filtered_tmp.begin(), filtered_tmp.end(), odata_.filtered_pose.begin());
 
-
   std::vector<double> qvel_tmp(data->qvel, data->qvel + 6); // Velocity
   std::vector<double> vfiltered_tmp = filter_vel_._filter(qvel_tmp);
   std::copy(vfiltered_tmp.begin(), vfiltered_tmp.end(), odata_.filtered_vel.begin());
+}
+
+void Observer::reset(){
+  odata_.end_pose = {0.0};
+  odata_.end_vel = {0.0};
+  odata_.end_acc = {0.0};
+  odata_.filtered_pose = {0.0};
+  odata_.filtered_vel = {0.0};
+  for (const auto &name : odata_.foot_names) {
+    odata_.feet_vel[name] = {0.};
+    odata_.feet_pos[name] = {0.};
+  }
+  filter_pos_.reset();
+  filter_vel_.reset();
 }
 
 void Observer::update_final_pose(const mjModel *model, const mjData *data) {
@@ -62,7 +75,8 @@ void Observer::update_final_pose(const mjModel *model, const mjData *data) {
   // Compute in local frame.
   pos_tmp[0] = odata_.end_pose[0];
   pos_tmp[1] = odata_.end_pose[1];
-  pos_tmp[2] = odata_.end_pose[2];
+  // pos_tmp[2] = odata_.end_pose[2];
+  pos_tmp[2] = 0.;
   // Only considering position and yaw axis.
 
   mjtNum R_data[9];
@@ -78,7 +92,7 @@ void Observer::update_final_pose(const mjModel *model, const mjData *data) {
     vec_tmp[0] = odata_.feet_pos[name][0];
     vec_tmp[1] = odata_.feet_pos[name][1];
     vec_tmp[2] = odata_.feet_pos[name][2];
-    Vector3d res;
+    Vector3d res = Vector3d::Zero(3);
     res = (R_tmp.transpose() * (vec_tmp - pos_tmp)).array();
     odata_.lfeet_pos[name][0] = res[0];
     odata_.lfeet_pos[name][1] = res[1];

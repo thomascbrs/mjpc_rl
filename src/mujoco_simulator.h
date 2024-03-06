@@ -13,6 +13,12 @@
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
 
+#include <Eigen/Geometry>
+#include <pinocchio/math/quaternion.hpp>
+#include "pinocchio/math/rpy.hpp"
+#include "pinocchio/spatial/se3.hpp"
+
+#include "types.h"
 #include "settings.h"
 #include "collision_checker.h"
 #include "contact_data.h"
@@ -23,9 +29,6 @@
 
 // thread_local Task* QuadrupedTask::task_ = nullptr;
 
-typedef Eigen::Matrix<double, 6, 1> Vector6d;
-typedef Eigen::VectorXd VectorXd;
-
 class MujocoSimulator {
 public:
   MujocoSimulator(int n_threads, bool rendering, bool loggin, const char *modelFile);
@@ -34,7 +37,13 @@ public:
   void initialize_viewer();
   void update_viewer();
   void put_robot_on_floor(int n_steps, VectorXd qref);
-  void reset(Eigen::VectorXd q0);
+
+  /**
+   * @brief Reset the environment.
+   *
+   * @param q0 Inital config x6 [x,y,z,r,p,y]
+   */
+  void reset(std::vector<double> q0);
   void runSimulation(int numSteps);
   void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);

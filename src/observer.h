@@ -60,6 +60,7 @@ class Observer {
 
   ObserverData getObervation() { return odata_; }
 
+  void reset();
   void update_final_pose(const mjModel *model, const mjData *data);
   void update_filter(const mjModel *model, const mjData *data);
 

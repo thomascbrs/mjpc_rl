@@ -103,16 +103,29 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   // Initialisation
   planner.UpdateNumTrajectoriesFromGUI();
   put_robot_on_floor(200, q0_.tail(12));
+  observer.reset();
+  observer.update_final_pose(model, data);
+  observer.update_filter(model, data);
   col.collision(model, data);
 }
 
-void MujocoSimulator::reset(Eigen::VectorXd q0) {
-  if (q0.size() != 19) {
-    throw std::runtime_error("q0 should be size 19");
+void MujocoSimulator::reset(std::vector<double> q) {
+  if (q.size() != 6) {
+    throw std::runtime_error("q0 should be size 6, [x,y,z,r,p,y]");
   }
-  mj_resetData(model,data);
-  for (int i = 0; i < model->nq; ++i) {
-    data->qpos[i] = q0[i];
+  mj_resetData(model, data);  // reset Data
+  data->qpos[0] = q.at(0);    // x
+  data->qpos[1] = q.at(1);    // y
+  data->qpos[2] = q.at(2);    // z
+  // Get quaternion.
+  Eigen::Quaterniond quat(
+      pinocchio::rpy::rpyToMatrix(q.at(3), q.at(4), q.at(5)));
+  data->qpos[3] = quat.w();
+  data->qpos[4] = quat.x();
+  data->qpos[5] = quat.y();
+  data->qpos[6] = quat.z();
+  for (int i = 7; i < model->nq; ++i) {
+    data->qpos[i] = q0_[i];
   }
 
   // Reset task
@@ -128,9 +141,14 @@ void MujocoSimulator::reset(Eigen::VectorXd q0) {
   task_->UpdateResidual();
 
   mj_step(model, data);
-  update_viewer();
+  if (RENDERING_) {
+    update_viewer();
+  }
 
   put_robot_on_floor(200,q0_.tail(12));
+  observer.reset();
+  observer.update_final_pose(model, data);
+  observer.update_filter(model, data);
   simstart = data->time;
 }
 
@@ -242,7 +260,7 @@ void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
       // data->ctrl[i] = 0.;
     }
     mj_step(model, data);
-    std::cout << "time [s] : " << data->time << std::endl;
+    // std::cout << "time [s] : " << data->time << std::endl;
     if (RENDERING_ && data->time - simstart < 1.0 / 60.0){
       update_viewer();
       simstart = data->time;
