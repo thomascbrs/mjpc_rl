@@ -82,7 +82,7 @@ inline mjModel *load_model(const char *modelFile) {
 }
 
 
-inline void updateMatrix(Matrix3d mat, double raw_data[9]) {
+inline void updateMatrix(Matrix3d& mat, double raw_data[9]) {
   mat(0, 0) = raw_data[0];
   mat(0, 1) = raw_data[1];
   mat(0, 2) = raw_data[2];
