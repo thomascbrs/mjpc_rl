@@ -260,8 +260,7 @@ void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
       // data->ctrl[i] = 0.;
     }
     mj_step(model, data);
-    // std::cout << "time [s] : " << data->time << std::endl;
-    if (RENDERING_ && data->time - simstart < 1.0 / 60.0){
+    if (RENDERING_ && (data->time - simstart > 1.0 / 120.) ){
       update_viewer();
       simstart = data->time;
     }
@@ -364,7 +363,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     // Update filtered for observations.
     observer.update_filter(model, data);
 
-    if (RENDERING_ && data->time - simstart < 1.0 / 60.0) {
+    if (RENDERING_ && (data->time - simstart > 1.0 / 60.0) ) {
       update_viewer();
       simstart = data->time;
     }
