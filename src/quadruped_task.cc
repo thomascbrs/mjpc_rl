@@ -359,20 +359,39 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
-  Eigen::MatrixXd b(3, 3);
-  Eigen::MatrixXd minv(3, 3);
-  minv << 1, 0, 0,
-          0, 1, 0,
-          -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  // Polynomial curve in angular position. May induce waving motion due to
+  // the representation (trying to keep the c1 continuity)
+  // Polynomial 2nd degree
+
+  // Eigen::MatrixXd b(3, 3);
+  // Eigen::MatrixXd minv(3, 3);
+  // minv << 1, 0, 0,
+  //         0, 1, 0,
+  //         -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  // b.row(0) = pcRot_(pcRot_.max());
+  // b.row(1) = pcRot_.derivate(pcRot_.max(),1);
+  // b.row(2) << *(start+3), *(start +4), *(start +5);
+  // coeffs = minv * b;
+
+  // Polynomial curveRot_tmp;
+  // curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  // pcRot_.add_curve(curveRot_tmp);
+
+  // 1st degree in rotation angle.
+  Eigen::MatrixXd coeffs_rot(2,3);
+  coeffs_rot.row(0) = pcRot_(pcRot_.max());
+  Eigen::MatrixXd b(2, 3);
+  Eigen::MatrixXd minv(2, 2);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
   b.row(0) = pcRot_(pcRot_.max());
-  b.row(1) = pcRot_.derivate(pcRot_.max(),1);
-  b.row(2) << *(start+3), *(start +4), *(start +5);
+  b.row(1) << *(start+3), *(start +4), *(start +5);
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
   curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
   pcRot_.add_curve(curveRot_tmp);
 
+  // Visualisation.
   // double tt = 0.;
   // std::cout << "\n\n----" << std::endl;
   // while( tt <= pcVel_.max()){
