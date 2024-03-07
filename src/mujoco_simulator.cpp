@@ -149,6 +149,8 @@ void MujocoSimulator::reset(std::vector<double> q) {
   observer.reset();
   observer.update_final_pose(model, data);
   observer.update_filter(model, data);
+
+  reset_task(q); // Warning q is size 6 and rpy are the last 3 elements.
   simstart = data->time;
 }
 
@@ -281,6 +283,29 @@ void MujocoSimulator::update_ref_curve(std::vector<double> points){
   task_->parameters[indexes[0]+3] = points[3];
   task_->parameters[indexes[0]+4] = points[4];
   task_->parameters[indexes[0]+5] = points[5];
+
+  // Update task
+  task_->UpdateResidual();
+
+  // Reset boolean to not update curve on next Update().
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = -1.;
+}
+
+void MujocoSimulator::reset_task(std::vector<double> q){
+  if (q.size() != 6) {
+    throw std::runtime_error("q0 should be size 6, [x,y,z,r,p,y]");
+  }
+  // Reset the reference curve inside task planner.
+  int indexes[2];
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = 0.; // Boolean for reset
+
+  ParameterIndexes(indexes, model, "residual_nn_reset");
+  // Angle position on reset.
+  task_->parameters[indexes[0]] = q[3];
+  task_->parameters[indexes[0]+1] = q[4];
+  task_->parameters[indexes[0]+2] = q[5];
 
   // Update task
   task_->UpdateResidual();

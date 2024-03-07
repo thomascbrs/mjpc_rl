@@ -55,14 +55,17 @@ public:
       pcVel_.add_curve(lin_velocity_);
       pcRot_.add_curve(ang_rotation_);
 
+      // Symmetric motion.
       C2 << 0,1.,0,0,0,0,0,0,0,0,-1., 0,
             0,0,1.,0,0,0,0,0,0,0, 0,-1.,
             0,0,0,0,1.,0.,0,-1.,0.,0,0,0,
             0,0,0,0,0.,1.,0,0.,-1.,0,0,0;
+      // Bounding motion.
       // C2 << 0,1,0,   0,0,0,   0,-1,0,   0,0,0,
       //       0,0,1.,  0,0,0,   0,0,-1,   0,0,0.,
       //       0,0,0,   0,1.,0   ,0,0,0,   0,-1,0,
       //       0,0,0,   0,0.,1.,  0,0.,0., 0,0,-1.;
+      // Jumping motion.
       // C2 << 0,1,0,   0,-1,0,   0,0,0,   0,0,0,
       //       0,0,1,   0,0,-1,   0,0,0,   0,0,0,
       //       0,0,0,   0,0,0,    0,1,0,   0,-1,0,
@@ -86,6 +89,7 @@ public:
     /// @param param
     void updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
     void updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
+    void reset_curves(const std::vector<double>::iterator start);
 
   private:
     friend class QuadrupedTask;
@@ -117,6 +121,8 @@ public:
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
+  // call base-class Reset, save task-related ids
+  void ResetLocked(const mjModel* model) override;
   void SetParameters(const mjModel *model);
 
   // draw task-related geometry in the scene

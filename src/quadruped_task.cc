@@ -20,6 +20,12 @@
 #include "mjpc/utilities.h"
 #include <mujoco/mujoco.h>
 
+#include "types.h"
+#include <Eigen/Geometry>
+#include <pinocchio/math/quaternion.hpp>
+#include "pinocchio/math/rpy.hpp"
+#include "pinocchio/spatial/se3.hpp"
+
 std::string QuadrupedTask::XmlPath() const {
   return mjpc::GetModelPath("quadruped/task_hill.xml");
 }
@@ -172,16 +178,21 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   Eigen::Vector3d rot_ref = pcRot_(data->time);
 
   // Compute derivative of the curve wrt to x to retrieve pitch angle.
-  double pitch[1];
-  double wpitch[1];
-  double fwd = 0.0;
+  Matrix3d R = pinocchio::rpy::rpyToMatrix(rot_ref(0), rot_ref(1), rot_ref(2));
 
-  mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
-  mjtNum quat[4];
+  // mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
+  // mjtNum quat[4];
+  // mjtNum ref_rotmat[9];
+  // mju_axisAngle2Quat(quat, axis,
+  //                     rot_ref[1]);   // Convert axis-angle to quaternion
+  // mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
+  // Convert R to mjtNum ref_rotmat[9]
   mjtNum ref_rotmat[9];
-  mju_axisAngle2Quat(quat, axis,
-                      rot_ref[1]);   // Convert axis-angle to quaternion
-  mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
+  for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+          ref_rotmat[i * 3 + j] = static_cast<mjtNum>(R(i, j));
+      }
+  }
 
   double body_rotmat[9];
   double *orientation = mjpc::SensorByName(model, data, "orientation");
@@ -196,7 +207,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
       mjpc::SensorByName(model, data, "ang_velocity_trunk");
   double ang_v_ref[3];
   ang_v_ref[0] = 0.;
-  ang_v_ref[1] = wpitch[0];
+  ang_v_ref[1] = 0.;
   ang_v_ref[2] = 0.;
   mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
   res_index += 3;
@@ -252,7 +263,7 @@ void QuadrupedTask::ResidualFn::Update() {
   risk_ = task_->risk;
   parameters_ = task_->parameters;
   // parameters_[0] --> residual_nn_updated
-  if (parameters_[0] > 0){
+  if (parameters_[0] == 1.){
     // Update the reference curve.
     std::cout << "Update Reference curve." << std::endl;
 
@@ -264,6 +275,37 @@ void QuadrupedTask::ResidualFn::Update() {
     updateCurvesACC(parameters_.begin() + 1, parameters_.begin() + 6);
     n_update += 1;
   }
+  // Reset the reference curve.
+  if (parameters_[0] == 0.){
+    reset_curves(parameters_.begin() + 7);
+    n_update = 0;
+  }
+}
+
+void QuadrupedTask::ResidualFn::reset_curves(const std::vector<double>::iterator start){
+  std::cout << "Reset function in task" << std::endl;
+  // std::cout << "params : [" << *start << "," << *(start+1) << "," << *(start +2) << "]" << std::endl;
+  // Update the container of points.
+  cp_rot.clear();
+  cp_lin.clear();
+
+  // Define a constant polynomial curve.
+  cp_rot.push_back(Eigen::Vector3d(*start, *(start+1), *(start+2)));
+  cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+  for (int i = 1; i < 3; i++) {
+    cp_rot.push_back(Eigen::Vector3d(0., 0., 0.));
+    cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+  }
+  lin_velocity_ = Polynomial(
+      cp_lin.begin(), cp_lin.end(),0.,0.4);
+  ang_rotation_ = Polynomial(
+      cp_rot.begin(), cp_rot.end(),0.,0.4);
+
+  pcRot_ = PieceWise();
+  pcVel_ = PieceWise();
+  pcRot_.add_curve(ang_rotation_);
+  pcVel_.add_curve(lin_velocity_);
+
 }
 
 void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
@@ -338,6 +380,8 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   // }
 }
 
+// Using update function for now, maybe to use for resetting the curves.
+void QuadrupedTask::ResetLocked(const mjModel *model){}
 
 // / draw task-related geometry in the scene
 void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,

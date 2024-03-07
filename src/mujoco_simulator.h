@@ -50,6 +50,7 @@ public:
   void save_logger(const std::string &fileName);
   void print_planner_timings();
   void update_ref_curve(std::vector<double> points);
+  void reset_task(std::vector<double> q);
   ObserverData getObervation();
 
 private:
