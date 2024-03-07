@@ -394,6 +394,8 @@ void MujocoSimulator::step(std::vector<double> actions) {
 
     // Update filtered for observations.
     observer.update_filter(model, data);
+    observer.update_collision_status(col.getCollisionStatus());
+    // TODO: move collision inside Observer.
 
     if (RENDERING_ && (data->time - simstart > 1.0 / 60.0) ) {
       update_viewer();

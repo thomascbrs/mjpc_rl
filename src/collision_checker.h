@@ -15,10 +15,12 @@
 class CollisionChecker {
  public:
   // Constructor
-  CollisionChecker() {createCollisionObjects();}
+  CollisionChecker():is_colliding(false) {createCollisionObjects();}
 
   // Destructor
   ~CollisionChecker() {}
+
+  bool getCollisionStatus(){return is_colliding;}
 
   void createCollisionObjects() {
     // TODO: scrapping from .xml
@@ -70,6 +72,7 @@ class CollisionChecker {
                            request_distance_, res_distance_);
         if (res_distance_.min_distance <= 0) {
           std::cout << "Found collision with : " << elem.first.c_str() << std::endl;
+          is_colliding = true;
         }
       } else {
         throw std::runtime_error(
@@ -90,6 +93,8 @@ class CollisionChecker {
   hpp::fcl::DistanceResult res_distance_;
 
   hpp::fcl::Transform3f tf1_, tf2_;
+
+  bool is_colliding;
 };
 
 #endif  // COLLISION_CHECKER_HPP

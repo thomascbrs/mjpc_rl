@@ -25,6 +25,9 @@ struct ObserverData {
   std::unordered_map<std::string, std::array<double, 3>> feet_vel;
   std::unordered_map<std::string, std::array<double, 3>> lfeet_pos;
   std::unordered_map<std::string, std::array<double, 3>> lfeet_vel;
+
+  // Collision status
+  bool collision_status = false;
 };
 
 class Observer {
@@ -64,6 +67,7 @@ class Observer {
   void update_final_pose(const mjModel *model, const mjData *data);
   void update_filter(const mjModel *model, const mjData *data);
   double get_yaw_filtered(){return odata_.filtered_pose[5];};
+  void update_collision_status(bool& status){odata_.collision_status = status};
 
 };
 
