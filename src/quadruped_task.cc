@@ -164,13 +164,16 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
   // ---------- Residual (2) ----------
   // system's linear velocity
-  Eigen::Vector3d vel_ref = pcVel_(data->time);
+  Eigen::Vector3d vel_ref = pcVel_(data->time); // Defined in Local frame.
+  ParameterIndexes(indexes, model, "residual_yaw_local");
+  Matrix3d R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., parameters_[indexes[0]]);
+  Eigen::Vector3d vel_ref_world = R_tmp * vel_ref;
+  vel_ref_world(2) = vel_ref(2); // Only x,y axis.
   // Eigen::Vector3d vel_ref = Eigen::Vector3d::Zero(3);
   double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
-  const double *v_ref = vel_ref.data();
+  const double *v_ref = vel_ref_world.data();
   mju_sub3(residual + res_index, vel_trunk, v_ref);
   res_index += 3;
-
 
   // ---------- Residual (3) ----------
   // system's orientation

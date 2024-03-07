@@ -63,6 +63,7 @@ class Observer {
   void reset();
   void update_final_pose(const mjModel *model, const mjData *data);
   void update_filter(const mjModel *model, const mjData *data);
+  double get_yaw_filtered(){return odata_.filtered_pose[5];};
 
 };
 

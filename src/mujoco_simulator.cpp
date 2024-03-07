@@ -145,7 +145,8 @@ void MujocoSimulator::reset(std::vector<double> q) {
     update_viewer();
   }
 
-  put_robot_on_floor(200,q0_.tail(12));
+  // Fix time 198. 200 not working, do a round approx.
+  put_robot_on_floor(198,q0_.tail(12));
   observer.reset();
   observer.update_final_pose(model, data);
   observer.update_filter(model, data);
@@ -346,6 +347,12 @@ void MujocoSimulator::step(std::vector<double> actions) {
       // Update time0.
       ParameterIndexes(indexes, model, prefix + "time0");
       task_->parameters[indexes[0]] = data->time;
+
+      // Get yaw orientation to define local frame for Vref_x and Vref_y
+      // Use filtered yaw from observer.
+      double yaw = observer.get_yaw_filtered();
+      ParameterIndexes(indexes, model, "residual_yaw_local");
+      task_->parameters[indexes[0]] = yaw;
 
       // Update task
       task_->UpdateResidual();

@@ -19,6 +19,7 @@
     <numeric name="residual_nn_updated" size="1" data="-1." />
     <numeric name="residual_nn" size="6" data="0.5 0. 0. 0. 0. 0.33333" />
     <numeric name="residual_nn_reset" size="3" data="0. 0. 0." />
+    <numeric name="residual_yaw_local" size="1" data="0." />
     <numeric name="residual_Height" data="0.25" />
     <numeric name="residual_air_time_limit" size="1" data="0.4" />
     <numeric name="residual_air_time_time0" size="1" data="0." />
