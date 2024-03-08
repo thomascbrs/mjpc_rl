@@ -90,7 +90,6 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
 
   if (RENDERING_) {
     infos_models(model); // Print infos in terminal.
-    initialize_viewer();
   }
   if (LOGGING_){
     logger_.Initialize(foot_names_, settings.timestep_planner, settings.n_steps, settings.k_mpc, settings.timestep);
@@ -215,6 +214,10 @@ void MujocoSimulator::initialize_viewer() {
 }
 
 void MujocoSimulator::update_viewer() {
+  if (!is_viewer_init) {
+    initialize_viewer();
+    is_viewer_init = true;
+  }
   // Get trunk posiiton and update the camera position.
   int trunkBodyId = mj_name2id(model, mjOBJ_BODY, "trunk");
   // Adjust the camera position based on the trunk body position
