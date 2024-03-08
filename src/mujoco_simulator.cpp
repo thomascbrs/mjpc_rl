@@ -102,7 +102,8 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, co
   // Initialisation
   planner.UpdateNumTrajectoriesFromGUI();
   put_robot_on_floor(200, q0_.tail(12));
-  observer.reset();
+  std::vector<double> q(6, 0.0);
+  observer.reset(q);
   observer.update_final_pose(model, data);
   observer.update_filter(model, data);
   col.collision(model, data);
@@ -146,7 +147,7 @@ void MujocoSimulator::reset(std::vector<double> q) {
 
   // Fix time 198. 200 not working, do a round approx.
   put_robot_on_floor(198,q0_.tail(12));
-  observer.reset();
+  observer.reset(q);
   observer.update_final_pose(model, data);
   observer.update_filter(model, data);
 
@@ -295,6 +296,9 @@ void MujocoSimulator::update_ref_curve(std::vector<double> points){
   // Reset boolean to not update curve on next Update().
   ParameterIndexes(indexes, model, "residual_nn_updated");
   task_->parameters[indexes[0]] = -1.;
+
+  // Update observer references curves.
+  observer.update_ref_curve(points);
 }
 
 void MujocoSimulator::reset_task(std::vector<double> q){

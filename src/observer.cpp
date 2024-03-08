@@ -24,7 +24,7 @@ void Observer::update_filter(const mjModel *model, const mjData *data){
   std::copy(vfiltered_tmp.begin(), vfiltered_tmp.end(), odata_.filtered_vel.begin());
 }
 
-void Observer::reset(){
+void Observer::reset(const std::vector<double>& q){
   odata_.end_pose = {0.0};
   odata_.end_vel = {0.0};
   odata_.end_acc = {0.0};
@@ -36,6 +36,7 @@ void Observer::reset(){
   }
   filter_pos_.reset();
   filter_vel_.reset();
+  reset_curves(q);
 }
 
 void Observer::update_final_pose(const mjModel *model, const mjData *data) {
@@ -107,10 +108,68 @@ void Observer::update_final_pose(const mjModel *model, const mjData *data) {
     odata_.lfeet_vel[name][1] = res[1];
     odata_.lfeet_vel[name][2] = res[2];
   }
+
+  // Update final reference velocity and angular position
+  Vector3d vref = pcVel_(pcVel_.max());
+  Vector3d angRef = pcRot_(pcRot_.max());
+  for (int i=0; i < 3;i++){
+    odata_.lvref[i] = vref(i);
+    odata_.orientation_ref[i] = angRef(i);
+  }
 }
 
 void Observer::update_contact_status(const ContactData &contactData) {
   for (auto &elem : contactData.contact_status) {
     odata_.contact_status[elem.first] = elem.second;
   }
+}
+
+void Observer::update_ref_curve(const std::vector<double>& actions){
+  if (actions.size() != 6){
+    throw std::runtime_error("Actions should be size 6.");
+  }
+  double T = 0.;
+  double T2 = 0.4;
+  Eigen::MatrixXd coeffs(3,3);
+
+  coeffs.row(0) = pcVel_(pcVel_.max());
+  coeffs.row(1) = pcVel_.derivate(pcVel_.max(),1);
+  coeffs.row(2) << actions.at(0), actions.at(1), actions.at(2);
+  coeffs.row(2) -= coeffs.row(1);
+  coeffs.row(2) *= 0.5/(T2 - T);
+
+  Polynomial curve_tmp;
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  pcVel_.add_curve(curve_tmp);
+
+  // 1st degree in rotation angle.
+  Eigen::MatrixXd coeffs_rot(2,3);
+  coeffs_rot.row(0) = pcRot_(pcRot_.max());
+  Eigen::MatrixXd b(2, 3);
+  Eigen::MatrixXd minv(2, 2);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
+  b.row(0) = pcRot_(pcRot_.max());
+  b.row(1) << actions.at(3), actions.at(4), actions.at(5);
+  coeffs = minv * b;
+
+  Polynomial curveRot_tmp;
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  pcRot_.add_curve(curveRot_tmp);
+}
+
+void Observer::reset_curves(const std::vector<double>& q) {
+  if (q.size() != 6) {
+    throw std::runtime_error("q0 should be size 6, [x,y,z,r,p,y]");
+  }
+
+  Matrix3d coeffs = Matrix3d::Zero();
+  Matrix3d coeffs_rot = Matrix3d::Zero();
+  coeffs_rot.row(0) << q.at(3),q.at(4),q.at(5); // First coefficients --> constant.
+
+  Polynomial lin_velocity_ = Polynomial(coeffs.transpose(),0.,0.4);
+  Polynomial ang_rotation_ = Polynomial(coeffs_rot.transpose(),0.,0.4);
+  pcRot_ = PieceWise();
+  pcVel_ = PieceWise();
+  pcRot_.add_curve(ang_rotation_);
+  pcVel_.add_curve(lin_velocity_);
 }

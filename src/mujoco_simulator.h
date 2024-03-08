@@ -80,11 +80,13 @@ private:
 
   bool RENDERING_;
   bool LOGGING_;
+  bool is_viewer_init = false;
 
   // Simulation parameters.
   double simstart;
   mjpc::ThreadPool plan_pool;
   int n_iteration = 0;
+  int k_mpc_ = 0;
 
   std::vector<std::string> foot_names_;
   ContactData mcontactData;
