@@ -9,6 +9,7 @@
 #include "filter.h"
 #include "types.h"
 #include "utils.h"
+#include "contact_data.h"
 
 // Define ObserverData outside the Observer class
 // This class will be shared between c++ <--> python.
@@ -28,6 +29,7 @@ struct ObserverData {
 
   // Collision status
   bool collision_status = false;
+  std::unordered_map<std::string, int> contact_status;
 };
 
 class Observer {
@@ -58,6 +60,7 @@ class Observer {
       odata_.foot_names.push_back(name);
       odata_.feet_vel[name] = {0., 0., 0.};
       odata_.feet_pos[name] = {0., 0., 0.};
+      odata_.contact_status[name] = 1; // Initialisation in contact.
     }
   }
 
@@ -67,7 +70,8 @@ class Observer {
   void update_final_pose(const mjModel *model, const mjData *data);
   void update_filter(const mjModel *model, const mjData *data);
   double get_yaw_filtered(){return odata_.filtered_pose[5];};
-  void update_collision_status(bool& status){odata_.collision_status = status};
+  void update_collision_status(const bool& status){odata_.collision_status = status;};
+  void update_contact_status(const ContactData &contactData);
 
 };
 

@@ -332,7 +332,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
   int k_mpc = 0;
   for (int k_wbc = 0; k_wbc < 202; k_wbc++) {
     // Reset the contact status to 0.
-    // mcontactData.update(model, data);
+    mcontactData.update(model, data);
     if (LOGGING_){
       logger_.log(model, data, &mcontactData);
     }
@@ -395,7 +395,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     // Update filtered for observations.
     observer.update_filter(model, data);
     observer.update_collision_status(col.getCollisionStatus());
-    // TODO: move collision inside Observer.
+    // TODO: move collision and contact data inside Observer.
 
     if (RENDERING_ && (data->time - simstart > 1.0 / 60.0) ) {
       update_viewer();
@@ -403,6 +403,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     }
   }
 
+  observer.update_contact_status(mcontactData);
   observer.update_final_pose(model, data);
   n_iteration++;
   return;

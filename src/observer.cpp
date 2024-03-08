@@ -108,3 +108,9 @@ void Observer::update_final_pose(const mjModel *model, const mjData *data) {
     odata_.lfeet_vel[name][2] = res[2];
   }
 }
+
+void Observer::update_contact_status(const ContactData &contactData) {
+  for (auto &elem : contactData.contact_status) {
+    odata_.contact_status[elem.first] = elem.second;
+  }
+}

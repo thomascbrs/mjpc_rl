@@ -54,7 +54,9 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def_readwrite("feet_pos", &ObserverData::feet_pos)
       .def_readwrite("feet_vel", &ObserverData::feet_vel)
       .def_readwrite("lfeet_pos", &ObserverData::lfeet_pos)
-      .def_readwrite("lfeet_pos", &ObserverData::lfeet_pos);
+      .def_readwrite("lfeet_vel", &ObserverData::lfeet_pos)
+      .def_readwrite("collision_status", &ObserverData::collision_status)
+      .def_readwrite("contact_status", &ObserverData::contact_status);
 
   m.def("loadData", &loadDataWithoutInstance,
         "Load data from file and return as Data struct");
