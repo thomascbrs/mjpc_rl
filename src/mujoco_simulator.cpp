@@ -204,6 +204,7 @@ void MujocoSimulator::initialize_viewer() {
   mjr_defaultContext(&con);
 
   // create scene and context
+  mjv_defaultScene(&scn);
   mjv_makeScene(model, &scn, 1000);
   mjr_makeContext(model, &con, mjFONTSCALE_100);
 
