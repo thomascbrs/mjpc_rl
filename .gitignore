@@ -1,3 +1,7 @@
+# Logs
+log/*
+logs/*
+
 # Mujoco stuff
 MUJOCO_LOG.TXT
 
