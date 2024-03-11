@@ -25,6 +25,8 @@ int main() {
   // mjsimulator.runSimulation(3000);
   // Add a 2-second sleep
   // std::this_thread::sleep_for(std::chrono::seconds(2));
+  std::vector<double> q0 = {0.,0.,0.3,0.,0.,1.5};
+  mjsimulator.reset(q0);
 
   std::vector<std::vector<double>> list_points;
   std::vector<double> point;

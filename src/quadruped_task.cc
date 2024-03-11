@@ -163,7 +163,6 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   res_index += 12;
 
   double data_time = std::roundf(data->time * 1000) / 1000;
-  std::cout << "time : " << data_time << std::endl;
 
   // ---------- Residual (2) ----------
   // system's linear velocity
@@ -271,7 +270,7 @@ void QuadrupedTask::ResidualFn::Update() {
   // parameters_[0] --> residual_nn_updated
   if (parameters_[0] == 1.){
     // Update the reference curve.
-    std::cout << "Update Reference curve." << std::endl;
+    // std::cout << "Update Reference curve." << std::endl;
 
     // Does not work : Update does not take model.
     // int indexes[2];
@@ -289,7 +288,7 @@ void QuadrupedTask::ResidualFn::Update() {
 }
 
 void QuadrupedTask::ResidualFn::reset_curves(const std::vector<double>::iterator start){
-  std::cout << "Reset function in task" << std::endl;
+  // std::cout << "Reset function in task" << std::endl;
   // std::cout << "params : [" << *start << "," << *(start+1) << "," << *(start +2) << "]" << std::endl;
   // Update the container of points.
   cp_rot.clear();

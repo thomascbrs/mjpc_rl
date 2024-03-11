@@ -329,7 +329,6 @@ void MujocoSimulator::step(std::vector<double> actions) {
   if (actions.size() != 6) {
     throw std::runtime_error("Action size should be 6.");
   }
-  std::cout << "n_step : " << n_iteration << std::endl;
   update_ref_curve(actions); // Extend reference curve with point.
 
   if (n_iteration == 0) {
