@@ -19,8 +19,8 @@ class BaseEnv(gym.Env):
     lb_vel = np.array([-1., -1., -1.])
     ub_vel = np.array([1., 1., 1.])
 
-    lb_ang = np.array([-1., -1.])
-    ub_ang = np.array([1., 1.])
+    lb_ang = np.array([-1., -1., -1.])
+    ub_ang = np.array([1., 1., 1.])
 
     self._lb = np.concatenate([lb_vel, lb_ang])
     self._ub = np.concatenate([ub_vel, ub_ang])
@@ -46,21 +46,22 @@ class BaseEnv(gym.Env):
 
     # Informations for tensoarboard callbacks.
     self.general_infos = dict({
-        "v_dgoal": 0.,
-        "r_termination": 0.
+        "dgoal": 0.,
+        "r_dgoal": 0.,
+        "r_bias": 0.,
+        "vel_toward_goal": 0.,
+        "r_termination": 0.,
+        "timestep":0
     })
 
     self.infos = dict({
         "t":0.,
-        "robot_pose_previous":np.zeros(6),
-        "robot_pose":np.zeros(6),
-        "robot_velocity":np.zeros(6),
-        "goal":np.zeros(6),
-        "dgoal":0.,
-        "goal_reached":False,
+        "lgoal":np.zeros(3),
+        "robot_pose":np.zeros(3),
+        "goal":np.zeros(3),
         "velxy":np.zeros(2),
-        "vref":np.zeros(6),
-        "lgoal":np.zeros(6)
+        "collision_status":0,
+        "goal_reached":False
     })
 
     self.shoulder = {
@@ -72,10 +73,13 @@ class BaseEnv(gym.Env):
 
     self.feet_names = ["FL", "FR", "HL", "HR"] # Order matter in observation.
 
-
     filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml"
     self.RENDERING = (render_mode == "human" )
     self.simulator = MujocoSimulator(1, self.RENDERING, False, filename)
+
+    self.bias = True
+
+    self.reset()
 
   def _get_info(self):
     return self.general_infos
@@ -94,8 +98,6 @@ class BaseEnv(gym.Env):
     # Goal position in local frame. Using filtered end poisiton.
     R = pinocchio.rpy.rpyToMatrix(obs.filtered_pose[3], obs.filtered_pose[4], obs.filtered_pose[5])
     T = np.array(obs.end_pose)[:3]
-    lgoal = R.T @ (self.infos["goal"][:3] - T)
-    lgoal = np.clip(lgoal, -3.5, 3.5, dtype=np.float32)[:2].tolist()
 
     # Velocity in local frame. Using filtered end velocity.
     wvel = np.array(obs.filtered_vel[:])
@@ -108,10 +110,12 @@ class BaseEnv(gym.Env):
     # heightmap =  np.clip(self.environment.get_observation(),0.,1.,dtype=np.float32) # no need to clip.
     contact_state = [status for status in obs.contact_status.values()]
     contact_state = np.clip(contact_state, 0.,1.).tolist()
-    collision_status = np.clip(obs.collision_status, 0.,1.)
+    collision_status = np.clip(self.infos["collision_status"], 0.,1.)
 
     lvref = np.clip(obs.lvref, -3., 3., dtype=np.float32).tolist()
     ori_ref = np.clip(obs.orientation_ref, -3.14, 3.14, dtype=np.float32).tolist()
+
+    lgoal = np.clip(self.infos["lgoal"], -3.5, 3.5, dtype=np.float32)[:2].tolist()
 
     observations = {
         "lgoal": np.array(lgoal,dtype=np.float32) ,
@@ -131,13 +135,61 @@ class BaseEnv(gym.Env):
 
     return observations
 
-  def step(self):
+  def _update_infos(self):
+
+    self.infos["t"] += 0.24
+    self.general_infos["timestep"] += 1
+
+    obs = self.simulator.getObervation()
+
+    # Goal position in local frame. Using filtered end poisiton.
+    R = pinocchio.rpy.rpyToMatrix(obs.filtered_pose[3], obs.filtered_pose[4], obs.filtered_pose[5])
+    T = np.array(obs.end_pose)[:3]
+    self.infos["lgoal"] = R.T @ (self.infos["goal"][:3] - T)
+
+    self.infos["velxy"] = np.array(obs.filtered_vel[:2])
+
+    self.infos["dgoal"] = np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2])
+    self.general_infos["dgoal"] = self.infos["dgoal"]
+
+    self.infos["goal_reached"] = self.infos["dgoal"] < 0.15
+
+    # Update general info to terminate episode if necessary
+    if obs.collision_status > 0.:
+      self.infos["collision_status"] = 1
+
+  def step(self, actions):
+
+    self.simulator.step(actions)
+
+    # Update new infos based on the internal observer.
+    self._update_infos()
 
     observation = self._get_obs()
     info = self._get_info()
     reward = 0.
+    if self.bias:
+      reward += self._reward_bias(2.5)
+      reward += self._reward01(0.6)
+
+    reward += self._reward_stall()
+
+    # Early termination
     terminated = False
+    if self.infos["collision_status"] > 0:
+      terminated = True
+      # Negative penalty when colliding with the ground.
+      reward -= 5. * ( (5. - self.infos["t"]) / 5.)
+      self.general_infos["r_termination"] = - 5. * ( (5. - self.infos["t"]) / 5.)
+
     truncated = False
+    if self.infos["t"] > 5.:
+      truncated = True
+
+    if self.infos["goal_reached"]:
+      terminated = True
+      reward += 4.
+      self.general_infos["r_termination"] = 4.
 
     return observation, reward, terminated, truncated, info
 
@@ -148,10 +200,14 @@ class BaseEnv(gym.Env):
     # We need the following line to seed self.np_random
     super().reset(seed=seed)
 
+    self.infos["t"] = 0.
+    self.general_infos["timestep"] = 0
+
     # Reset environment around origin.
     q = [0.]*6
     q[2] = 0.3
     # q[5] = 1.9
+    self.infos["robot_pose"] = np.zeros(3)
     self.simulator.reset(q)
 
     # Reset goal position.
@@ -159,6 +215,12 @@ class BaseEnv(gym.Env):
     self.infos["goal"][0] = 1.5 + (2. - 1.5) * self.np_random.random()
     self.infos["goal"][1] = 0.
     self.infos["goal"][2] = 0.248
+    self.infos["collision_status"] = 0
+    self.infos["goal_reached"] = False
+
+    # Reset general infos
+    self.general_infos["r_termination"] = 0
+    self.general_infos["dgoal"] = np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2])
 
     observation = self._get_obs()
     info = self._get_info()
@@ -167,3 +229,81 @@ class BaseEnv(gym.Env):
       self._render_frame()
 
     return observation, info
+
+  def _render_frame(self):
+    pass
+
+  def _reward_bias(self, alpha=1.):
+    """ Reward term encouraging exploration at the beginning of training as decribed in
+    https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
+    """
+    reward = 0
+    # Approximate velocity on x,y.
+    d_goal = self.infos["goal"][:2] - self.infos["robot_pose"][:2]
+    vel_b = self.infos["velxy"]
+    # TODO : Which velocity to use ?
+
+    # From ETH paper.
+    # norm_velb = np.linalg.norm(vel_b)
+    # norm = norm_velb * np.linalg.norm(d_goal)
+    # reward = 0.
+    # if norm_velb > 0.1:
+    #     reward = np.clip(alpha * (vel_b.T @ d_goal) / norm, -1.,1.)
+
+    # From Extreme parkour paper.
+    # vref = 0.25
+    # direction_vec = d_goal / np.linalg.norm(d_goal)
+    # vell_diff = vref - vel_b.T @ direction_vec
+    # # if np.linalg.norm(vel_b) > 0.05:
+    # reward += min(vel_b.T @ direction_vec, vref)
+    vref = 0.6
+    direction_vec = d_goal / np.linalg.norm(d_goal)
+    vell_diff = vref - vel_b.T @ direction_vec
+    if np.linalg.norm(vel_b) > 0.05:
+        reward += min(vel_b.T @ direction_vec, vref) / vref
+
+    self.general_infos["r_bias"] = reward
+    self.general_infos["vel_toward_goal"] = vel_b.T @ d_goal # Along the goal direction.
+    return reward
+
+  def _reward01(self, alpha=1.):
+    """ Positive reward for tracking a reference velocity.
+    """
+    reward = 0
+    # TODO : Avoid using getObservation, make common interface instead
+    l_goal = self.infos["lgoal"]
+    yaw_diff = np.arctan2(l_goal[1], l_goal[0])
+    r =  - (alpha)  * (1 - np.exp(- 5 * yaw_diff**2))
+    # r =  alpha * np.exp(- 5 * yaw_diff**2)
+    self.general_infos["r_yaw_track"] = r
+    reward += r
+
+    return reward
+
+  def _reward_stall(self):
+    """ Penalty waiting while being far away from the target as described in
+    https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
+    """
+    reward = 0.
+    # Approximate velocity on x,y.
+    if np.linalg.norm(self.infos["velxy"]) <= 0.1 and self.infos["dgoal"] > 0.5:
+        reward = -1.
+    self.general_infos["r_stall"] = reward
+    return reward
+
+  # def _reward_task(self, Tr=4., T=2.4, alpha=1.):
+  #   """ Task reward to reach the desired location as described in
+  #   https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
+  #   """
+  #   # Reward on x,y axis.
+  #   if self.infos["t"] > T:
+  #       # Adding orientation
+
+  #       # reward = (1 / (Tr*self._T_nodes)) / (1 + np.linalg.norm(self._goal[:2] - self._robot_pose[:2], 2))
+  #       reward = alpha / (1 + np.linalg.norm(2 * (self.infos["lgoal"]), 2))
+  #       # reward = (1 / (Tr*self._T_nodes)) * self.function_n(np.linalg.norm(self._goal[:2] - self._robot_pose[:2])  )
+  #       self.general_infos["r_task"] = reward
+  #       return reward
+  #   else:
+  #       self.general_infos["r_task"] = 0.
+  #       return 0.
