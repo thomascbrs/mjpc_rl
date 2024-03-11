@@ -140,13 +140,14 @@ void MujocoSimulator::reset(std::vector<double> q) {
   planner.Reset(settings.n_steps);
   task_->UpdateResidual();
 
-  mj_step(model, data);
+  // mj_step(model, data); // Increment data->time.
+  mj_forward(model, data);
   if (RENDERING_) {
     update_viewer();
   }
 
   // Fix time 198. 200 not working, do a round approx.
-  put_robot_on_floor(198,q0_.tail(12));
+  put_robot_on_floor(200,q0_.tail(12));
   observer.reset(q);
   observer.update_final_pose(model, data);
   observer.update_filter(model, data);
