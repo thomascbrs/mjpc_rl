@@ -129,7 +129,7 @@ void Observer::update_ref_curve(const std::vector<double>& actions){
     throw std::runtime_error("Actions should be size 6.");
   }
   double T = 0.;
-  double T2 = 0.4;
+  double T2 = horizon_nn_;
   Eigen::MatrixXd coeffs(3,3);
 
   coeffs.row(0) = pcVel_(pcVel_.max());
@@ -139,7 +139,7 @@ void Observer::update_ref_curve(const std::vector<double>& actions){
   coeffs.row(2) *= 0.5/(T2 - T);
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // 1st degree in rotation angle.
@@ -153,7 +153,7 @@ void Observer::update_ref_curve(const std::vector<double>& actions){
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 }
 
@@ -166,8 +166,8 @@ void Observer::reset_curves(const std::vector<double>& q) {
   Matrix3d coeffs_rot = Matrix3d::Zero();
   coeffs_rot.row(0) << q.at(3),q.at(4),q.at(5); // First coefficients --> constant.
 
-  Polynomial lin_velocity_ = Polynomial(coeffs.transpose(),0.,0.4);
-  Polynomial ang_rotation_ = Polynomial(coeffs_rot.transpose(),0.,0.4);
+  Polynomial lin_velocity_ = Polynomial(coeffs.transpose(),0.,horizon_reset_);
+  Polynomial ang_rotation_ = Polynomial(coeffs_rot.transpose(),0.,horizon_reset_);
   pcRot_ = PieceWise();
   pcVel_ = PieceWise();
   pcRot_.add_curve(ang_rotation_);

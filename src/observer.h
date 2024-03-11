@@ -52,6 +52,9 @@ class Observer {
   Filter filter_pos_;
   Filter filter_vel_;
 
+  double horizon_nn_ = 0.24;
+  double horizon_reset_ = 0.4;
+
   // Reference trajectories, copies from Quadruped_Task
   // Cannot access due to the trhead system. Need to modify ResidualFn otherwise.
   PieceWise pcVel_;
@@ -76,8 +79,8 @@ class Observer {
     Matrix3d coeffs = Matrix3d::Zero();
     // coeffs.row(0) << 0.5,0.7,0.8; // First coefficients --> constant.
 
-    Polynomial lin_velocity_ = Polynomial(coeffs.transpose(),0.,0.4);
-    Polynomial ang_rotation_ = Polynomial(coeffs.transpose(),0.,0.4);
+    Polynomial lin_velocity_ = Polynomial(coeffs.transpose(),0.,horizon_reset_);
+    Polynomial ang_rotation_ = Polynomial(coeffs.transpose(),0.,horizon_reset_);
     pcVel_.add_curve(lin_velocity_);
     pcRot_.add_curve(ang_rotation_);
   }

@@ -338,8 +338,8 @@ void MujocoSimulator::step(std::vector<double> actions) {
     n_iteration++;
     return;
   }
-  int k_mpc = 0;
-  for (int k_wbc = 0; k_wbc < 202; k_wbc++) {
+
+  for (int k_wbc = 0; k_wbc < settings.horizon_planner / settings.timestep; k_wbc++) {
     // Reset the contact status to 0.
     mcontactData.update(model, data);
     if (LOGGING_){
@@ -372,14 +372,14 @@ void MujocoSimulator::step(std::vector<double> actions) {
 
       // planner policy
       int n_max = 1;
-      if (k_mpc % 5 == 0){
+      if (k_mpc_ % 5 == 0){
         n_max = 2;
       }
       for (int i = 0; i < n_max; i++) {
         // Setup model timestep.
         model->opt.timestep = settings.timestep_planner;
         planner.OptimizePolicyCustom(settings.n_steps,plan_pool);
-        k_mpc ++;
+        k_mpc_ ++;
 
       }
       // print_planner_timings();

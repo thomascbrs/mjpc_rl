@@ -9,7 +9,7 @@ struct Settings {
   double kd = 0.2;
   double timestep = 0.002;
   double timestep_planner = 1.0e-2;
-  double horizon_planner = 0.25;
+  double horizon_planner = 0.24;
   double n_steps = horizon_planner / timestep_planner + 1 ;
   int k_mpc = 10; // Not used for now.
 

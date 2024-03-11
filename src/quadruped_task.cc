@@ -162,9 +162,12 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   mju_copy(residual + res_index, ctrl, model->nu);
   res_index += 12;
 
+  double data_time = std::roundf(data->time * 1000) / 1000;
+  std::cout << "time : " << data_time << std::endl;
+
   // ---------- Residual (2) ----------
   // system's linear velocity
-  Eigen::Vector3d vel_ref = pcVel_(data->time); // Defined in Local frame.
+  Eigen::Vector3d vel_ref = pcVel_(data_time); // Defined in Local frame.
   ParameterIndexes(indexes, model, "residual_yaw_local");
   Matrix3d R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., parameters_[indexes[0]]);
   Eigen::Vector3d vel_ref_world = R_tmp * vel_ref;
@@ -178,7 +181,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   // ---------- Residual (3) ----------
   // system's orientation
   // Eigen::Vector3d rot_ref = Eigen::Vector3d::Zero(3);
-  Eigen::Vector3d rot_ref = pcRot_(data->time);
+  Eigen::Vector3d rot_ref = pcRot_(data_time);
 
   // Compute derivative of the curve wrt to x to retrieve pitch angle.
   Matrix3d R = pinocchio::rpy::rpyToMatrix(rot_ref(0), rot_ref(1), rot_ref(2));
@@ -300,9 +303,9 @@ void QuadrupedTask::ResidualFn::reset_curves(const std::vector<double>::iterator
     cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
   }
   lin_velocity_ = Polynomial(
-      cp_lin.begin(), cp_lin.end(),0.,0.4);
+      cp_lin.begin(), cp_lin.end(),0.,horizon_reset_);
   ang_rotation_ = Polynomial(
-      cp_rot.begin(), cp_rot.end(),0.,0.4);
+      cp_rot.begin(), cp_rot.end(),0.,horizon_reset_);
 
   pcRot_ = PieceWise();
   pcVel_ = PieceWise();
@@ -313,7 +316,7 @@ void QuadrupedTask::ResidualFn::reset_curves(const std::vector<double>::iterator
 
 void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
   double T = lin_velocity_.max();
-  double T2 = lin_velocity_.max() + 0.4;
+  double T2 = lin_velocity_.max() + horizon_nn_;
   Eigen::MatrixXd minv(3, 3);
   Eigen::MatrixXd coeffs(3,3);
   Eigen::MatrixXd b(3, 3);
@@ -328,7 +331,7 @@ void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::itera
   coeffs = minv * b;
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
@@ -338,14 +341,14 @@ void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::itera
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 }
 
 
 void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
-  double T = lin_velocity_.max();
-  double T2 = lin_velocity_.max() + 0.4;
+  double T = 0.;
+  double T2 = horizon_nn_;
   Eigen::MatrixXd coeffs(3,3);
 
   coeffs.row(0) = pcVel_(pcVel_.max());
@@ -355,7 +358,7 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   coeffs.row(2) *= 0.5/(T2 - T);
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
@@ -388,7 +391,7 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 
   // Visualisation.
