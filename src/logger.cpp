@@ -1,11 +1,21 @@
 #include "logger.h"
 
-Logger::Logger() {
+
+#include "pinocchio/math/rpy.hpp"
+#include "pinocchio/spatial/se3.hpp"
+#include <pinocchio/math/quaternion.hpp>
+#include <Eigen/Geometry>
+
+Logger::Logger()
+    : filter_pos_(cutoff_vel, fs_vel, order_vel),
+      filter_vel_(cutoff_vel, fs_vel, order_vel) {
   int max_size = 5000;
   data_.size = 0;
   data_.mpc_iteration = 0;
   data_.qpos.reserve(5000);
+  data_.qpos_fil.reserve(5000);
   data_.qvel.reserve(5000);
+  data_.qvel_fil.reserve(5000);
 }
 
 Logger::~Logger() {}
@@ -101,7 +111,10 @@ void Logger::logFeetVelocity(const mjModel *model, mjData *data) {
 
 void Logger::logFeetTouch(const mjModel *model, mjData *data) {
   for (const auto &name : foot_names_) {
-    const double *touch = mjpc::SensorByName(model, data, name + "_touch");
+    // Disabled to reduce computing time. Each derivative wrt sensor is computed.
+    // const double *touch = mjpc::SensorByName(model, data, name + "_touch");
+    double touch[1];
+    touch[0] = 0.;
     if (touch[0] < 0.01) {
       data_.foot_status_touch[name].push_back(1);
     } else {
@@ -127,9 +140,30 @@ void Logger::logState(const mjModel *model, mjData *data) {
   std::copy(data->qpos, data->qpos + 19, qpos.begin());
   data_.qpos.emplace_back(qpos);
 
+  // Need to compute RPY.
+  mjtNum R_data[9];
+  mjtNum quat_tmp[4];
+  Matrix3d R_tmp;
+  mju_quat2Mat(R_data,&data->qpos[3]);  // Convert quaternion to rotation matrix
+  updateMatrix(R_tmp, R_data);
+  Vector3d rpy;
+  rpy = pinocchio::rpy::matrixToRpy(Eigen::Quaterniond(data->qpos[3], data->qpos[4], data->qpos[5], data->qpos[6]).toRotationMatrix());
+
+  std::array<double, 18> qpos_tmp;
+  // Reconstruct qpos array with RPY.
+  std::copy(data->qpos, data->qpos + 3, qpos_tmp.begin()); // Copy the first 3 elements from data->qpos
+  std::copy(rpy.data(), rpy.data() + 3, qpos_tmp.begin() + 3); // Copy RPY angles
+  std::copy(data->qpos + 6, data->qpos + 19, qpos_tmp.begin() + 6); // Copy the remaining elements from data->qpos
+  std::array<double,6> tmp_pos = filter_pos_.filter(qpos_tmp);
+  data_.qpos_fil.emplace_back(tmp_pos);
+
   std::array<double, 18> qvel;
   std::copy(data->qvel, data->qvel + 18, qvel.begin());
   data_.qvel.emplace_back(qvel);
+
+  // Log qvel filtered
+  std::array<double,6> tmp_test = filter_vel_.filter(qvel);
+  data_.qvel_fil.emplace_back(tmp_test);
 }
 
 void Logger::saveData(const std::string &fileName) {
@@ -202,8 +236,12 @@ void Logger::saveData(const std::string &fileName) {
     // Load qpos and qvel
     file.write(reinterpret_cast<const char *>(data_.qpos.data()),
                data_.qpos.size() * sizeof(std::array<double, 19>));
+    file.write(reinterpret_cast<const char *>(data_.qpos_fil.data()),
+               data_.qpos_fil.size() * sizeof(std::array<double, 6>));
     file.write(reinterpret_cast<const char *>(data_.qvel.data()),
                data_.qvel.size() * sizeof(std::array<double, 18>));
+    file.write(reinterpret_cast<const char *>(data_.qvel_fil.data()),
+               data_.qvel_fil.size() * sizeof(std::array<double, 6>));
 
     // Save mpc trajectories
     for (size_t i = 0; i < data_.mpc_traj.size(); i++) {
@@ -300,11 +338,17 @@ Data Logger::loadData(const std::string &fileName) {
     }
 
     data.qpos.resize(data.size);
+    data.qpos_fil.resize(data.size);
     data.qvel.resize(data.size);
+    data.qvel_fil.resize(data.size);
     file.read(reinterpret_cast<char *>(data.qpos.data()),
               data.qpos.size() * sizeof(std::array<double, 19>));
+    file.read(reinterpret_cast<char *>(data.qpos_fil.data()),
+              data.qpos_fil.size() * sizeof(std::array<double, 6>));
     file.read(reinterpret_cast<char *>(data.qvel.data()),
               data.qvel.size() * sizeof(std::array<double, 18>));
+    file.read(reinterpret_cast<char *>(data.qvel_fil.data()),
+              data.qvel_fil.size() * sizeof(std::array<double, 6>));
 
     // Read MPC trajectories.
     for (size_t i = 0; i < data.mpc_iteration; i++) {

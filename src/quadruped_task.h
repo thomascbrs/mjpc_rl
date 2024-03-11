@@ -20,11 +20,7 @@
 #include <mujoco/mujoco.h>
 #include <string>
 
-typedef Eigen::Vector3d point3;
-typedef std::vector<point3, Eigen::aligned_allocator<point3> > t_point3;
-
-typedef ndcurves::polynomial<double, double, true, point3> Polynomial;
-typedef ndcurves::piecewise_curve<double, double, true,point3 ,point3, Polynomial> PieceWise;
+#include "types.h"
 
 class QuadrupedTask : public mjpc::Task {
 public:
@@ -43,26 +39,31 @@ public:
       }
 
       // Create the polynomial curve, constraining the velocity.
+      // This trajectory is used only during the put_on_the_floor()
+      // reset method.
       curve_ = Polynomial(
-          cp_pos.begin(), cp_pos.end(),0.,0.4);
+          cp_pos.begin(), cp_pos.end(),0.,horizon_reset_);
       lin_velocity_ = Polynomial(
-          cp_lin.begin(), cp_lin.end(),0.,0.4);
+          cp_lin.begin(), cp_lin.end(),0.,horizon_reset_);
       ang_rotation_ = Polynomial(
-          cp_rot.begin(), cp_rot.end(),0.,0.4);
+          cp_rot.begin(), cp_rot.end(),0.,horizon_reset_);
       ang_velocity_ = ang_rotation_.compute_derivate(1);
 
 
       pcVel_.add_curve(lin_velocity_);
       pcRot_.add_curve(ang_rotation_);
 
+      // Symmetric motion.
       C2 << 0,1.,0,0,0,0,0,0,0,0,-1., 0,
             0,0,1.,0,0,0,0,0,0,0, 0,-1.,
             0,0,0,0,1.,0.,0,-1.,0.,0,0,0,
             0,0,0,0,0.,1.,0,0.,-1.,0,0,0;
+      // Bounding motion.
       // C2 << 0,1,0,   0,0,0,   0,-1,0,   0,0,0,
       //       0,0,1.,  0,0,0,   0,0,-1,   0,0,0.,
       //       0,0,0,   0,1.,0   ,0,0,0,   0,-1,0,
       //       0,0,0,   0,0.,1.,  0,0.,0., 0,0,-1.;
+      // Jumping motion.
       // C2 << 0,1,0,   0,-1,0,   0,0,0,   0,0,0,
       //       0,0,1,   0,0,-1,   0,0,0,   0,0,0,
       //       0,0,0,   0,0,0,    0,1,0,   0,-1,0,
@@ -86,6 +87,7 @@ public:
     /// @param param
     void updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
     void updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
+    void reset_curves(const std::vector<double>::iterator start);
 
   private:
     friend class QuadrupedTask;
@@ -98,9 +100,9 @@ public:
     std::vector<Eigen::Vector3d> cp_lin;
     std::vector<Eigen::Vector3d> cp_rot;
 
-    double t0 = 0.;
-    double t1 = 0.4;
     int n_update = 0.;
+    double horizon_nn_ = 0.24;
+    double horizon_reset_ = 0.4;
 
     // Bezier curves
     Polynomial curve_; // Won't be used in current setup.
@@ -117,6 +119,8 @@ public:
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
+  // call base-class Reset, save task-related ids
+  void ResetLocked(const mjModel* model) override;
   void SetParameters(const mjModel *model);
 
   // draw task-related geometry in the scene

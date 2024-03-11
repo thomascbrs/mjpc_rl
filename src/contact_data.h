@@ -122,7 +122,7 @@ struct ContactData {
   void update(const mjModel *model, mjData *data) {
     reset();
     update_contact(model, data);
-    update_force_sensors(model, data);
+    // update_force_sensors(model, data);
     update_air_time();
   }
 };

@@ -43,6 +43,7 @@ include_directories(${Python_INCLUDE_DIRS})
 find_package(Threads REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(ndcurves REQUIRED)
+find_package(hpp-fcl REQUIRED)
 
 
 set(_PROTOBUF_LIBPROTOBUF libprotobuf)
@@ -102,10 +103,16 @@ endif()
 
 # Add the source files to the project
 add_library(mjpc_rl_cpp
+    src/filter.h
+    src/observer.h
+    src/observer.cpp
+    src/types.h
+    src/settings.h
+    src/collision_checker.h
     src/contact_data.h
     src/custom_planner.h
     src/custom_planner.cpp
-    src/utils.cpp
+    src/utils.h
     src/logger.h
     src/logger.cpp
     src/mujoco_simulator.h
@@ -118,6 +125,7 @@ add_library(mjpc_rl_cpp
 target_link_libraries(mjpc_rl_cpp
     PUBLIC
     ndcurves::ndcurves
+    hpp-fcl::hpp-fcl
     ${MJPC_DIR_DEBUG}/lib/libmjpc.a
     ${MJPC_DIR_DEBUG}/lib/libglfw3.a
     ${MJPC_DIR_DEBUG}/lib/libthreadpool.a

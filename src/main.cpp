@@ -30,8 +30,6 @@ int main() {
   std::vector<double> point;
   point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
   list_points.push_back(point);
-  // point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
-  // list_points.push_back(point);
   point = {0.5, 0.0, 0.0, 0.0, -0.15, 0.0};
   list_points.push_back(point);
   point = {0.5, 0.0, 0.0, 0.0, -0.15, 0.0};

@@ -20,6 +20,12 @@
 #include "mjpc/utilities.h"
 #include <mujoco/mujoco.h>
 
+#include "types.h"
+#include <Eigen/Geometry>
+#include <pinocchio/math/quaternion.hpp>
+#include "pinocchio/math/rpy.hpp"
+#include "pinocchio/spatial/se3.hpp"
+
 std::string QuadrupedTask::XmlPath() const {
   return mjpc::GetModelPath("quadruped/task_hill.xml");
 }
@@ -142,217 +148,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   mju_copy(residual, feet_position, 12);
   res_index += 12;
 
-  // Time varying references.
-  if (data->time >= 0.) {
-    Eigen::Vector3d pos_ref = {0.,0.,0.};
-    // std::cout << "data->time - 1. : " << data->time - 1. << std::endl;
-    Eigen::Vector3d vel_ref = pcVel_(data->time);
-    Eigen::Vector3d rot_ref = pcRot_(data->time);
-    // std::cout << "vel_ref : [" << vel_ref[0] << "," << vel_ref[1] << "," << vel_ref[2] << "]" << std::endl ;
-    // std::cout << "data->time - 1.2 : " << data->time - 1. << std::endl;
-    // Eigen::Vector3d acc_ref = curve_acc_(data->time - 1.);
-
-    // Compute derivative of the curve wrt to x to retrieve pitch angle.
-    double pitch[1];
-    double wpitch[1];
-    double fwd = 0.0;
-    // getPitch(pitch, wpitch, data->time + fwd - 1.);
-
-    mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
-    mjtNum quat[4];
-    mjtNum ref_rotmat[9];
-    mju_axisAngle2Quat(quat, axis,
-                       rot_ref[1]);   // Convert axis-angle to quaternion
-    mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
-
-    // ---------- Residual (1) ----------
-    // system's position
-    const double *p_ref = pos_ref.data();
-    double *position = mjpc::SensorByName(model, data, "position");
-
-    // position error
-    mju_sub3(residual + res_index, position, p_ref);
-    res_index += 3;
-
-    // ---------- Residual (2) ----------
-    // system's orientation
-    double body_rotmat[9];
-    double *orientation = mjpc::SensorByName(model, data, "orientation");
-    mju_quat2Mat(body_rotmat, orientation);
-
-    mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
-    res_index += 9;
-
-    // ---------- Residual (3) ----------
-    // system's linear velocity
-    double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
-    const double *v_ref = vel_ref.data();
-    mju_sub3(residual + res_index, vel_trunk, v_ref);
-    res_index += 3;
-
-    // ---------- Residual (4) ----------
-    // system's linear acceleration
-    // double *acc_trunk = mjpc::SensorByName(model, data, "acc_lin_trunk");
-    // const double *a_ref = acc_ref.data();
-    // mju_sub3(residual + res_index, acc_trunk, a_ref);
-    // res_index += 3;
-
-    // ---------- Residual (5) ----------
-    // system's linear velocity
-    double *ang_vel_trunk =
-        mjpc::SensorByName(model, data, "ang_velocity_trunk");
-    double ang_v_ref[3];
-    ang_v_ref[0] = 0.;
-    ang_v_ref[1] = wpitch[0];
-    ang_v_ref[2] = 0.;
-    mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
-    res_index += 3;
-
-    // ---------- Residual (6) ----------
-    // std::string list_names[6] = {"nn", "Height", "air_time_FR",
-    // "air_time_FL", "air_time_HR", "air_time_HL"}; for (const auto&
-    // name:list_names){
-    //   double indexes[2];
-    //   ParameterIndexes(indexes, model,"residual_" + name);
-    //   std::cout << name << " : [" << indexes[0] << " , " << indexes[1] << "]"
-    //   << std::endl; std::cout << "param = ["; for (int k=indexes[0];k <
-    //   indexes[1] ; k++ ){
-    //     std::cout << parameters_[k] << ",";
-    //   }
-    //   std::cout << "]" << std::endl;
-    // }
-    std::string prefix = "residual_air_time_";
-    std::string foot_names[4] = {"FR", "FL", "HR", "HL"};
-    int indexes[2];
-    ParameterIndexes(indexes, model, prefix + "limit");
-    double time_limit = parameters_[indexes[0]];
-    ParameterIndexes(indexes, model, prefix + "time0");
-    double time0 = parameters_[indexes[0]];
-
-    double z_positions[4];
-    double z_positions_ref[4] = {-0.0, -0.0, -0.05, -0.05};
-    int shift = 0;
-
-    for (const auto &name : foot_names) {
-      ParameterIndexes(indexes, model, prefix + name);
-      z_positions[shift] = 0.;
-      // std::cout << "\ndata->time : " << data->time << std::endl;
-      if (parameters_[indexes[0]] > 0.05) { // Foot currently the air
-        if (data->time - time0 + parameters_[indexes[0]] > time_limit) {
-          if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2 ) {
-            // std::cout << name << "indexes[0] : " << indexes[0] << std::endl;
-            // mju_sub3(residual + res_index, mjpc::SensorByName(model, data,
-            // name)[2], 0.); std::cout << "Activate air time cost on " << name
-            // << std::endl;
-            z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
-            // z_positions[shift] = std::pow(mjpc::SensorByName(model, data, name + "_touch")[0],-2);
-            // std::cout << name << " : " << z_positions[shift] << std::endl;
-            // std::cout << name << " : " << mjpc::SensorByName(model, data, name + "_touch")[0] << std::endl;
-            // if (z_positions[shift] < 0.){
-            //   z_positions[shift] = 0.;
-            // }
-          }
-        }
-      }
-      shift++;
-      // std::cout << name << " = " <<  parameters_[indexes[0]] << std::endl;
-    }
-    // std::cout << "[" << z_positions[0] << z_positions[1] << z_positions[2] <<
-    // z_positions[3] << "]" << std::endl;
-    mju_sub3(residual + res_index, z_positions, z_positions_ref);
-    res_index += 4;
-    // ---------- Residual (7) ----------
-    // Force feet penalisation
-    // std::vector<std::string> force_name =
-    // {"FR_force","FL_force","HR_force","HL_force"}; double forces_ref[3] =
-    // {33.,0.,0.}; for (const auto& name:force_name){
-    //   double *forces = mjpc::SensorByName(model, data, name);
-    //   mju_sub3(residual + res_index, forces, forces_ref);
-    //   res_index += 3;
-    // }
-
-    // ---------- Residual (7) ----------
-    // Feet velocity
-    std::vector<std::string> force_name = {"FR_vel", "FL_vel", "HR_vel",
-                                           "HL_vel"};
-    double feet_acc_ref[3] = {0., 0., 0.};
-    for (const auto &name : force_name) {
-      double *feet_acc = mjpc::SensorByName(model, data, name);
-      mju_sub3(residual + res_index, feet_acc, feet_acc_ref);
-      res_index += 3;
-    }
-
-    // ---------- Residual (8) -----------
-    // Symmetric term
-    Eigen::Map<Eigen::Matrix<double, 12, 1>> u(data->ctrl);
-    Eigen::Matrix<double, 4, 1> C2_u = C2 * u;
-    mju_copy(residual + res_index, C2_u.data() , 4);
-    res_index += 4;
-
-  } else {
-    // ---------- Residual (1) ----------
-    // system's position
-    const double p_ref[3] = {0., 0., 0.};
-    double position[3] = {0., 0., 0.};
-
-    // position error
-    mju_sub3(residual + res_index, position, p_ref);
-    res_index += 3;
-
-    mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
-    mjtNum quat[4];
-    mjtNum ref_rotmat[9];
-    mju_axisAngle2Quat(quat, axis, 0.); // Convert axis-angle to quaternion
-    mju_quat2Mat(ref_rotmat, quat);     // Convert quaternion to rotation matrix
-
-    // ---------- Residual (2) ----------
-    // system's orientation
-    double body_rotmat[9];
-    double *orientation = mjpc::SensorByName(model, data, "orientation");
-    mju_quat2Mat(body_rotmat, orientation);
-
-    mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
-    res_index += 9;
-
-    // ---------- Residual (3) ----------
-    // system's linear velocity
-    double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
-    const double v_ref[3] = {0., 0., 0.};
-    mju_sub3(residual + res_index, vel_trunk, v_ref);
-    res_index += 3;
-
-    // ---------- Residual (4) ----------
-    // system's linear acceleration
-    // double acc_trunk[3] = {0.,0.,0.} ;
-    // double a_ref[3] = {0.,0.,0.};
-    // mju_sub3(residual + res_index, acc_trunk, a_ref);
-    // res_index += 3;
-
-    // ---------- Residual (4) ----------
-    // system's linear acceleration
-    // double acc_trunk[3] = {0.,0.,0.} ;
-    // double a_ref[3] = {0.,0.,0.};
-    // mju_sub3(residual + res_index, acc_trunk, a_ref);
-    // res_index += 3;
-
-    // ---------- Residual (5) ----------
-    // system's linear velocity
-    double *ang_vel_trunk =
-        mjpc::SensorByName(model, data, "ang_velocity_trunk");
-    const double ang_v_ref[3] = {0., 0., 0.};
-    mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
-    res_index += 3;
-  }
-
-  // ---------- Residual (4) ----------
-  // Cost on the command
-  // double *ctrl = data->ctrl;
-  // double factor = 100;
-  // ctrl[0] *= factor;
-  // ctrl[3] *= factor;
-  // ctrl[6] *= factor;
-  // ctrl[9] *= factor;
-  // Eigen::Map<Eigen::Matrix<double, 12, 1>> ctrl(data->ctrl);
+  // ---------- Residual (1) ----------
+  // Control.
   int indexes[2];
   ParameterIndexes(indexes, model, "residual_ctrl_factor_hip");
   double factor = parameters_[indexes[0]];
@@ -363,6 +160,101 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   ctrl[6] *= factor;
   ctrl[9] *= factor;
   mju_copy(residual + res_index, ctrl, model->nu);
+  res_index += 12;
+
+  double data_time = std::roundf(data->time * 1000) / 1000;
+  std::cout << "time : " << data_time << std::endl;
+
+  // ---------- Residual (2) ----------
+  // system's linear velocity
+  Eigen::Vector3d vel_ref = pcVel_(data_time); // Defined in Local frame.
+  ParameterIndexes(indexes, model, "residual_yaw_local");
+  Matrix3d R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., parameters_[indexes[0]]);
+  Eigen::Vector3d vel_ref_world = R_tmp * vel_ref;
+  vel_ref_world(2) = vel_ref(2); // Only x,y axis.
+  // Eigen::Vector3d vel_ref = Eigen::Vector3d::Zero(3);
+  double *vel_trunk = mjpc::SensorByName(model, data, "velocity_trunk");
+  const double *v_ref = vel_ref_world.data();
+  mju_sub3(residual + res_index, vel_trunk, v_ref);
+  res_index += 3;
+
+  // ---------- Residual (3) ----------
+  // system's orientation
+  // Eigen::Vector3d rot_ref = Eigen::Vector3d::Zero(3);
+  Eigen::Vector3d rot_ref = pcRot_(data_time);
+
+  // Compute derivative of the curve wrt to x to retrieve pitch angle.
+  Matrix3d R = pinocchio::rpy::rpyToMatrix(rot_ref(0), rot_ref(1), rot_ref(2));
+
+  // mjtNum axis[3] = {0.0, 1.0, 0.0}; // Set y-axis
+  // mjtNum quat[4];
+  // mjtNum ref_rotmat[9];
+  // mju_axisAngle2Quat(quat, axis,
+  //                     rot_ref[1]);   // Convert axis-angle to quaternion
+  // mju_quat2Mat(ref_rotmat, quat); // Convert quaternion to rotation matrix
+  // Convert R to mjtNum ref_rotmat[9]
+  mjtNum ref_rotmat[9];
+  for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+          ref_rotmat[i * 3 + j] = static_cast<mjtNum>(R(i, j));
+      }
+  }
+
+  double body_rotmat[9];
+  double *orientation = mjpc::SensorByName(model, data, "orientation");
+  mju_quat2Mat(body_rotmat, orientation);
+
+  mju_sub(residual + res_index, body_rotmat, ref_rotmat, 9);
+  res_index += 9;
+
+  // ---------- Residual (4) ----------
+  // Angular Velocity
+  double *ang_vel_trunk =
+      mjpc::SensorByName(model, data, "ang_velocity_trunk");
+  double ang_v_ref[3];
+  ang_v_ref[0] = 0.;
+  ang_v_ref[1] = 0.;
+  ang_v_ref[2] = 0.;
+  mju_sub3(residual + res_index, ang_vel_trunk, ang_v_ref);
+  res_index += 3;
+
+  // ---------- Residual (5) -----------
+  // Symmetric term
+  Eigen::Map<Eigen::Matrix<double, 12, 1>> u(data->ctrl);
+  Eigen::Matrix<double, 4, 1> C2_u = C2 * u;
+  mju_copy(residual + res_index, C2_u.data() , 4);
+  res_index += 4;
+
+
+  // ---------- Residual (6) ----------
+  // Residual Air-time.
+  // std::string prefix = "residual_air_time_";
+  // std::string foot_names[4] = {"FR", "FL", "HR", "HL"};
+  // // int indexes[2];
+  // ParameterIndexes(indexes, model, prefix + "limit");
+  // double time_limit = parameters_[indexes[0]];
+  // ParameterIndexes(indexes, model, prefix + "time0");
+  // double time0 = parameters_[indexes[0]];
+
+  // double z_positions[4];
+  // double z_positions_ref[4] = {-0.0, -0.0, -0.05, -0.05};
+  // int shift = 0;
+
+  // for (const auto &name : foot_names) {
+  //   ParameterIndexes(indexes, model, prefix + name);
+  //   z_positions[shift] = 0.;
+  //   // std::cout << "\ndata->time : " << data->time << std::endl;
+  //   if (parameters_[indexes[0]] > 0.05) { // Foot currently the air
+  //     if (data->time - time0 + parameters_[indexes[0]] > time_limit) {
+  //       if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2 ) {
+  //         z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
+  //       }
+  //     }
+  //   }
+  //   shift++;
+  // }
+  // mju_sub3(residual + res_index, z_positions, z_positions_ref);
+  // res_index += 4;
 }
 
 void QuadrupedTask::ResidualFn::Update() {
@@ -377,7 +269,7 @@ void QuadrupedTask::ResidualFn::Update() {
   risk_ = task_->risk;
   parameters_ = task_->parameters;
   // parameters_[0] --> residual_nn_updated
-  if (parameters_[0] > 0){
+  if (parameters_[0] == 1.){
     // Update the reference curve.
     std::cout << "Update Reference curve." << std::endl;
 
@@ -389,11 +281,42 @@ void QuadrupedTask::ResidualFn::Update() {
     updateCurvesACC(parameters_.begin() + 1, parameters_.begin() + 6);
     n_update += 1;
   }
+  // Reset the reference curve.
+  if (parameters_[0] == 0.){
+    reset_curves(parameters_.begin() + 7);
+    n_update = 0;
+  }
+}
+
+void QuadrupedTask::ResidualFn::reset_curves(const std::vector<double>::iterator start){
+  std::cout << "Reset function in task" << std::endl;
+  // std::cout << "params : [" << *start << "," << *(start+1) << "," << *(start +2) << "]" << std::endl;
+  // Update the container of points.
+  cp_rot.clear();
+  cp_lin.clear();
+
+  // Define a constant polynomial curve.
+  cp_rot.push_back(Eigen::Vector3d(*start, *(start+1), *(start+2)));
+  cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+  for (int i = 1; i < 3; i++) {
+    cp_rot.push_back(Eigen::Vector3d(0., 0., 0.));
+    cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+  }
+  lin_velocity_ = Polynomial(
+      cp_lin.begin(), cp_lin.end(),0.,horizon_reset_);
+  ang_rotation_ = Polynomial(
+      cp_rot.begin(), cp_rot.end(),0.,horizon_reset_);
+
+  pcRot_ = PieceWise();
+  pcVel_ = PieceWise();
+  pcRot_.add_curve(ang_rotation_);
+  pcVel_.add_curve(lin_velocity_);
+
 }
 
 void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
   double T = lin_velocity_.max();
-  double T2 = lin_velocity_.max() + 0.4;
+  double T2 = lin_velocity_.max() + horizon_nn_;
   Eigen::MatrixXd minv(3, 3);
   Eigen::MatrixXd coeffs(3,3);
   Eigen::MatrixXd b(3, 3);
@@ -408,7 +331,7 @@ void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::itera
   coeffs = minv * b;
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
@@ -418,14 +341,14 @@ void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::itera
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 }
 
 
 void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
-  double T = lin_velocity_.max();
-  double T2 = lin_velocity_.max() + 0.4;
+  double T = 0.;
+  double T2 = horizon_nn_;
   Eigen::MatrixXd coeffs(3,3);
 
   coeffs.row(0) = pcVel_(pcVel_.max());
@@ -435,24 +358,43 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   coeffs.row(2) *= 0.5/(T2 - T);
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + 0.4);
+  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
-  Eigen::MatrixXd b(3, 3);
-  Eigen::MatrixXd minv(3, 3);
-  minv << 1, 0, 0,
-          0, 1, 0,
-          -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  // Polynomial curve in angular position. May induce waving motion due to
+  // the representation (trying to keep the c1 continuity)
+  // Polynomial 2nd degree
+
+  // Eigen::MatrixXd b(3, 3);
+  // Eigen::MatrixXd minv(3, 3);
+  // minv << 1, 0, 0,
+  //         0, 1, 0,
+  //         -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  // b.row(0) = pcRot_(pcRot_.max());
+  // b.row(1) = pcRot_.derivate(pcRot_.max(),1);
+  // b.row(2) << *(start+3), *(start +4), *(start +5);
+  // coeffs = minv * b;
+
+  // Polynomial curveRot_tmp;
+  // curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  // pcRot_.add_curve(curveRot_tmp);
+
+  // 1st degree in rotation angle.
+  Eigen::MatrixXd coeffs_rot(2,3);
+  coeffs_rot.row(0) = pcRot_(pcRot_.max());
+  Eigen::MatrixXd b(2, 3);
+  Eigen::MatrixXd minv(2, 2);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
   b.row(0) = pcRot_(pcRot_.max());
-  b.row(1) = pcRot_.derivate(pcRot_.max(),1);
-  b.row(2) << *(start+3), *(start +4), *(start +5);
+  b.row(1) << *(start+3), *(start +4), *(start +5);
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
+  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 
+  // Visualisation.
   // double tt = 0.;
   // std::cout << "\n\n----" << std::endl;
   // while( tt <= pcVel_.max()){
@@ -463,6 +405,8 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   // }
 }
 
+// Using update function for now, maybe to use for resetting the curves.
+void QuadrupedTask::ResetLocked(const mjModel *model){}
 
 // / draw task-related geometry in the scene
 void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
