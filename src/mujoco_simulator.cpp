@@ -148,12 +148,17 @@ void MujocoSimulator::reset(std::vector<double> q) {
 
   // Fix time 198. 200 not working, do a round approx.
   put_robot_on_floor(200,q0_.tail(12));
+  col.resetCollisionStatus();
   observer.reset(q);
   observer.update_final_pose(model, data);
   observer.update_filter(model, data);
 
   reset_task(q); // Warning q is size 6 and rpy are the last 3 elements.
   simstart = data->time;
+
+  // Reset iteration
+  n_iteration = 0;
+  k_mpc_ = 0;
 }
 
 MujocoSimulator::~MujocoSimulator() {

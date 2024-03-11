@@ -33,9 +33,11 @@ void Observer::reset(const std::vector<double>& q){
   for (const auto &name : odata_.foot_names) {
     odata_.feet_vel[name] = {0.};
     odata_.feet_pos[name] = {0.};
+    odata_.contact_status[name] = 1; // Initialisation in contact.
   }
   filter_pos_.reset();
   filter_vel_.reset();
+  odata_.collision_status = false;
   reset_curves(q);
 }
 

@@ -21,6 +21,7 @@ class CollisionChecker {
   ~CollisionChecker() {}
 
   bool getCollisionStatus(){return is_colliding;}
+  void resetCollisionStatus(){is_colliding = false;}
 
   void createCollisionObjects() {
     // TODO: scrapping from .xml
@@ -71,7 +72,7 @@ class CollisionChecker {
         hpp::fcl::distance(elem.second, tf1_, env_objects.at("floor"), tf2_,
                            request_distance_, res_distance_);
         if (res_distance_.min_distance <= 0) {
-          std::cout << "Found collision with : " << elem.first.c_str() << std::endl;
+          // std::cout << "Found collision with : " << elem.first.c_str() << std::endl;
           is_colliding = true;
         }
       } else {
