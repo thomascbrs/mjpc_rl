@@ -65,6 +65,13 @@ class RescaleObservation(gym.ObservationWrapper, gym.utils.RecordConstructorArgs
         observation = np.clip(observation, self.min_observation, self.max_observation)
         return observation
 
+    def inverse_observation(self, observation):
+        low = self.env.observation_space.low
+        high = self.env.observation_space.high
+        observation = low + (high - low) * ((observation - self.min_observation) / (self.max_observation - self.min_observation))
+        observation = np.clip(observation, low, high)
+        return observation
+
 
 class MultiDiscretizeActionWrapper(gym.ActionWrapper):
     def __init__(self, env, num_discrete_actions_per_dim):
@@ -99,11 +106,11 @@ class Wrapper(gym.Wrapper[WrapperObsType, WrapperActType, ObsType, ActType]):
         # Apply observation wrappers
         self._env2 = FlattenObservation(self._env2)  # Flatten before rescaling (cannot handle dict)
         # self._env2 = NormalizeObservation(self._env2)  # Rescale observation between [-1,1]
-        self._env2 = RescaleObservation(self._env2,-1.,1.)
 
         # Apply action wrappers
         self._env2 = RescaleAction(self._env2, -1., 1.)  # Rescale action between [-1,1]
 
+        self._env2 = RescaleObservation(self._env2,-1.,1.)
         # Apply normalize reward
         # self._env2 = NormalizeReward(self._env2)
 

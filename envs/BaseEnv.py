@@ -51,7 +51,11 @@ class BaseEnv(gym.Env):
         "r_bias": 0.,
         "vel_toward_goal": 0.,
         "r_termination": 0.,
-        "timestep":0
+        "timestep":0,
+        "r_height":0.,
+        "r_angle":0.,
+        "r_vel":0.,
+        "r_control":0.
     })
 
     self.infos = dict({
@@ -142,6 +146,8 @@ class BaseEnv(gym.Env):
 
     obs = self.simulator.getObervation()
 
+    self.infos["robot_pose"][:] = obs.filtered_pose[:3]
+
     # Goal position in local frame. Using filtered end poisiton.
     R = pinocchio.rpy.rpyToMatrix(obs.filtered_pose[3], obs.filtered_pose[4], obs.filtered_pose[5])
     T = np.array(obs.end_pose)[:3]
@@ -173,6 +179,7 @@ class BaseEnv(gym.Env):
       reward += self._reward01(0.6)
 
     reward += self._reward_stall()
+    reward += self._reward_behaviour()
 
     # Early termination
     terminated = False
@@ -221,6 +228,10 @@ class BaseEnv(gym.Env):
     # Reset general infos
     self.general_infos["r_termination"] = 0
     self.general_infos["dgoal"] = np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2])
+    self.general_infos["r_height"] = 0.
+    self.general_infos["r_angle"] = 0.
+    self.general_infos["r_vel"] = 0.
+    self.general_infos["r_control"] = 0.
 
     observation = self._get_obs()
     info = self._get_info()
@@ -291,14 +302,32 @@ class BaseEnv(gym.Env):
     self.general_infos["r_stall"] = reward
     return reward
 
+  def _reward_behaviour(self):
+    """ Penalty based on sum of squared informations accumulated during the step.
+    """
+    reward = 0.
+    obs = self.simulator.getObervation()
+
+    reward += -0.1 * obs["sq_height"]
+    self.general_infos["r_height"] = -0.1 * obs["sq_height"]
+
+    reward += -0.1 * obs["sq_angle"]
+    self.general_infos["r_angle"] = -0.1 * obs["sq_angle"]
+
+    reward += -0.01 * obs["sq_vel"]
+    self.general_infos["r_vel"] = -0.01 * obs["sq_vel"]
+
+    reward += -0.01 * obs["sq_control"]
+    self.general_infos["r_control"] = -0.01 * obs["sq_control"]
+
+    return reward
+
   # def _reward_task(self, Tr=4., T=2.4, alpha=1.):
   #   """ Task reward to reach the desired location as described in
   #   https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
   #   """
   #   # Reward on x,y axis.
   #   if self.infos["t"] > T:
-  #       # Adding orientation
-
   #       # reward = (1 / (Tr*self._T_nodes)) / (1 + np.linalg.norm(self._goal[:2] - self._robot_pose[:2], 2))
   #       reward = alpha / (1 + np.linalg.norm(2 * (self.infos["lgoal"]), 2))
   #       # reward = (1 / (Tr*self._T_nodes)) * self.function_n(np.linalg.norm(self._goal[:2] - self._robot_pose[:2])  )
