@@ -34,6 +34,12 @@ struct ObserverData {
   // Collision status
   bool collision_status = false;
   std::unordered_map<std::string, int> contact_status;
+
+  // Squared sum
+  std::array<double, 1> sq_height = {0.0};
+  std::array<double, 3> sq_angle = {0.0};
+  std::array<double, 6> sq_vel = {0.0};
+  std::array<double, 12> sq_control = {0.0};
 };
 
 class Observer {

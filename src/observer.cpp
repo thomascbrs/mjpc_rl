@@ -22,6 +22,29 @@ void Observer::update_filter(const mjModel *model, const mjData *data){
   std::vector<double> qvel_tmp(data->qvel, data->qvel + 6); // Velocity
   std::vector<double> vfiltered_tmp = filter_vel_._filter(qvel_tmp);
   std::copy(vfiltered_tmp.begin(), vfiltered_tmp.end(), odata_.filtered_vel.begin());
+
+  // Height
+  // TODO : Specify a reference height.
+  odata_.sq_height[0] += std::pow(data->qpos[2] - 0.235,2);
+
+  // Rotation angle
+  odata_.sq_angle[0] += std::pow(rpy(0),2);
+  odata_.sq_angle[1] += std::pow(rpy(1),2);
+  odata_.sq_angle[2] += std::pow(rpy(2),2);
+
+  // Velocity
+  // TODO : Specify a reference velocity.
+  // odata_.sq_vel[0] += std::pow(data->qvel[0],2);
+  // odata_.sq_vel[1] += std::pow(data->qvel[1],2);
+  odata_.sq_vel[2] += std::pow(data->qvel[2],2);
+  odata_.sq_vel[3] += std::pow(data->qvel[3],2);
+  odata_.sq_vel[4] += std::pow(data->qvel[4],2);
+  odata_.sq_vel[5] += std::pow(data->qvel[5],2);
+  double norm = 0.;
+  for (int i = 0; i < 1; ++i) {
+    norm += data->ctrl[i] * data->ctrl[i];
+  }
+  odata_.sq_control[0] += norm;
 }
 
 void Observer::reset(const std::vector<double>& q){
@@ -38,6 +61,10 @@ void Observer::reset(const std::vector<double>& q){
   filter_pos_.reset();
   filter_vel_.reset();
   odata_.collision_status = false;
+  odata_.sq_height = {0.0};
+  odata_.sq_angle = {0.0};
+  odata_.sq_vel = {0.0};
+  odata_.sq_control = {0.0};
   reset_curves(q);
 }
 
