@@ -305,20 +305,21 @@ class BaseEnv(gym.Env):
   def _reward_behaviour(self):
     """ Penalty based on sum of squared informations accumulated during the step.
     """
-    reward = 0.
     obs = self.simulator.getObervation()
 
-    reward += -0.1 * obs["sq_height"]
-    self.general_infos["r_height"] = -0.1 * obs["sq_height"]
+    r_height = -0.1 * obs.sq_height[0]
+    self.general_infos["r_height"] = r_height
 
-    reward += -0.1 * obs["sq_angle"]
-    self.general_infos["r_angle"] = -0.1 * obs["sq_angle"]
+    r_angle = -0.1 * (obs.sq_angle[0] + obs.sq_angle[1] + obs.sq_angle[2])
+    self.general_infos["r_angle"] = r_angle
 
-    reward += -0.01 * obs["sq_vel"]
-    self.general_infos["r_vel"] = -0.01 * obs["sq_vel"]
+    r_vel = -0.01 * np.sum(obs.sq_vel)
+    self.general_infos["r_vel"] = r_vel
 
-    reward += -0.01 * obs["sq_control"]
-    self.general_infos["r_control"] = -0.01 * obs["sq_control"]
+    r_control = -0.01 * obs.sq_control[0]
+    self.general_infos["r_control"] = r_control
+
+    reward = r_height + r_angle + r_vel + r_control
 
     return reward
 
