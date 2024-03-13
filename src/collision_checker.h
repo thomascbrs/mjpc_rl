@@ -42,7 +42,7 @@ class CollisionChecker {
     tf2_ = hpp::fcl::Transform3f::Identity(); // Environment.
 
     // Environment
-    env_objects["floor"] = new hpp::fcl::Box(4.,4.,0.1);
+    env_objects["floor"] = new hpp::fcl::Box(50.,50.,0.1);
     tf2_.setTranslation(hpp::fcl::Vec3f(0.,0.,-0.1));
 
     // use distance function in hppfcl
@@ -72,7 +72,7 @@ class CollisionChecker {
         hpp::fcl::distance(elem.second, tf1_, env_objects.at("floor"), tf2_,
                            request_distance_, res_distance_);
         if (res_distance_.min_distance <= 0) {
-          // std::cout << "Found collision with : " << elem.first.c_str() << std::endl;
+          std::cout << "Found collision with : " << elem.first.c_str() << std::endl;
           is_colliding = true;
         }
       } else {
