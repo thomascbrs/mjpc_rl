@@ -2,6 +2,10 @@
 #include "mujoco_simulator.h"
 #include <iostream>
 #include <thread>
+#include <fstream>
+#include <filesystem> // C++17
+
+namespace fs = std::filesystem;
 
 void my_function01(std::vector<double> vector){
   std::cout << "vector : " << vector[0] << std::endl;
@@ -18,8 +22,16 @@ void my_function03(int step){
 
 int main() {
 
-  MujocoSimulator mjsimulator = MujocoSimulator(1,true,false,
-      "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml");
+  // Get the current directory
+  fs::path current_dir = fs::current_path();
+
+  // Construct the relative path
+  fs::path relative_path = "../../mjpc_rl/unitree_a1/task_hill.xml";
+
+  // Construct the absolute path
+  fs::path filename = current_dir / relative_path;
+
+  MujocoSimulator mjsimulator = MujocoSimulator(1,true,false,filename.c_str());
   // MujocoSimulator mjsimulator = MujocoSimulator(
   //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/cartpole/task.xml");
   // mjsimulator.runSimulation(3000);
