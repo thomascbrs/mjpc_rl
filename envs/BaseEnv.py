@@ -40,7 +40,7 @@ class BaseEnv(gym.Env):
     self.observation_space = spaces.Dict({
         "t":spaces.Box(0.,10.,shape=(1,), dtype=np.float32),
         "lgoal": spaces.Box(-3.5, 3.5, shape=(2, ), dtype=np.float32),
-        "contact_state": spaces.Box(lb, ub, dtype=np.float32),
+        # "contact_state": spaces.Box(lb, ub, dtype=np.float32),
         # "lfeet": spaces.Box(lb_feet, ub_feet, dtype=np.float32),
         "pose": spaces.Box(-2., 2.,shape=(4,), dtype=np.float32),
         "collision_status": spaces.Box(0., 1.,shape=(1,), dtype=np.float32),
@@ -140,7 +140,7 @@ class BaseEnv(gym.Env):
     observations = {
         "t": np.array([self.infos["t"]],dtype=np.float32),
         "lgoal": np.array(lgoal,dtype=np.float32) ,
-        "contact_state": np.array(contact_state,dtype=np.float32),
+        # "contact_state": np.array(contact_state,dtype=np.float32),
         # "lfeet": np.array(lfeet, dtype=np.float32),
         "pose":np.array(pose, dtype=np.float32),
         "collision_status": np.array([collision_status], dtype=np.float32),
@@ -197,10 +197,10 @@ class BaseEnv(gym.Env):
     reward = 0.
     if self.bias:
       reward += self._reward_bias(2.5)
-      reward += self._reward01(0.6)
+      # reward += self._reward01(0.6)
 
     reward += self._reward_stall()
-    reward += self._reward_behaviour()
+    # reward += self._reward_behaviour()
 
     # Early termination
     terminated = False
@@ -320,6 +320,7 @@ class BaseEnv(gym.Env):
     reward = 0.
     # Approximate velocity on x,y.
     if np.linalg.norm(self.infos["velxy"]) <= 0.1 and self.infos["dgoal"] > 0.5:
+      if self.infos["t"] > 0.48: # Not negative during 2 first rewards
         reward = -1.
     self.general_infos["r_stall"] = reward
     return reward
