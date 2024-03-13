@@ -56,11 +56,11 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def_readwrite("lfeet_pos", &ObserverData::lfeet_pos)
       .def_readwrite("lfeet_vel", &ObserverData::lfeet_pos)
       .def_readwrite("lvref", &ObserverData::lvref)
+      .def_readwrite("orientation_ref", &ObserverData::orientation_ref)
       .def_readwrite("sq_height", &ObserverData::sq_height)
       .def_readwrite("sq_angle", &ObserverData::sq_angle)
       .def_readwrite("sq_vel", &ObserverData::sq_vel)
       .def_readwrite("sq_control", &ObserverData::sq_control)
-      .def_readwrite("orientation_ref", &ObserverData::orientation_ref)
       .def_readwrite("collision_status", &ObserverData::collision_status)
       .def_readwrite("contact_status", &ObserverData::contact_status);
 

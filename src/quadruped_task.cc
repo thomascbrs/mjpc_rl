@@ -277,7 +277,7 @@ void QuadrupedTask::ResidualFn::Update() {
     // ParameterIndexes(indexes, model, "residual_nn");
     // const double *params_nn = &parameters_[0];
 
-    updateCurvesACC(parameters_.begin() + 1, parameters_.begin() + 6);
+    updateCurvesLin(parameters_.begin() + 1, parameters_.begin() + 6);
     n_update += 1;
   }
   // Reset the reference curve.
@@ -344,6 +344,52 @@ void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::itera
   pcRot_.add_curve(curveRot_tmp);
 }
 
+void QuadrupedTask::ResidualFn::updateCurvesLin(const std::vector<double>::iterator start, const std::vector<double>::iterator end){
+  double T = 0.;
+  double T2 = horizon_nn_;
+
+  Eigen::MatrixXd coeffs_vel(2,3);
+  Eigen::MatrixXd b(2, 3);
+  Eigen::MatrixXd minv(2, 2);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
+  b.row(0) = pcVel_(pcVel_.max());
+  b.row(1) = pcVel_(pcVel_.max());
+  // Parameters = dV(+horizon)
+  b(1,0) += *(start);
+  b(1,1) += *(start + 1);
+  b(1,2) += *(start + 2);
+  // Parameters = V(+horizon)
+  // b.row(1) << *(start), *(start +1), *(start +2);
+  coeffs_vel = minv * b;
+
+  Polynomial curveVel_tmp;
+  curveVel_tmp = Polynomial(coeffs_vel.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
+  pcVel_.add_curve(curveVel_tmp);
+
+  Eigen::MatrixXd coeffs_rot(2,3);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
+  b.row(0) = pcRot_(pcRot_.max());
+  b.row(1) = pcRot_(pcRot_.max());
+  b(1,0) += *(start + 3);
+  b(1,1) += *(start + 4);
+  b(1,2) += *(start + 5);
+  // b.row(1) << *(start+3), *(start +4), *(start +5);
+  coeffs_rot = minv * b;
+
+  Polynomial curveRot_tmp;
+  curveRot_tmp = Polynomial(coeffs_rot.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
+  pcRot_.add_curve(curveRot_tmp);
+
+  // Visualisation.
+  // double tt = 0.;
+  // std::cout << "\n\n----" << std::endl;
+  // while( tt <= pcVel_.max()){
+  //   std::cout << "Vel_ref(" << tt << ") = [" <<
+  //   pcVel_(tt)[0] << "," << pcVel_(tt)[1] << "," << pcVel_(tt)[2] << "," <<
+  //   pcRot_(tt)[0] << "," << pcRot_(tt)[1] << "," << pcRot_(tt)[2] << "]" << std::endl;
+  //   tt += 0.01;
+  // }
+}
 
 void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
   double T = 0.;

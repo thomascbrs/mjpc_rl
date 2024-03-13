@@ -159,30 +159,47 @@ void Observer::update_ref_curve(const std::vector<double>& actions){
   }
   double T = 0.;
   double T2 = horizon_nn_;
-  Eigen::MatrixXd coeffs(3,3);
+  // Eigen::MatrixXd coeffs(3,3);
 
-  coeffs.row(0) = pcVel_(pcVel_.max());
-  coeffs.row(1) = pcVel_.derivate(pcVel_.max(),1);
-  coeffs.row(2) << actions.at(0), actions.at(1), actions.at(2);
-  coeffs.row(2) -= coeffs.row(1);
-  coeffs.row(2) *= 0.5/(T2 - T);
+  // coeffs.row(0) = pcVel_(pcVel_.max());
+  // coeffs.row(1) = pcVel_.derivate(pcVel_.max(),1);
+  // coeffs.row(2) << actions.at(0), actions.at(1), actions.at(2);
+  // coeffs.row(2) -= coeffs.row(1);
+  // coeffs.row(2) *= 0.5/(T2 - T);
+
+  Eigen::MatrixXd coeffs_vel(2,3);
+  Eigen::MatrixXd b(2, 3);
+  Eigen::MatrixXd minv(2, 2);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
+  b.row(0) = pcVel_(pcVel_.max());
+  b.row(1) = pcVel_(pcVel_.max());
+  // Parameters = dV(+horizon)
+  b(1,0) += actions.at(0);
+  b(1,1) += actions.at(1);
+  b(1,2) += actions.at(2);
+  // Parameters = V(+horizon)
+  // b.row(1) << *(start), *(start +1), *(start +2);
+  coeffs_vel = minv * b;
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
+  curve_tmp = Polynomial(coeffs_vel.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // 1st degree in rotation angle.
   Eigen::MatrixXd coeffs_rot(2,3);
   coeffs_rot.row(0) = pcRot_(pcRot_.max());
-  Eigen::MatrixXd b(2, 3);
-  Eigen::MatrixXd minv(2, 2);
+  // Eigen::MatrixXd b(2, 3);
+  // Eigen::MatrixXd minv(2, 2);
   minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
   b.row(0) = pcRot_(pcRot_.max());
-  b.row(1) << actions.at(3), actions.at(4), actions.at(5);
-  coeffs = minv * b;
+  b.row(1) = pcRot_(pcRot_.max());
+  b(1,0) += actions.at(3);
+  b(1,1) += actions.at(4);
+  b(1,2) += actions.at(5);
+  coeffs_rot = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
+  curveRot_tmp = Polynomial(coeffs_rot.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 }
 

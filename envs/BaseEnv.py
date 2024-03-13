@@ -7,6 +7,8 @@ from gymnasium import spaces
 from collections import OrderedDict
 import pinocchio
 
+import os
+
 from build_release.libmjpc_rl_pywrap import MujocoSimulator
 
 class BaseEnv(gym.Env):
@@ -16,14 +18,17 @@ class BaseEnv(gym.Env):
     super().__init__()
 
     # Action type.
-    lb_vel = np.array([-1., -1., -1.])
-    ub_vel = np.array([1., 1., 1.])
+    # lb_vel = np.array([-1., -1., -1.])
+    # ub_vel = np.array([1., 1., 1.])
 
-    lb_ang = np.array([-1., -1., -1.])
-    ub_ang = np.array([1., 1., 1.])
+    # lb_ang = np.array([-1., -1., -1.])
+    # ub_ang = np.array([1., 1., 1.])
 
-    self._lb = np.concatenate([lb_vel, lb_ang])
-    self._ub = np.concatenate([ub_vel, ub_ang])
+    # self._lb = np.concatenate([lb_vel, lb_ang])
+    # self._ub = np.concatenate([ub_vel, ub_ang])
+
+    self._lb = np.array([-0.5,-0.5])
+    self._ub = np.array([0.5,0.5])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
     # Observation.
@@ -33,9 +38,11 @@ class BaseEnv(gym.Env):
     lb_feet = np.tile([-0.4, -0.4, -0.4], 4)
     ub_feet = np.tile([0.4, 0.4, 0.4], 4)
     self.observation_space = spaces.Dict({
+        "t":spaces.Box(0.,10.,shape=(1,), dtype=np.float32),
         "lgoal": spaces.Box(-3.5, 3.5, shape=(2, ), dtype=np.float32),
         "contact_state": spaces.Box(lb, ub, dtype=np.float32),
-        "lfeet": spaces.Box(lb_feet, ub_feet, dtype=np.float32),
+        # "lfeet": spaces.Box(lb_feet, ub_feet, dtype=np.float32),
+        "pose": spaces.Box(-2., 2.,shape=(4,), dtype=np.float32),
         "collision_status": spaces.Box(0., 1.,shape=(1,), dtype=np.float32),
         "lvel":spaces.Box(-3.,3.,shape=(6,), dtype=np.float32),
         "lvref":spaces.Box(-3.,3.,shape=(3,), dtype=np.float32),
@@ -77,7 +84,12 @@ class BaseEnv(gym.Env):
 
     self.feet_names = ["FL", "FR", "HL", "HR"] # Order matter in observation.
 
-    filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml"
+    # filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    relative_path = "../../mjpc_rl/unitree_a1/task_hill.xml"
+
+    # Construct the absolute path
+    filename = os.path.join(current_dir, relative_path)
     self.RENDERING = (render_mode == "human" )
     self.simulator = MujocoSimulator(1, self.RENDERING, False, filename)
 
@@ -121,10 +133,16 @@ class BaseEnv(gym.Env):
 
     lgoal = np.clip(self.infos["lgoal"], -3.5, 3.5, dtype=np.float32)[:2].tolist()
 
+    pose = np.zeros(4)
+    pose[:] = obs.filtered_pose[2:]
+    pose = np.clip(pose, -2., 2., dtype=np.float32).tolist()
+
     observations = {
+        "t": np.array([self.infos["t"]],dtype=np.float32),
         "lgoal": np.array(lgoal,dtype=np.float32) ,
         "contact_state": np.array(contact_state,dtype=np.float32),
-        "lfeet": np.array(lfeet, dtype=np.float32),
+        # "lfeet": np.array(lfeet, dtype=np.float32),
+        "pose":np.array(pose, dtype=np.float32),
         "collision_status": np.array([collision_status], dtype=np.float32),
         "lvel":np.array(lvel, dtype=np.float32),
         "lvref":np.array(lvref, dtype=np.float32),
@@ -166,7 +184,10 @@ class BaseEnv(gym.Env):
 
   def step(self, actions):
 
-    self.simulator.step(actions)
+    action_6D = [0.]*6
+    action_6D[0] = actions[0]
+    action_6D[5] = actions[1]
+    self.simulator.step(action_6D)
 
     # Update new infos based on the internal observer.
     self._update_infos()
@@ -213,6 +234,7 @@ class BaseEnv(gym.Env):
     # Reset environment around origin.
     q = [0.]*6
     q[2] = 0.3
+    q[4] = -0.1 # Pitch angle
     # q[5] = 1.9
     self.infos["robot_pose"] = np.zeros(3)
     self.simulator.reset(q)

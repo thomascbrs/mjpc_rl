@@ -87,6 +87,7 @@ public:
     /// @param param
     void updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
     void updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
+    void updateCurvesLin(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
     void reset_curves(const std::vector<double>::iterator start);
 
   private:

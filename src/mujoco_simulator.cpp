@@ -339,6 +339,10 @@ void MujocoSimulator::step(std::vector<double> actions) {
   if (n_iteration == 0) {
     // Robot initilized with put_on_floor function.
     // Extend horizon with actions.
+    observer.update_filter(model, data);
+    observer.update_collision_status(col.getCollisionStatus());
+    observer.update_contact_status(mcontactData);
+    observer.update_final_pose(model, data);
     n_iteration++;
     return;
   }
