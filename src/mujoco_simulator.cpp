@@ -239,6 +239,11 @@ void MujocoSimulator::update_viewer() {
   // update scene and render
   mjv_updateScene(model, data, &opt, NULL, &cam, mjCAT_ALL, &scn);
 
+  // Goal visualisation
+  mjvGeom *geomtest = scn.geoms + scn.ngeom++;
+  mjv_initGeom(geomtest, mjGEOM_SPHERE, vz_size, vz_pos, NULL, vz_color);
+  scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+
   // Add visualisation.
   // task_->ModifyScene(model, data, &scn);
 
@@ -432,4 +437,13 @@ void MujocoSimulator::save_logger(const std::string &fileName) {
 
 ObserverData MujocoSimulator::getObervation() {
   return observer.getObervation();
+}
+
+void MujocoSimulator::update_goal_position(std::vector<double> q){
+  if (q.size() != 6){
+    throw std::runtime_error("Error in update_goal_position(), q should be size 6.");
+  }
+  vz_pos[0] = q[0];
+  vz_pos[1] = q[1];
+  vz_pos[2] = q[2];
 }

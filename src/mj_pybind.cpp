@@ -22,6 +22,7 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def("reset", &MujocoSimulator::reset)
       .def("step", &MujocoSimulator::step)
       .def("save_logger", &MujocoSimulator::save_logger)
+      .def("update_goal_position", &MujocoSimulator::update_goal_position)
       .def("getObervation", &MujocoSimulator::getObervation);
 
   py::class_<Data>(m, "Data")

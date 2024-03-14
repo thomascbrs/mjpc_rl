@@ -51,6 +51,7 @@ public:
   void print_planner_timings();
   void update_ref_curve(std::vector<double> points);
   void reset_task(std::vector<double> q);
+  void update_goal_position(std::vector<double> q);
   ObserverData getObervation();
 
 private:
@@ -97,6 +98,11 @@ private:
   mjpc::State state_;
   CustomiLQGPlanner planner;
   CollisionChecker col;
+
+  // Goal visualisation
+  double vz_size[3] = {0.15};
+  double vz_pos[3] = {0.,0.,-0.15};
+  float vz_color[4] = {1.,0.8,0.2,0.4};
 };
 
 #endif // MUJOCO_SIMULATOR_H

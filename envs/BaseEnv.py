@@ -246,6 +246,7 @@ class BaseEnv(gym.Env):
     self.infos["goal"][2] = 0.248
     self.infos["collision_status"] = 0
     self.infos["goal_reached"] = False
+    self.simulator.update_goal_position(self.infos["goal"].tolist())
 
     # Reset general infos
     self.general_infos["r_termination"] = 0
