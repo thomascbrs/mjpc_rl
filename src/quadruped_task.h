@@ -21,6 +21,7 @@
 #include <string>
 
 #include "types.h"
+#include "utils.h"
 
 class QuadrupedTask : public mjpc::Task {
 public:

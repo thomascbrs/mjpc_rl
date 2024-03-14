@@ -245,7 +245,9 @@ void MujocoSimulator::update_viewer() {
   scn.geoms[scn.ngeom].category = mjCAT_DECOR;
 
   // Add visualisation.
-  // task_->ModifyScene(model, data, &scn);
+  if (data->time > 0.42){
+    task_->ModifyScene(model, data, &scn);
+  }
 
   // Add contact-related geoms to the visualization scene
   // addContactGeom(model, data, 0, nullptr, &scn);

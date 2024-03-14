@@ -456,29 +456,68 @@ void QuadrupedTask::ResetLocked(const mjModel *model){}
 // / draw task-related geometry in the scene
 void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
                                 mjvScene *scene) const {
-  double size[3] = {0.01};
-  double *pos;
-  double pos_previous[3];
 
-  int n_points = 20;
+  double size[3] = {0.01};
+  double pos[3];
+  pos[0] = data->qpos[0];
+  pos[1] = data->qpos[1];
+  pos[2] = data->qpos[2] + 0.05;
+  double pos_previous[3] = {pos[0],pos[1],pos[2]};
+
   // color
   float color[4];
-  color[0] = 1.0;
-  color[1] = 0.0;
-  color[2] = 1.0;
-  color[3] = 0.4;
+  color[0] = 0.;
+  color[1] = 1.0;
+  color[2] = 0.;
+  color[3] = 0.7;
+
+  // At time data-time, get rotationmatrix for world frame velocity reference.
+  const mjtNum axis[3] = {0.,0.,1.};  // z-axis (yaw)
+  Matrix3d R_tmp = Matrix3d::Zero();
+  mjtNum R_data[9];
+  mjtNum quat_tmp[4];
+  // Get quaternion projected on z-axis (only yaw component).
+  mju_mulQuatAxis(quat_tmp, &data->qpos[3],
+                  axis);           // Convert axis-angle to quaternion
+  mju_quat2Mat(R_data, quat_tmp);  // Convert quaternion to rotation matrix
+  updateMatrix(R_tmp, R_data);
+
+  Vector3d vel_world = Vector3d::Zero();
+  Vector3d vel_tmp = Vector3d::Zero();
+  Vector3d dx = Vector3d::Zero();
+  Matrix3d dR = Matrix3d::Zero();
+
+  double t_min = data->time;
+  double t_max = residual_.pcVel_.max() - t_min;
+  double dt = 0.02;
+  int n_points = int(t_max / dt);
+
   for (int i = 0; i < n_points; i++) {
     if (i > 0) {
       pos_previous[0] = pos[0];
       pos_previous[1] = pos[1];
       pos_previous[2] = pos[2];
     }
-    pos = residual_.curve_(float(i) / float(n_points + 3)).data();
+    double t = t_min + t_max*(float(i) / float(n_points));
+
+    vel_tmp = residual_.pcVel_(t);
+
+    // Vector3d rot = residual_.pcRot_.derivate(t,1);
+    Vector3d rot = residual_.pcRot_(t);
+    // R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., rot(2));
+    vel_world =  vel_tmp;
+
+    dR = pinocchio::rpy::rpyToMatrix(rot(0), rot(1), rot(2));
+    Vector3d dx = dR * dt * vel_world;
+    pos[0] = pos[0] + dx(0);
+    pos[1] = pos[1] + dx(1);
+    pos[2] = pos[2] + dx(2);
+
     mjvGeom *geomtest = scene->geoms + scene->ngeom++;
     mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
     scene->geoms[scene->ngeom].category = mjCAT_DECOR;
 
-    if (i > 0) {
+     if (i > 0) {
       // mjvGeom* geomtest2 = scene->geoms + scene->ngeom++;
       // make connector geom
       mjvGeom *geomtest2 = scene->geoms + scene->ngeom++;
@@ -490,20 +529,6 @@ void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
       mjv_makeConnector(geomtest2, mjGEOM_LINE, 2, from[0], from[1], from[2],
                         to[0], to[1], to[2]);
     }
-  }
-  // Plot current time target along the horizon.
-  if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
-    size[0] = 0.02;
-    size[1] = 0.02;
-    size[2] = 0.02;
-    color[0] = 0.;
-    color[1] = 1.;
-    color[2] = 0.;
-    color[3] = 1.;
-    pos = residual_.curve_(data->time - 1.).data();
-    mjvGeom *geomtest = scene->geoms + scene->ngeom++;
-    mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
-    scene->geoms[scene->ngeom].category = mjCAT_DECOR;
   }
 }
 
