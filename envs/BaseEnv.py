@@ -91,7 +91,7 @@ class BaseEnv(gym.Env):
     # Construct the absolute path
     filename = os.path.join(current_dir, relative_path)
     self.RENDERING = (render_mode == "human" )
-    self.simulator = MujocoSimulator(1, self.RENDERING, False, filename)
+    self.simulator = MujocoSimulator(4, self.RENDERING, False, filename)
 
     self.bias = True
 
@@ -192,8 +192,6 @@ class BaseEnv(gym.Env):
     # Update new infos based on the internal observer.
     self._update_infos()
 
-    observation = self._get_obs()
-    info = self._get_info()
     reward = 0.
     if self.bias:
       reward += self._reward_bias(2.5)
@@ -218,6 +216,9 @@ class BaseEnv(gym.Env):
       terminated = True
       reward += 4.
       self.general_infos["r_termination"] = 4.
+
+    observation = self._get_obs()
+    info = self._get_info()
 
     return observation, reward, terminated, truncated, info
 
@@ -275,6 +276,7 @@ class BaseEnv(gym.Env):
     # Approximate velocity on x,y.
     d_goal = self.infos["goal"][:2] - self.infos["robot_pose"][:2]
     vel_b = self.infos["velxy"]
+    print("vel_b : ", vel_b)
     # TODO : Which velocity to use ?
 
     # From ETH paper.
@@ -290,14 +292,32 @@ class BaseEnv(gym.Env):
     # vell_diff = vref - vel_b.T @ direction_vec
     # # if np.linalg.norm(vel_b) > 0.05:
     # reward += min(vel_b.T @ direction_vec, vref)
+
+    # Normalise goal direction vector.
+    norm = np.linalg.norm(d_goal)
+    if norm > 0.:
+      direction_goal = d_goal / np.linalg.norm(d_goal)
+    else:
+      direction_goal = d_goal
+
+    # Heading vector. Project base velocity along heading vector.
+    obs = self.simulator.getObervation()
+    direction_heading = np.array([np.cos(obs.filtered_pose[5]), np.sin(obs.filtered_pose[5])])
+    value_vel_heading = vel_b.T @ direction_heading
+    vel_heading = value_vel_heading * direction_heading
+
+    # Project velocity along goal direction vector.
     vref = 0.6
-    direction_vec = d_goal / np.linalg.norm(d_goal)
-    vell_diff = vref - vel_b.T @ direction_vec
-    if np.linalg.norm(vel_b) > 0.05:
-        reward += min(vel_b.T @ direction_vec, vref) / vref
+    vell_diff = vref - vel_heading.T @ direction_goal
+    if value_vel_heading < 0:
+      reward += value_vel_heading # Moving in oppisite direction of the head.
+    elif np.linalg.norm(vel_heading) > 0.05:
+      reward += min(vel_heading.T @ direction_goal, vref) / vref
+    else:
+      pass
 
     self.general_infos["r_bias"] = reward
-    self.general_infos["vel_toward_goal"] = vel_b.T @ d_goal # Along the goal direction.
+    self.general_infos["vel_toward_goal"] = vel_heading.T @ d_goal # Along the goal direction.
     return reward
 
   def _reward01(self, alpha=1.):
