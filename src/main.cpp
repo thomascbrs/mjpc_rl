@@ -31,7 +31,7 @@ int main() {
   // Construct the absolute path
   fs::path filename = current_dir / relative_path;
 
-  MujocoSimulator mjsimulator = MujocoSimulator(1,true,false,filename.c_str());
+  MujocoSimulator mjsimulator = MujocoSimulator(2,false,false,filename.c_str());
   // MujocoSimulator mjsimulator = MujocoSimulator(
   //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/cartpole/task.xml");
   // mjsimulator.runSimulation(3000);

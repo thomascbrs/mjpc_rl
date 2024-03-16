@@ -115,14 +115,14 @@ def main(num_cpu=1, mode ="rgb_array", timesteps = 20000, model_log="logs/models
     # check = check_env(env)
 
     policy_kwargs = dict(
-    net_arch=[128, 64, 32],  # This specifies the size of the MLP (number of units for each layer).
+    net_arch=[128, 64],  # This specifies the size of the MLP (number of units for each layer).
     # activation_fn=nn.elu # SBX
     activation_fn=nn.ELU # torch
     )
     learning_rate=0.0003
-    n_steps=12
-    batch_size= 1024
-    n_epochs=10
+    n_steps= 16
+    batch_size= int((n_steps * num_cpu) / 4)
+    n_epochs=5
     gamma=0.99
     gae_lambda=0.95
     clip_range=0.2
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     # freeze_support()
 
     # Parameters of training.
-    num_cpu = 2  # Nb of processes to use (nb * 4, mpc uses 4 cpus).
+    num_cpu = 32  # Nb of processes to use (nb * 4, mpc uses 4 cpus).
     mode = "" # or mode = "human"
     timesteps = 4000000
     # n_steps = int(2048 / num_cpu)

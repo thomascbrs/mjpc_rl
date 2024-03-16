@@ -57,10 +57,10 @@ public:
 private:
   // Impossible to get a member thread_local specified only at runtime.
   // Hence, using this tool to flag if thread_only is activated.
-  bool flag_thread_local = true;
-  inline thread_local static QuadrupedTask* task_;
-  // bool flag_thread_local = false;
-  // inline static QuadrupedTask* task_;
+  // bool flag_thread_local = true;
+  // inline thread_local static QuadrupedTask* task_;
+  bool flag_thread_local = false;
+  inline static QuadrupedTask* task_;
 
   mjModel *model;
   mjData *data;

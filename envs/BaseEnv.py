@@ -91,7 +91,7 @@ class BaseEnv(gym.Env):
     # Construct the absolute path
     filename = os.path.join(current_dir, relative_path)
     self.RENDERING = (render_mode == "human" )
-    self.simulator = MujocoSimulator(4, self.RENDERING, False, filename)
+    self.simulator = MujocoSimulator(2, self.RENDERING, False, filename)
 
     self.bias = True
 
@@ -242,8 +242,8 @@ class BaseEnv(gym.Env):
 
     # Reset goal position.
     self.infos["goal"] = np.zeros(6)
-    self.infos["goal"][0] = 1.5 + (2. - 1.5) * self.np_random.random()
-    self.infos["goal"][1] = 0.
+    self.infos["goal"][0] = 1.5 + (2.5 - 1.5) * self.np_random.random()
+    self.infos["goal"][1] = -1. + (1. + 1.) * self.np_random.random()
     self.infos["goal"][2] = 0.248
     self.infos["collision_status"] = 0
     self.infos["goal_reached"] = False
@@ -276,7 +276,7 @@ class BaseEnv(gym.Env):
     # Approximate velocity on x,y.
     d_goal = self.infos["goal"][:2] - self.infos["robot_pose"][:2]
     vel_b = self.infos["velxy"]
-    print("vel_b : ", vel_b)
+    # print("vel_b : ", vel_b)
     # TODO : Which velocity to use ?
 
     # From ETH paper.
