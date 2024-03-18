@@ -134,7 +134,7 @@ def main(num_cpu=1, mode ="rgb_array", timesteps = 20000, model_log="logs/models
     ent_coef=0.005
     vf_coef=0.5
     max_grad_norm=0.5
-    use_sde=True
+    use_sde=False
 
     tensorboard_log = "logs/tensorboard/"
     model = PPO("MlpPolicy", env, verbose=1, 
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     # freeze_support()
 
     # Parameters of training.
-    num_cpu = 32  # Nb of processes to use (nb * 4, mpc uses 4 cpus).
+    num_cpu = 40  # Nb of processes to use (nb * 4, mpc uses 4 cpus).
     mode = "" # or mode = "human"
     timesteps = 4000000
     # n_steps = int(2048 / num_cpu)

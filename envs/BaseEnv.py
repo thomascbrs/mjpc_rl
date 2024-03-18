@@ -218,8 +218,8 @@ class BaseEnv(gym.Env):
       # reward += self._reward01(0.6)
 
     reward += self._reward_stall()
-    # reward += self._reward_task(0.5)
-    reward += self._reward_action(actions, 0.3)
+    reward += self._reward_task(0.1)
+    reward += self._reward_action(actions, 0.5)
     reward += self._reward_behaviour()
 
     # Early termination
@@ -233,12 +233,12 @@ class BaseEnv(gym.Env):
     truncated = False
     if self.infos["t"] > 5.:
       terminated = True
-      self.general_infos["r_termination"] = -0.5
+      self.general_infos["r_termination"] = -1.
 
     if self.infos["goal_reached"]:
       print("goal reached")
       terminated = True
-      reward += 20.
+      reward += 4.
       self.general_infos["r_termination"] = 5.
 
     observation = self._get_obs()
@@ -398,7 +398,7 @@ class BaseEnv(gym.Env):
 
     return reward
 
-  def _reward_task(self, Tr=4., T=3., alpha=1.):
+  def _reward_task(self, Tr=5., T=4., alpha=1.):
     """ Task reward to reach the desired location as described in
     https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
     """
