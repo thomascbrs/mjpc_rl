@@ -42,11 +42,16 @@ class BaseEnv(gym.Env):
         "lgoal": spaces.Box(-3.5, 3.5, shape=(2, ), dtype=np.float32),
         # "contact_state": spaces.Box(lb, ub, dtype=np.float32),
         # "lfeet": spaces.Box(lb_feet, ub_feet, dtype=np.float32),
-        "pose": spaces.Box(-2., 2.,shape=(4,), dtype=np.float32),
+        "height": spaces.Box(-0.1, 2.,shape=(1,), dtype=np.float32),
+        "roll": spaces.Box(-2., 2.,shape=(1,), dtype=np.float32),
+        "pitch": spaces.Box(-2., 2.,shape=(1,), dtype=np.float32),
+        "yaw": spaces.Box(-1., 1.,shape=(2,), dtype=np.float32),
         "collision_status": spaces.Box(0., 1.,shape=(1,), dtype=np.float32),
         "lvel":spaces.Box(-3.,3.,shape=(6,), dtype=np.float32),
         "lvref":spaces.Box(-3.,3.,shape=(3,), dtype=np.float32),
-        "ori_ref":spaces.Box(-3.14,3.14,shape=(3,), dtype=np.float32)
+        "roll_ref":spaces.Box(-3.14,3.14,shape=(1,), dtype=np.float32),
+        "pitch_ref":spaces.Box(-3.14,3.14,shape=(1,), dtype=np.float32),
+        "yaw_ref":spaces.Box(-1.,1.,shape=(2,), dtype=np.float32)
         # "time":spaces.Box(0.,11., dtype=np.float32),
         # "vel_b":spaces.Box(-3.,3.,shape=(3,), dtype=np.float32)
     })
@@ -67,7 +72,7 @@ class BaseEnv(gym.Env):
 
     self.infos = dict({
         "t":0.,
-        "lgoal":np.zeros(3),
+        "lgoal":np.zeros(2),
         "robot_pose":np.zeros(3),
         "goal":np.zeros(3),
         "velxy":np.zeros(2),
@@ -129,7 +134,6 @@ class BaseEnv(gym.Env):
     collision_status = np.clip(self.infos["collision_status"], 0.,1.)
 
     lvref = np.clip(obs.lvref, -3., 3., dtype=np.float32).tolist()
-    ori_ref = np.clip(obs.orientation_ref, -3.14, 3.14, dtype=np.float32).tolist()
 
     lgoal = np.clip(self.infos["lgoal"], -3.5, 3.5, dtype=np.float32)[:2].tolist()
 
@@ -137,16 +141,30 @@ class BaseEnv(gym.Env):
     pose[:] = obs.filtered_pose[2:]
     pose = np.clip(pose, -2., 2., dtype=np.float32).tolist()
 
+    height = np.clip(obs.filtered_pose[2], -0.1, 2., dtype=np.float32).tolist()
+    roll = np.clip(obs.filtered_pose[3], -3.14, 3.14, dtype=np.float32).tolist()
+    pitch = np.clip(obs.filtered_pose[4], -3.14, 3.14, dtype=np.float32).tolist()
+    yaw = np.clip([np.cos(obs.filtered_pose[5]), np.sin(obs.filtered_pose[5])], -1., 1., dtype=np.float32).tolist()
+
+    roll_ref = np.clip(obs.orientation_ref[0], -3.14, 3.14, dtype=np.float32).tolist()
+    pitch_ref = np.clip(obs.orientation_ref[1], -3.14, 3.14, dtype=np.float32).tolist()
+    yaw_ref = np.clip([np.cos(obs.orientation_ref[2]), np.sin(obs.orientation_ref[2])], -1., 1., dtype=np.float32).tolist()
+
     observations = {
         "t": np.array([self.infos["t"]],dtype=np.float32),
         "lgoal": np.array(lgoal,dtype=np.float32) ,
         # "contact_state": np.array(contact_state,dtype=np.float32),
         # "lfeet": np.array(lfeet, dtype=np.float32),
-        "pose":np.array(pose, dtype=np.float32),
+        "height": np.array([height], dtype=np.float32),
+        "roll": np.array([roll], dtype=np.float32),
+        "pitch": np.array([pitch], dtype=np.float32),
+        "yaw": np.array(yaw, dtype=np.float32),
         "collision_status": np.array([collision_status], dtype=np.float32),
         "lvel":np.array(lvel, dtype=np.float32),
         "lvref":np.array(lvref, dtype=np.float32),
-        "ori_ref":np.array(ori_ref, dtype=np.float32),
+        "roll_ref":np.array([roll_ref], dtype=np.float32),
+        "pitch_ref":np.array([pitch_ref], dtype=np.float32),
+        "yaw_ref":np.array(yaw_ref, dtype=np.float32),
         # "time":np.array([self.infos["t"] * 0.01], dtype=np.float32),
         # "gait_info":np.array(self.gait_info, dtype=np.float32),
         # "heightmap":heightmap
@@ -167,9 +185,9 @@ class BaseEnv(gym.Env):
     self.infos["robot_pose"][:] = obs.filtered_pose[:3]
 
     # Goal position in local frame. Using filtered end poisiton.
-    R = pinocchio.rpy.rpyToMatrix(obs.filtered_pose[3], obs.filtered_pose[4], obs.filtered_pose[5])
-    T = np.array(obs.end_pose)[:3]
-    self.infos["lgoal"] = R.T @ (self.infos["goal"][:3] - T)
+    R = pinocchio.rpy.rpyToMatrix(0., 0., obs.filtered_pose[5])[:2,:2]
+    T = np.array(obs.end_pose)[:2]
+    self.infos["lgoal"][:] = R.T @ (self.infos["goal"][:2] - T)
 
     self.infos["velxy"] = np.array(obs.filtered_vel[:2])
 
@@ -234,10 +252,12 @@ class BaseEnv(gym.Env):
 
     # Reset environment around origin.
     q = [0.]*6
+    q[0] = -0.1 + (0.2 + 0.1) * self.np_random.random()
+    q[1] = -0.1 + (0.2 + 0.1) * self.np_random.random()
     q[2] = 0.3
     q[4] = -0.1 # Pitch angle
     # q[5] = 1.9
-    self.infos["robot_pose"] = np.zeros(3)
+    self.infos["robot_pose"] = np.array(q[:3])
     self.simulator.reset(q)
 
     # Reset goal position.
@@ -256,6 +276,8 @@ class BaseEnv(gym.Env):
     self.general_infos["r_angle"] = 0.
     self.general_infos["r_vel"] = 0.
     self.general_infos["r_control"] = 0.
+
+    self._update_infos()
 
     observation = self._get_obs()
     info = self._get_info()
