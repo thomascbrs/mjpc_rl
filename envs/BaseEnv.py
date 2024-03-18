@@ -63,6 +63,7 @@ class BaseEnv(gym.Env):
         "r_bias": 0.,
         "vel_toward_goal": 0.,
         "r_termination": 0.,
+        "r_task":0.,
         "timestep":0,
         "r_height":0.,
         "r_angle":0.,
@@ -194,7 +195,7 @@ class BaseEnv(gym.Env):
     self.infos["dgoal"] = np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2])
     self.general_infos["dgoal"] = self.infos["dgoal"]
 
-    self.infos["goal_reached"] = self.infos["dgoal"] < 0.15
+    self.infos["goal_reached"] = self.infos["dgoal"] < 0.2
 
     # Update general info to terminate episode if necessary
     if obs.collision_status > 0.:
@@ -216,7 +217,8 @@ class BaseEnv(gym.Env):
       # reward += self._reward01(0.6)
 
     reward += self._reward_stall()
-    # reward += self._reward_behaviour()
+    reward += self._reward_task(0.5)
+    reward += self._reward_behaviour()
 
     # Early termination
     terminated = False
@@ -229,6 +231,7 @@ class BaseEnv(gym.Env):
     truncated = False
     if self.infos["t"] > 5.:
       truncated = True
+      self.general_infos["r_termination"] = -0.5
 
     if self.infos["goal_reached"]:
       terminated = True
@@ -276,6 +279,7 @@ class BaseEnv(gym.Env):
     self.general_infos["r_angle"] = 0.
     self.general_infos["r_vel"] = 0.
     self.general_infos["r_control"] = 0.
+    self.general_infos["r_task"] = 0.
 
     self._update_infos()
 
@@ -373,33 +377,33 @@ class BaseEnv(gym.Env):
     """
     obs = self.simulator.getObervation()
 
-    r_height = -0.1 * obs.sq_height[0]
+    r_height = -0.01 * obs.sq_height[0]
     self.general_infos["r_height"] = r_height
 
-    r_angle = -0.1 * (obs.sq_angle[0] + obs.sq_angle[1] + obs.sq_angle[2])
-    self.general_infos["r_angle"] = r_angle
+    # r_angle = -0.01 * (obs.sq_angle[0] + obs.sq_angle[1] + obs.sq_angle[2])
+    # self.general_infos["r_angle"] = r_angle
 
-    r_vel = -0.01 * np.sum(obs.sq_vel)
+    r_vel = -0.001 * np.sum(obs.sq_vel)
     self.general_infos["r_vel"] = r_vel
 
-    r_control = -0.01 * obs.sq_control[0]
+    r_control = -0.001 * obs.sq_control[0]
     self.general_infos["r_control"] = r_control
 
-    reward = r_height + r_angle + r_vel + r_control
+    reward = r_height + r_vel + r_control
 
     return reward
 
-  # def _reward_task(self, Tr=4., T=2.4, alpha=1.):
-  #   """ Task reward to reach the desired location as described in
-  #   https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
-  #   """
-  #   # Reward on x,y axis.
-  #   if self.infos["t"] > T:
-  #       # reward = (1 / (Tr*self._T_nodes)) / (1 + np.linalg.norm(self._goal[:2] - self._robot_pose[:2], 2))
-  #       reward = alpha / (1 + np.linalg.norm(2 * (self.infos["lgoal"]), 2))
-  #       # reward = (1 / (Tr*self._T_nodes)) * self.function_n(np.linalg.norm(self._goal[:2] - self._robot_pose[:2])  )
-  #       self.general_infos["r_task"] = reward
-  #       return reward
-  #   else:
-  #       self.general_infos["r_task"] = 0.
-  #       return 0.
+  def _reward_task(self, Tr=4., T=3., alpha=1.):
+    """ Task reward to reach the desired location as described in
+    https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9981198.
+    """
+    # Reward on x,y axis.
+    if self.infos["t"] > T:
+        # reward = (1 / (Tr*self._T_nodes)) / (1 + np.linalg.norm(self._goal[:2] - self._robot_pose[:2], 2))
+        reward = alpha / (1 + np.linalg.norm(2 * (self.infos["lgoal"]), 2))
+        # reward = (1 / (Tr*self._T_nodes)) * self.function_n(np.linalg.norm(self._goal[:2] - self._robot_pose[:2])  )
+        self.general_infos["r_task"] = reward
+        return reward
+    else:
+        self.general_infos["r_task"] = 0.
+        return 0.
