@@ -20,7 +20,7 @@ from stable_baselines3.common.utils import set_random_seed
 
 import numpy as np
 
-def make_env(env_id, rank, seed=0, mode="rgb_array"):
+def make_env(env_id: str, rank: int, seed: int = 0, mode: str="rgb_array"):
     """
     Utility function for multiprocessed env.
 
@@ -32,8 +32,10 @@ def make_env(env_id, rank, seed=0, mode="rgb_array"):
     def _init():
         base = BaseEnv(render_mode = mode)
         env = Wrapper(base)
+        env.reset(seed=seed + rank)
         # env.seed(seed + rank)
         return env
+    set_random_seed(seed)
     return _init
 
 class TensorboardCallback(BaseCallback):
