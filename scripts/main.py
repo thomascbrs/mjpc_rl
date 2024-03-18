@@ -106,7 +106,7 @@ def main(num_cpu=1, mode ="rgb_array", timesteps = 20000, model_log="logs/models
 
     if num_cpu > 1:
         # Multiprocessing : Create the vectorized environment
-        env = SubprocVecEnv([make_env('YourCustomEnv-v0', i, mode) for i in range(num_cpu)])
+        env = SubprocVecEnv([make_env('YourCustomEnv-v0', i,0, mode) for i in range(num_cpu)])
         # env = DummyVecEnv([make_env('YourCustomEnv-v0', i, mode) for i in range(num_cpu)])
     else:
         base = BaseEnv(render_mode = mode)
@@ -121,7 +121,7 @@ def main(num_cpu=1, mode ="rgb_array", timesteps = 20000, model_log="logs/models
     # activation_fn=nn.elu # SBX
     activation_fn=nn.ELU # torch
     )
-    learning_rate=0.0003
+    learning_rate=0.0005
     n_steps= 16
     batch_size= int((n_steps * num_cpu) / 4)
     n_epochs=5
@@ -131,10 +131,10 @@ def main(num_cpu=1, mode ="rgb_array", timesteps = 20000, model_log="logs/models
     target_kl = None
     clip_range_vf=None
     normalize_advantage=True
-    ent_coef=0.02
+    ent_coef=0.005
     vf_coef=0.5
     max_grad_norm=0.5
-    use_sde=False
+    use_sde=True
 
     tensorboard_log = "logs/tensorboard/"
     model = PPO("MlpPolicy", env, verbose=1, 
@@ -155,7 +155,19 @@ def main(num_cpu=1, mode ="rgb_array", timesteps = 20000, model_log="logs/models
                 use_sde = use_sde,
                 max_grad_norm=max_grad_norm,
                 device="cuda")
-    # model = SAC("MlpPolicy", env, verbose=1, buffer_size=1000000, tensorboard_log=tensorboard_log, device="cpu")
+    # batch_size = int((n_steps * num_cpu) / 4)
+    # train_freq = 5
+    # gradient_steps = 5
+    # use_sde = True
+    # learning_starts = int((n_steps * num_cpu) / 4)
+    # model = SAC("MlpPolicy", env, verbose=1, 
+    #             buffer_size=1000000,
+    #             learning_starts = learning_starts,
+    #             train_freq = train_freq,
+    #             use_sde = use_sde,
+    #             gradient_steps=gradient_steps,
+    #             batch_size=batch_size,
+    #             tensorboard_log=tensorboard_log, device="cpu")
     model.learn(total_timesteps=timesteps, callback=TensorboardCallback(timesteps, int(timesteps / 4000), model_log))
     model.save(model_log)
 

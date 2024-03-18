@@ -14,7 +14,7 @@ from build_release.libmjpc_rl_pywrap import MujocoSimulator
 class BaseEnv(gym.Env):
   metadata = {"render_modes": ["human", "rgb_array", "logger"], "render_fps": 4}
 
-  def __init__(self, render_mode=None):
+  def __init__(self, render_mode=None, logger=False):
     super().__init__()
 
     # Action type.
@@ -97,7 +97,7 @@ class BaseEnv(gym.Env):
     # Construct the absolute path
     filename = os.path.join(current_dir, relative_path)
     self.RENDERING = (render_mode == "human" )
-    self.simulator = MujocoSimulator(2, self.RENDERING, False, filename)
+    self.simulator = MujocoSimulator(2, self.RENDERING, logger, filename)
 
     self.bias = True
 
@@ -377,13 +377,14 @@ class BaseEnv(gym.Env):
     """
     obs = self.simulator.getObervation()
 
-    r_height = -0.01 * obs.sq_height[0]
+    r_height = -0.02 * obs.sq_height[0]
     self.general_infos["r_height"] = r_height
 
     # r_angle = -0.01 * (obs.sq_angle[0] + obs.sq_angle[1] + obs.sq_angle[2])
     # self.general_infos["r_angle"] = r_angle
 
-    r_vel = -0.001 * np.sum(obs.sq_vel)
+    # r_vel = -0.001 * np.sum(obs.sq_vel)
+    r_vel = -0.001 * np.sum(obs.sq_vel[2])
     self.general_infos["r_vel"] = r_vel
 
     r_control = -0.001 * obs.sq_control[0]
