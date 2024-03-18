@@ -101,7 +101,7 @@ class BaseEnv(gym.Env):
 
     self.bias = True
 
-    self.reset()
+    # self.reset()
 
   def _get_info(self):
     return self.general_infos
@@ -230,13 +230,13 @@ class BaseEnv(gym.Env):
 
     truncated = False
     if self.infos["t"] > 5.:
-      truncated = True
+      terminated = True
       self.general_infos["r_termination"] = -0.5
 
     if self.infos["goal_reached"]:
       terminated = True
       reward += 4.
-      self.general_infos["r_termination"] = 4.
+      self.general_infos["r_termination"] = 5.
 
     observation = self._get_obs()
     info = self._get_info()
@@ -259,7 +259,7 @@ class BaseEnv(gym.Env):
     q[1] = -0.1 + (0.2 + 0.1) * self.np_random.random()
     q[2] = 0.3
     q[4] = -0.1 # Pitch angle
-    # q[5] = 1.9
+    q[5] = -1.5 + (1.5 + 1.5) * self.np_random.random()
     self.infos["robot_pose"] = np.array(q[:3])
     self.simulator.reset(q)
 
