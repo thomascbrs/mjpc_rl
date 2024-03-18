@@ -68,7 +68,8 @@ class BaseEnv(gym.Env):
         "r_height":0.,
         "r_angle":0.,
         "r_vel":0.,
-        "r_control":0.
+        "r_control":0.,
+        "r_action":0.
     })
 
     self.infos = dict({
@@ -217,7 +218,8 @@ class BaseEnv(gym.Env):
       # reward += self._reward01(0.6)
 
     reward += self._reward_stall()
-    reward += self._reward_task(0.5)
+    # reward += self._reward_task(0.5)
+    reward += self._reward_action(actions, 0.3)
     reward += self._reward_behaviour()
 
     # Early termination
@@ -234,8 +236,9 @@ class BaseEnv(gym.Env):
       self.general_infos["r_termination"] = -0.5
 
     if self.infos["goal_reached"]:
+      print("goal reached")
       terminated = True
-      reward += 4.
+      reward += 20.
       self.general_infos["r_termination"] = 5.
 
     observation = self._get_obs()
@@ -265,7 +268,7 @@ class BaseEnv(gym.Env):
 
     # Reset goal position.
     self.infos["goal"] = np.zeros(6)
-    self.infos["goal"][0] = 1.5 + (2.5 - 1.5) * self.np_random.random()
+    self.infos["goal"][0] = 0.4 + (2.5 - 0.4) * self.np_random.random()
     self.infos["goal"][1] = -1. + (1. + 1.) * self.np_random.random()
     self.infos["goal"][2] = 0.248
     self.infos["collision_status"] = 0
@@ -280,6 +283,7 @@ class BaseEnv(gym.Env):
     self.general_infos["r_vel"] = 0.
     self.general_infos["r_control"] = 0.
     self.general_infos["r_task"] = 0.
+    self.general_infos["r_action"] = 0.
 
     self._update_infos()
 
@@ -377,14 +381,14 @@ class BaseEnv(gym.Env):
     """
     obs = self.simulator.getObervation()
 
-    r_height = -0.02 * obs.sq_height[0]
+    r_height = -0.1 * obs.sq_height[0]
     self.general_infos["r_height"] = r_height
 
     # r_angle = -0.01 * (obs.sq_angle[0] + obs.sq_angle[1] + obs.sq_angle[2])
     # self.general_infos["r_angle"] = r_angle
 
     # r_vel = -0.001 * np.sum(obs.sq_vel)
-    r_vel = -0.001 * np.sum(obs.sq_vel[2])
+    r_vel = -0.01 * np.sum(obs.sq_vel[2])
     self.general_infos["r_vel"] = r_vel
 
     r_control = -0.001 * obs.sq_control[0]
@@ -408,3 +412,8 @@ class BaseEnv(gym.Env):
     else:
         self.general_infos["r_task"] = 0.
         return 0.
+
+  def _reward_action(self,actions,alpha = 1.):
+    reward = - alpha * np.linalg.norm(actions)
+    self.general_infos["r_action"] = reward
+    return reward
