@@ -3,6 +3,7 @@ import numpy as np
 import pinocchio as pin
 from ndcurves import bezier
 from copy import copy
+from scripts.Filter import Filter, FilterMean
 
 
 def plot_contact_MPCs(data):
@@ -168,6 +169,253 @@ def plot_velocity(data):
     fig_manager = plt.get_current_fig_manager()
     fig_manager.set_window_title("Foot Velocity")
 
+
+def plot_state_filter(data):
+    """ Plot the state.
+    """
+    fig, axs = plt.subplots(4, 3)
+    names = ["FR", "FL", "HR", "HL"]
+    order = [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
+
+    dt = 0.002
+    T = np.arange(0., dt * len(data.contact_forces[names[0]]), dt)
+
+    rpy = []
+    for elt in data.qpos:
+        rpy.append(pin.rpy.matrixToRpy(pin.Quaternion(elt[3], elt[4], elt[5], elt[6]).toRotationMatrix()))
+
+    filtered_states = data.qpos_fil
+
+    #################################
+    # Position x,y,z first column.
+    ax = plt.subplot(3, 4, order[0])
+    x = [pos[0] for pos in data.qpos]
+    ax.plot(T, x, "bx-", label="x")
+    x = [pos[0] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State x ")
+
+    ax = plt.subplot(3, 4, order[1])
+    x = [pos[1] for pos in data.qpos]
+    ax.plot(T, x, "bx-", label="y")
+    x = [pos[1] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State y ")
+
+    ax = plt.subplot(3, 4, order[2])
+    x = [pos[2] for pos in data.qpos]
+    ax.plot(T, x, "bx-", label="z")
+    x = [pos[2] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State z ")
+
+    ###################
+    # RPY - 2nd column.
+    ax = plt.subplot(3, 4, order[3])
+    x = [p[0] for p in rpy]
+    ax.plot(T, x, "bx-", label="roll")
+    x = [p[3] for p in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.set_title("Roll")
+
+    ax = plt.subplot(3, 4, order[4])
+    x = [p[1] for p in rpy]
+    ax.plot(T, x, "bx-", label="pitch")
+    x = [p[4] for p in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.set_title("pitch")
+
+    ax = plt.subplot(3, 4, order[5])
+    x = [p[2] for p in rpy]
+    ax.plot(T, x, "bx-", label="yaw")
+    x = [p[5] for p in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.set_title("yaw")
+
+
+    filtered_states = data.qvel_fil
+
+    ###############################
+    # Linear velocity - 3rd column.
+    ax = plt.subplot(3, 4, order[6])
+    x = [pos[0] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="vel_x")
+    x = [pos[0] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State vel_x ")
+
+    ax = plt.subplot(3, 4, order[7])
+    x = [pos[1] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="vel_y")
+    x = [pos[1] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State vel_y ")
+
+    ax = plt.subplot(3, 4, order[8])
+    x = [pos[2] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="vel_z")
+    x = [pos[2] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State vel_z ")
+
+    ###############################
+    # Angular velocity - 4th column.
+    ax = plt.subplot(3, 4, order[9])
+    x = [pos[3] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="wx")
+    x = [pos[3] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State wx ")
+
+    ax = plt.subplot(3, 4, order[10])
+    x = [pos[4] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="wy")
+    x = [pos[4] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State wy ")
+
+    ax = plt.subplot(3, 4, order[11])
+    x = [pos[5] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="wz")
+    x = [pos[5] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State wz ")
+
+    # Adjust the vertical space between subplots
+    plt.subplots_adjust(hspace=0.5)  # You can adjust the value as needed
+    fig.suptitle("States")
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("States")
+
+
+def plot_state_filterEval(data, wrapper):
+    """ Plot the state.
+    """
+    fig, axs = plt.subplots(4, 3)
+    names = ["FR", "FL", "HR", "HL"]
+    order = [1, 5, 9, 2, 6, 10, 3, 7, 11, 4, 8, 12]
+
+    dt = 0.002
+    T = np.arange(0., dt * len(data.contact_forces[names[0]]), dt)
+
+    rpy = []
+    for elt in data.qpos:
+        rpy.append(pin.rpy.matrixToRpy(pin.Quaternion(elt[3], elt[4], elt[5], elt[6]).toRotationMatrix()))
+
+    filter_pos = wrapper.getFilter()
+
+    filtered_states = []
+    for i,pos in enumerate(data.qpos):
+        filtered_states.append(filter_pos.filter(np.concatenate([pos[:3],rpy[i]])))
+
+    #################################
+    # Position x,y,z first column.
+    ax = plt.subplot(3, 4, order[0])
+    x = [pos[0] for pos in data.qpos]
+    ax.plot(T, x, "bx-", label="x")
+    x = [pos[0] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State x ")
+
+    ax = plt.subplot(3, 4, order[1])
+    x = [pos[1] for pos in data.qpos]
+    ax.plot(T, x, "bx-", label="y")
+    x = [pos[1] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State y ")
+
+    ax = plt.subplot(3, 4, order[2])
+    x = [pos[2] for pos in data.qpos]
+    ax.plot(T, x, "bx-", label="z")
+    x = [pos[2] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State z ")
+
+    ###################
+    # RPY - 2nd column.
+    ax = plt.subplot(3, 4, order[3])
+    x = [p[0] for p in rpy]
+    ax.plot(T, x, "bx-", label="roll")
+    x = [p[3] for p in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.set_title("Roll")
+
+    ax = plt.subplot(3, 4, order[4])
+    x = [p[1] for p in rpy]
+    ax.plot(T, x, "bx-", label="pitch")
+    x = [p[4] for p in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.set_title("pitch")
+
+    ax = plt.subplot(3, 4, order[5])
+    x = [p[2] for p in rpy]
+    ax.plot(T, x, "bx-", label="yaw")
+    x = [p[5] for p in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.set_title("yaw")
+
+
+    filter_vel = wrapper.getFilter()
+
+    filtered_states = []
+    for i,vel in enumerate(data.qvel):
+        filtered_states.append(filter_vel.filter(vel[:6]))
+
+    ###############################
+    # Linear velocity - 3rd column.
+    ax = plt.subplot(3, 4, order[6])
+    x = [pos[0] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="vel_x")
+    x = [pos[0] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State vel_x ")
+
+    ax = plt.subplot(3, 4, order[7])
+    x = [pos[1] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="vel_y")
+    x = [pos[1] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State vel_y ")
+
+    ax = plt.subplot(3, 4, order[8])
+    x = [pos[2] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="vel_z")
+    x = [pos[2] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State vel_z ")
+
+    ###############################
+    # Angular velocity - 4th column.
+    ax = plt.subplot(3, 4, order[9])
+    x = [pos[3] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="wx")
+    x = [pos[3] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State wx ")
+
+    ax = plt.subplot(3, 4, order[10])
+    x = [pos[4] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="wy")
+    x = [pos[4] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State wy ")
+
+    ax = plt.subplot(3, 4, order[11])
+    x = [pos[5] for pos in data.qvel]
+    ax.plot(T, x, "bx-", label="wz")
+    x = [pos[5] for pos in filtered_states]
+    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.set_title("State wz ")
+
+    # Adjust the vertical space between subplots
+    plt.subplots_adjust(hspace=0.5)  # You can adjust the value as needed
+    fig.suptitle("States")
+
+    # Get the figure manager and set the window title
+    fig_manager = plt.get_current_fig_manager()
+    fig_manager.set_window_title("States")
 
 def plot_contact_forces(data):
     fig, axs = plt.subplots(4, 3)
@@ -610,6 +858,37 @@ class BezierRef():
 
         return pitch, wpitch
 
+from enum import Enum
+
+class FilterType(Enum):
+    MOVING_AVERAGE = 1
+    LOW_PASS = 2
+
+
+class FilterWrapper:
+    def __init__(self, order, fc, fs, period, dt, filterType):
+        self.order = order
+        self.fs = fs
+        self.fc = fc
+        self.period = period
+        self.dt = dt
+
+        # Example usage
+        self.selected_filter = filterType
+
+        if self.selected_filter == FilterType.MOVING_AVERAGE:
+            print("Selected filter type: Moving Average")
+        elif self.selected_filter == FilterType.LOW_PASS:
+            print("Selected filter type: Low Pass")
+        else:
+            RuntimeError("Err")
+
+    def getFilter(self):
+        if self.selected_filter == FilterType.LOW_PASS:
+            return Filter([self.fc]*6, self.fs, self.order)
+        elif self.selected_filter == FilterType.MOVING_AVERAGE:
+            return FilterMean(self.period, self.dt)
+
 
 if __name__ == "__main__":
 
@@ -621,11 +900,20 @@ if __name__ == "__main__":
     # Load the data.
     data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
 
-    plot_contact_MPCs(data)
+    wrapper = FilterWrapper(order=1,
+                            fc=2.,
+                            fs=1/data.dt_simu,
+                            period=0.1,
+                            dt = data.dt_simu,
+                            filterType=FilterType.LOW_PASS)
+
+    # plot_contact_MPCs(data)
     # plot_contact(data)
     # plot_velocity(data)
+    plot_state_filter(data)
+    # plot_state_filterEval(data,wrapper)
     # plot_contact_forces(data)
-    plot_state_simple(data)
+    # plot_state_simple(data)
     # plot_state_mpc(data)
     # plot_angular_velocities_MPCs(data)
     # plot_angular_position_MPCs(data)
