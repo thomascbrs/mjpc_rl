@@ -27,8 +27,8 @@ class BaseEnv(gym.Env):
     # self._lb = np.concatenate([lb_vel, lb_ang])
     # self._ub = np.concatenate([ub_vel, ub_ang])
 
-    self._lb = np.array([-0.5,-0.5])
-    self._ub = np.array([0.5,0.5])
+    self._lb = np.array([-0.5,-0.5,-0.5])
+    self._ub = np.array([0.5,0.5,0.5])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
     # Observation.
@@ -210,7 +210,8 @@ class BaseEnv(gym.Env):
 
     action_6D = [0.]*6
     action_6D[0] = actions[0]
-    action_6D[5] = actions[1]
+    action_6D[4] = actions[1]
+    action_6D[5] = actions[2]
     self.simulator.step(action_6D)
 
     # Update new infos based on the internal observer.
@@ -392,7 +393,7 @@ class BaseEnv(gym.Env):
     # self.general_infos["r_angle"] = r_angle
 
     # r_vel = -0.001 * np.sum(obs.sq_vel)
-    r_vel = -0.01 * np.sum(obs.sq_vel[2])
+    r_vel = -0.02 * np.sum(obs.sq_vel[2])
     self.general_infos["r_vel"] = r_vel
 
     r_control = -0.001 * obs.sq_control[0]
