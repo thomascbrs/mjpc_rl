@@ -449,3 +449,7 @@ void MujocoSimulator::update_goal_position(std::vector<double> q){
   vz_pos[1] = q[1];
   vz_pos[2] = q[2];
 }
+
+Data MujocoSimulator::getLoggerData(){
+  return logger_.getData();
+}

@@ -53,6 +53,7 @@ public:
   void reset_task(std::vector<double> q);
   void update_goal_position(std::vector<double> q);
   ObserverData getObervation();
+  Data getLoggerData();
 
 private:
   // Impossible to get a member thread_local specified only at runtime.
