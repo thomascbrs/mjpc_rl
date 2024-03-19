@@ -893,12 +893,16 @@ class FilterWrapper:
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
+    import os
     plt.ion()
 
     curve = BezierRef()
 
     # Load the data.
-    data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    relative_path = "../../mjpc_rl/log/tmp.bin"
+    filename = os.path.join(current_dir, relative_path)
+    data = loadData(filename)
 
     wrapper = FilterWrapper(order=1,
                             fc=2.,

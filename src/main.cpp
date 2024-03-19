@@ -31,9 +31,7 @@ int main() {
   // Construct the absolute path
   fs::path filename = current_dir / relative_path;
 
-  MujocoSimulator mjsimulator = MujocoSimulator(2,false,false,filename.c_str());
-  // MujocoSimulator mjsimulator = MujocoSimulator(
-  //     "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/cartpole/task.xml");
+  MujocoSimulator mjsimulator = MujocoSimulator(2,false,true,filename.c_str());
   // mjsimulator.runSimulation(3000);
   // Add a 2-second sleep
   // std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -89,7 +87,12 @@ int main() {
     auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "Step function [ms] : " << duration1.count()  << std::endl;
   }
-  mjsimulator.save_logger("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin");
+
+
+  // Save the data.
+  fs::path relative_path_logger = "../../mjpc_rl/log/tmp.bin";
+  fs::path filename_logger = current_dir / relative_path_logger;
+  mjsimulator.save_logger(filename_logger);
 
   // ProfilerFlush();
   // delete &mjsimulator;

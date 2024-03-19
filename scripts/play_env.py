@@ -4,6 +4,7 @@ import numpy as np
 from time import sleep
 from time import perf_counter as clock
 import copy
+import os
 
 from envs.BaseEnv import BaseEnv
 from envs.wrapper import Wrapper
@@ -13,9 +14,12 @@ from stable_baselines3 import PPO
 # from sbx import PPO
 from gymnasium import spaces
 
-# model_log = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/logs/models_stream/model_19.zip" # Works well
-model_log = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/logs/models_stream/model_30.zip"
-model = PPO.load(model_log)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "../../mjpc_rl/logs/models_stream/model_30.zip"
+
+# Construct the absolute path
+filename = os.path.join(current_dir, relative_path)
+model = PPO.load(filename)
 
 base = BaseEnv(render_mode = "human", logger= True)
 wrapper_env = Wrapper(base)

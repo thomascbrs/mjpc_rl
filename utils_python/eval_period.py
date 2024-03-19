@@ -1,10 +1,16 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from build_release.libmjpc_rl_pywrap import loadData
 plt.ion()
 
 # Load the data.
-data = loadData("/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin")
+current_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "../../mjpc_rl/log/tmp.bin"
+
+# Construct the absolute path
+filename = os.path.join(current_dir, relative_path)
+data = loadData(filename)
 
 
 # Generate some sample data

@@ -12,9 +12,6 @@ void mycontroller(const mjModel *m, mjData *d) {
   //       d->ctrl, &state_.state()[0],state_.time());
 }
 
-// Logger path.
-std::string filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.csv";
-
 MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging, const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
       mcontactData(foot_names_, 0.002),

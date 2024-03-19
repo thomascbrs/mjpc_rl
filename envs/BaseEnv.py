@@ -91,7 +91,6 @@ class BaseEnv(gym.Env):
 
     self.feet_names = ["FL", "FR", "HL", "HR"] # Order matter in observation.
 
-    # filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml"
     current_dir = os.path.dirname(os.path.abspath(__file__))
     relative_path = "../../mjpc_rl/unitree_a1/task_hill.xml"
 
