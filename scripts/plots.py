@@ -4,7 +4,7 @@ import pinocchio as pin
 from ndcurves import bezier
 from copy import copy
 from scripts.Filter import Filter, FilterMean
-
+import matplotlib.pyplot as plt
 
 def plot_contact_MPCs(data):
     """ Plot the main contact status.
