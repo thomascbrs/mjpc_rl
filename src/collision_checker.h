@@ -5,22 +5,23 @@
 #include "mujoco/mujoco.h"
 #include <unordered_map>
 
-#include <hpp/fcl/internal/tools.h>
 #include <hpp/fcl/collision.h>
 #include <hpp/fcl/distance.h>
+#include <hpp/fcl/internal/tools.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
 class CollisionChecker {
- public:
+public:
   // Constructor
-  CollisionChecker():is_colliding(false) {createCollisionObjects();}
+  CollisionChecker() : is_colliding(false) { createCollisionObjects(); }
 
   // Destructor
   ~CollisionChecker() {}
 
-  bool getCollisionStatus(){return is_colliding;}
+  bool getCollisionStatus() { return is_colliding; }
+  void resetCollisionStatus() { is_colliding = false; }
 
   void createCollisionObjects() {
     // TODO: scrapping from .xml
@@ -32,32 +33,32 @@ class CollisionChecker {
     body_objects["trunk_04"] = new hpp::fcl::Box(0.005, 0.06, 0.05);
 
     // Hip collision objects.
-    body_objects["FR_hip"] = new hpp::fcl::Cylinder(0.04,0.04);
-    body_objects["FL_hip"] = new hpp::fcl::Cylinder(0.04,0.04);
-    body_objects["HR_hip"] = new hpp::fcl::Cylinder(0.04,0.04);
-    body_objects["HL_hip"] = new hpp::fcl::Cylinder(0.04,0.04);
+    body_objects["FR_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
+    body_objects["FL_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
+    body_objects["HR_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
+    body_objects["HL_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
 
     tf1_ = hpp::fcl::Transform3f::Identity(); // Bodies.
     tf2_ = hpp::fcl::Transform3f::Identity(); // Environment.
 
     // Environment
-    env_objects["floor"] = new hpp::fcl::Box(4.,4.,0.1);
-    tf2_.setTranslation(hpp::fcl::Vec3f(0.,0.,-0.1));
+    env_objects["floor"] = new hpp::fcl::Box(50., 50., 0.1);
+    tf2_.setTranslation(hpp::fcl::Vec3f(0., 0., -0.1));
 
     // use distance function in hppfcl
     request_distance_ = hpp::fcl::DistanceRequest(false, 0., 0.);
   }
 
-  void collision(mjModel* model, mjData* data) {
+  void collision(mjModel *model, mjData *data) {
 
-    for (auto& elem : body_objects) {
+    for (auto &elem : body_objects) {
       int geomId = mj_name2id(model, mjOBJ_GEOM, elem.first.c_str());
       if (geomId != -1) {
         // Retrieve position from geom_xpos
-        mjtNum* geomPos = &data->geom_xpos[3 * geomId];
+        mjtNum *geomPos = &data->geom_xpos[3 * geomId];
 
         // Retrieve orientation from geom_xmat
-        mjtNum* geomMat = &data->geom_xmat[9 * geomId];
+        mjtNum *geomMat = &data->geom_xmat[9 * geomId];
         // Convert orientation matrix to quaternion
         mjtNum quat[4];
         mju_mat2Quat(quat, geomMat);
@@ -71,7 +72,8 @@ class CollisionChecker {
         hpp::fcl::distance(elem.second, tf1_, env_objects.at("floor"), tf2_,
                            request_distance_, res_distance_);
         if (res_distance_.min_distance <= 0) {
-          std::cout << "Found collision with : " << elem.first.c_str() << std::endl;
+          // std::cout << "Found collision with : " << elem.first.c_str() <<
+          // std::endl;
           is_colliding = true;
         }
       } else {
@@ -81,12 +83,12 @@ class CollisionChecker {
     }
   }
 
- private:
+private:
   hpp::fcl::GJKSolver solver;
   // Create a list to store the geometries
   hpp::fcl::Cylinder cylinder4;
-  std::unordered_map<std::string, hpp::fcl::ShapeBase*> body_objects;
-  std::unordered_map<std::string, hpp::fcl::ShapeBase*> env_objects;
+  std::unordered_map<std::string, hpp::fcl::ShapeBase *> body_objects;
+  std::unordered_map<std::string, hpp::fcl::ShapeBase *> env_objects;
 
   // Use hpp-fcl distance function to evaluate the collision (faster).
   hpp::fcl::DistanceRequest request_distance_;
@@ -97,4 +99,4 @@ class CollisionChecker {
   bool is_colliding;
 };
 
-#endif  // COLLISION_CHECKER_HPP
+#endif // COLLISION_CHECKER_HPP

@@ -20,11 +20,11 @@
 #include "mjpc/utilities.h"
 #include <mujoco/mujoco.h>
 
+#include "pinocchio/math/rpy.hpp"
+#include "pinocchio/spatial/se3.hpp"
 #include "types.h"
 #include <Eigen/Geometry>
 #include <pinocchio/math/quaternion.hpp>
-#include "pinocchio/math/rpy.hpp"
-#include "pinocchio/spatial/se3.hpp"
 
 std::string QuadrupedTask::XmlPath() const {
   return mjpc::GetModelPath("quadruped/task_hill.xml");
@@ -163,7 +163,6 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   res_index += 12;
 
   double data_time = std::roundf(data->time * 1000) / 1000;
-  std::cout << "time : " << data_time << std::endl;
 
   // ---------- Residual (2) ----------
   // system's linear velocity
@@ -195,9 +194,9 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   // Convert R to mjtNum ref_rotmat[9]
   mjtNum ref_rotmat[9];
   for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
-          ref_rotmat[i * 3 + j] = static_cast<mjtNum>(R(i, j));
-      }
+    for (int j = 0; j < 3; ++j) {
+      ref_rotmat[i * 3 + j] = static_cast<mjtNum>(R(i, j));
+    }
   }
 
   double body_rotmat[9];
@@ -209,8 +208,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
 
   // ---------- Residual (4) ----------
   // Angular Velocity
-  double *ang_vel_trunk =
-      mjpc::SensorByName(model, data, "ang_velocity_trunk");
+  double *ang_vel_trunk = mjpc::SensorByName(model, data, "ang_velocity_trunk");
   double ang_v_ref[3];
   ang_v_ref[0] = 0.;
   ang_v_ref[1] = 0.;
@@ -222,9 +220,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   // Symmetric term
   Eigen::Map<Eigen::Matrix<double, 12, 1>> u(data->ctrl);
   Eigen::Matrix<double, 4, 1> C2_u = C2 * u;
-  mju_copy(residual + res_index, C2_u.data() , 4);
+  mju_copy(residual + res_index, C2_u.data(), 4);
   res_index += 4;
-
 
   // ---------- Residual (6) ----------
   // Residual Air-time.
@@ -246,7 +243,8 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   //   // std::cout << "\ndata->time : " << data->time << std::endl;
   //   if (parameters_[indexes[0]] > 0.05) { // Foot currently the air
   //     if (data->time - time0 + parameters_[indexes[0]] > time_limit) {
-  //       if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2 ) {
+  //       if (data->time - time0 + parameters_[indexes[0]] < time_limit + 0.2 )
+  //       {
   //         z_positions[shift] = mjpc::SensorByName(model, data, name)[2];
   //       }
   //     }
@@ -269,96 +267,150 @@ void QuadrupedTask::ResidualFn::Update() {
   risk_ = task_->risk;
   parameters_ = task_->parameters;
   // parameters_[0] --> residual_nn_updated
-  if (parameters_[0] == 1.){
+  if (parameters_[0] == 1.) {
     // Update the reference curve.
-    std::cout << "Update Reference curve." << std::endl;
+    // std::cout << "Update Reference curve." << std::endl;
 
     // Does not work : Update does not take model.
     // int indexes[2];
     // ParameterIndexes(indexes, model, "residual_nn");
     // const double *params_nn = &parameters_[0];
 
-    updateCurvesACC(parameters_.begin() + 1, parameters_.begin() + 6);
+    updateCurvesLin(parameters_.begin() + 1, parameters_.begin() + 6);
     n_update += 1;
   }
   // Reset the reference curve.
-  if (parameters_[0] == 0.){
+  if (parameters_[0] == 0.) {
     reset_curves(parameters_.begin() + 7);
     n_update = 0;
   }
 }
 
-void QuadrupedTask::ResidualFn::reset_curves(const std::vector<double>::iterator start){
-  std::cout << "Reset function in task" << std::endl;
-  // std::cout << "params : [" << *start << "," << *(start+1) << "," << *(start +2) << "]" << std::endl;
-  // Update the container of points.
+void QuadrupedTask::ResidualFn::reset_curves(
+    const std::vector<double>::iterator start) {
+  // std::cout << "Reset function in task" << std::endl;
+  // std::cout << "params : [" << *start << "," << *(start+1) << "," << *(start
+  // +2) << "]" << std::endl; Update the container of points.
   cp_rot.clear();
   cp_lin.clear();
 
   // Define a constant polynomial curve.
-  cp_rot.push_back(Eigen::Vector3d(*start, *(start+1), *(start+2)));
+  cp_rot.push_back(Eigen::Vector3d(*start, *(start + 1), *(start + 2)));
   cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
   for (int i = 1; i < 3; i++) {
     cp_rot.push_back(Eigen::Vector3d(0., 0., 0.));
     cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
   }
-  lin_velocity_ = Polynomial(
-      cp_lin.begin(), cp_lin.end(),0.,horizon_reset_);
-  ang_rotation_ = Polynomial(
-      cp_rot.begin(), cp_rot.end(),0.,horizon_reset_);
+  lin_velocity_ = Polynomial(cp_lin.begin(), cp_lin.end(), 0., horizon_reset_);
+  ang_rotation_ = Polynomial(cp_rot.begin(), cp_rot.end(), 0., horizon_reset_);
 
   pcRot_ = PieceWise();
   pcVel_ = PieceWise();
   pcRot_.add_curve(ang_rotation_);
   pcVel_.add_curve(lin_velocity_);
-
 }
 
-void QuadrupedTask::ResidualFn::updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
+void QuadrupedTask::ResidualFn::updateCurvesVEL(
+    const std::vector<double>::iterator start,
+    const std::vector<double>::iterator end) {
   double T = lin_velocity_.max();
   double T2 = lin_velocity_.max() + horizon_nn_;
   Eigen::MatrixXd minv(3, 3);
-  Eigen::MatrixXd coeffs(3,3);
+  Eigen::MatrixXd coeffs(3, 3);
   Eigen::MatrixXd b(3, 3);
-  minv << 1, 0, 0,
-          0, 1, 0,
-          -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  minv << 1, 0, 0, 0, 1, 0, -std::pow((T2 - T), -2), -std::pow((T2 - T), -1),
+      std::pow((T2 - T), -2);
 
   // Linear velocities.
   b.row(0) = pcVel_(pcVel_.max());
-  b.row(1) = pcVel_.derivate(pcVel_.max(),1);
-  b.row(2) << *start, *(start +1), *(start +2);
+  b.row(1) = pcVel_.derivate(pcVel_.max(), 1);
+  b.row(2) << *start, *(start + 1), *(start + 2);
   coeffs = minv * b;
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
+  curve_tmp =
+      Polynomial(coeffs.transpose(), pcVel_.max(), pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
   b.row(0) = pcRot_(pcRot_.max());
-  b.row(1) = pcRot_.derivate(pcRot_.max(),1);
-  b.row(2) << *start+3, *(start +4), *(start +5);
+  b.row(1) = pcRot_.derivate(pcRot_.max(), 1);
+  b.row(2) << *start + 3, *(start + 4), *(start + 5);
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
+  curveRot_tmp =
+      Polynomial(coeffs.transpose(), pcRot_.max(), pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 }
 
-
-void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end) {
+void QuadrupedTask::ResidualFn::updateCurvesLin(
+    const std::vector<double>::iterator start,
+    const std::vector<double>::iterator end) {
   double T = 0.;
   double T2 = horizon_nn_;
-  Eigen::MatrixXd coeffs(3,3);
+
+  Eigen::MatrixXd coeffs_vel(2, 3);
+  Eigen::MatrixXd b(2, 3);
+  Eigen::MatrixXd minv(2, 2);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
+  b.row(0) = pcVel_(pcVel_.max());
+  b.row(1) = pcVel_(pcVel_.max());
+  // Parameters = dV(+horizon)
+  b(1, 0) += *(start);
+  b(1, 1) += *(start + 1);
+  b(1, 2) += *(start + 2);
+  // Parameters = V(+horizon)
+  // b.row(1) << *(start), *(start +1), *(start +2);
+  coeffs_vel = minv * b;
+
+  Polynomial curveVel_tmp;
+  curveVel_tmp = Polynomial(coeffs_vel.transpose(), pcVel_.max(),
+                            pcVel_.max() + horizon_nn_);
+  pcVel_.add_curve(curveVel_tmp);
+
+  Eigen::MatrixXd coeffs_rot(2, 3);
+  minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
+  b.row(0) = pcRot_(pcRot_.max());
+  b.row(1) = pcRot_(pcRot_.max());
+  b(1, 0) += *(start + 3);
+  b(1, 1) += *(start + 4);
+  b(1, 2) += *(start + 5);
+  // b.row(1) << *(start+3), *(start +4), *(start +5);
+  coeffs_rot = minv * b;
+
+  Polynomial curveRot_tmp;
+  curveRot_tmp = Polynomial(coeffs_rot.transpose(), pcRot_.max(),
+                            pcRot_.max() + horizon_nn_);
+  pcRot_.add_curve(curveRot_tmp);
+
+  // Visualisation.
+  // double tt = 0.;
+  // std::cout << "\n\n----" << std::endl;
+  // while( tt <= pcVel_.max()){
+  //   std::cout << "Vel_ref(" << tt << ") = [" <<
+  //   pcVel_(tt)[0] << "," << pcVel_(tt)[1] << "," << pcVel_(tt)[2] << "," <<
+  //   pcRot_(tt)[0] << "," << pcRot_(tt)[1] << "," << pcRot_(tt)[2] << "]" <<
+  //   std::endl; tt += 0.01;
+  // }
+}
+
+void QuadrupedTask::ResidualFn::updateCurvesACC(
+    const std::vector<double>::iterator start,
+    const std::vector<double>::iterator end) {
+  double T = 0.;
+  double T2 = horizon_nn_;
+  Eigen::MatrixXd coeffs(3, 3);
 
   coeffs.row(0) = pcVel_(pcVel_.max());
-  coeffs.row(1) = pcVel_.derivate(pcVel_.max(),1);
-  coeffs.row(2) << *start, *(start +1), *(start +2);
+  coeffs.row(1) = pcVel_.derivate(pcVel_.max(), 1);
+  coeffs.row(2) << *start, *(start + 1), *(start + 2);
   coeffs.row(2) -= coeffs.row(1);
-  coeffs.row(2) *= 0.5/(T2 - T);
+  coeffs.row(2) *= 0.5 / (T2 - T);
 
   Polynomial curve_tmp;
-  curve_tmp = Polynomial(coeffs.transpose(),pcVel_.max(),pcVel_.max() + horizon_nn_);
+  curve_tmp =
+      Polynomial(coeffs.transpose(), pcVel_.max(), pcVel_.max() + horizon_nn_);
   pcVel_.add_curve(curve_tmp);
 
   // Rotation angles.
@@ -370,28 +422,30 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   // Eigen::MatrixXd minv(3, 3);
   // minv << 1, 0, 0,
   //         0, 1, 0,
-  //         -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 - T), -2);
+  //         -std::pow((T2 - T), -2), -std::pow((T2 - T), -1), std::pow((T2 -
+  //         T), -2);
   // b.row(0) = pcRot_(pcRot_.max());
   // b.row(1) = pcRot_.derivate(pcRot_.max(),1);
   // b.row(2) << *(start+3), *(start +4), *(start +5);
   // coeffs = minv * b;
 
   // Polynomial curveRot_tmp;
-  // curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + 0.4);
-  // pcRot_.add_curve(curveRot_tmp);
+  // curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() +
+  // 0.4); pcRot_.add_curve(curveRot_tmp);
 
   // 1st degree in rotation angle.
-  Eigen::MatrixXd coeffs_rot(2,3);
+  Eigen::MatrixXd coeffs_rot(2, 3);
   coeffs_rot.row(0) = pcRot_(pcRot_.max());
   Eigen::MatrixXd b(2, 3);
   Eigen::MatrixXd minv(2, 2);
   minv << 1, 0, -1 / (T2 - T), 1 / (T2 - T);
   b.row(0) = pcRot_(pcRot_.max());
-  b.row(1) << *(start+3), *(start +4), *(start +5);
+  b.row(1) << *(start + 3), *(start + 4), *(start + 5);
   coeffs = minv * b;
 
   Polynomial curveRot_tmp;
-  curveRot_tmp = Polynomial(coeffs.transpose(),pcRot_.max(),pcRot_.max() + horizon_nn_);
+  curveRot_tmp =
+      Polynomial(coeffs.transpose(), pcRot_.max(), pcRot_.max() + horizon_nn_);
   pcRot_.add_curve(curveRot_tmp);
 
   // Visualisation.
@@ -400,35 +454,74 @@ void QuadrupedTask::ResidualFn::updateCurvesACC(const std::vector<double>::itera
   // while( tt <= pcVel_.max()){
   //   std::cout << "Vel_ref(" << tt << ") = [" <<
   //   pcVel_(tt)[0] << "," << pcVel_(tt)[1] << "," << pcVel_(tt)[2] << "," <<
-  //   pcRot_(tt)[0] << "," << pcRot_(tt)[1] << "," << pcRot_(tt)[2] << "]" << std::endl;
-  //   tt += 0.01;
+  //   pcRot_(tt)[0] << "," << pcRot_(tt)[1] << "," << pcRot_(tt)[2] << "]" <<
+  //   std::endl; tt += 0.01;
   // }
 }
 
 // Using update function for now, maybe to use for resetting the curves.
-void QuadrupedTask::ResetLocked(const mjModel *model){}
+void QuadrupedTask::ResetLocked(const mjModel *model) {}
 
 // / draw task-related geometry in the scene
 void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
                                 mjvScene *scene) const {
-  double size[3] = {0.01};
-  double *pos;
-  double pos_previous[3];
 
-  int n_points = 20;
+  double size[3] = {0.01};
+  double pos[3];
+  pos[0] = data->qpos[0];
+  pos[1] = data->qpos[1];
+  pos[2] = data->qpos[2] + 0.05;
+  double pos_previous[3] = {pos[0], pos[1], pos[2]};
+
   // color
   float color[4];
-  color[0] = 1.0;
-  color[1] = 0.0;
-  color[2] = 1.0;
-  color[3] = 0.4;
+  color[0] = 0.;
+  color[1] = 1.0;
+  color[2] = 0.;
+  color[3] = 0.7;
+
+  // At time data-time, get rotationmatrix for world frame velocity reference.
+  const mjtNum axis[3] = {0., 0., 1.}; // z-axis (yaw)
+  Matrix3d R_tmp = Matrix3d::Zero();
+  mjtNum R_data[9];
+  mjtNum quat_tmp[4];
+  // Get quaternion projected on z-axis (only yaw component).
+  mju_mulQuatAxis(quat_tmp, &data->qpos[3],
+                  axis);          // Convert axis-angle to quaternion
+  mju_quat2Mat(R_data, quat_tmp); // Convert quaternion to rotation matrix
+  updateMatrix(R_tmp, R_data);
+
+  Vector3d vel_world = Vector3d::Zero();
+  Vector3d vel_tmp = Vector3d::Zero();
+  Vector3d dx = Vector3d::Zero();
+  Matrix3d dR = Matrix3d::Zero();
+
+  double t_min = data->time;
+  double t_max = residual_.pcVel_.max() - t_min;
+  double dt = 0.02;
+  int n_points = int(t_max / dt);
+
   for (int i = 0; i < n_points; i++) {
     if (i > 0) {
       pos_previous[0] = pos[0];
       pos_previous[1] = pos[1];
       pos_previous[2] = pos[2];
     }
-    pos = residual_.curve_(float(i) / float(n_points + 3)).data();
+    double t = t_min + t_max * (float(i) / float(n_points));
+
+    vel_tmp = residual_.pcVel_(t);
+
+    // Vector3d rot = residual_.pcRot_.derivate(t,1);
+    Vector3d rot = residual_.pcRot_(t);
+    // R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., rot(2));
+    vel_world = vel_tmp;
+
+    dR = pinocchio::rpy::rpyToMatrix(rot(0), rot(1), rot(2));
+    Vector3d dx = dR * dt * vel_world;
+    pos[0] = pos[0] + dx(0);
+    pos[1] = pos[1] + dx(1);
+    pos[2] = pos[2] + dx(2);
+
     mjvGeom *geomtest = scene->geoms + scene->ngeom++;
     mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
     scene->geoms[scene->ngeom].category = mjCAT_DECOR;
@@ -445,20 +538,6 @@ void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
       mjv_makeConnector(geomtest2, mjGEOM_LINE, 2, from[0], from[1], from[2],
                         to[0], to[1], to[2]);
     }
-  }
-  // Plot current time target along the horizon.
-  if (data->time - 1. >= 0. && data->time - 1. <= 0.82) {
-    size[0] = 0.02;
-    size[1] = 0.02;
-    size[2] = 0.02;
-    color[0] = 0.;
-    color[1] = 1.;
-    color[2] = 0.;
-    color[3] = 1.;
-    pos = residual_.curve_(data->time - 1.).data();
-    mjvGeom *geomtest = scene->geoms + scene->ngeom++;
-    mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
-    scene->geoms[scene->ngeom].category = mjCAT_DECOR;
   }
 }
 

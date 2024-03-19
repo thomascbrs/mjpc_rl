@@ -10,23 +10,23 @@ struct Settings {
   double timestep = 0.002;
   double timestep_planner = 1.0e-2;
   double horizon_planner = 0.24;
-  double n_steps = horizon_planner / timestep_planner + 1 ;
+  double n_steps = horizon_planner / timestep_planner + 1;
   int k_mpc = 10; // Not used for now.
 
-  void set_settings(mjModel* model) {
+  void set_settings(mjModel *model) {
     // Access the simulation options
-    mjOption* options = &model->opt;
+    mjOption *options = &model->opt;
     options->timestep = timestep;
-    options->integrator = mjINT_EULER;  // mjINT_RK4
-    options->cone = mjCONE_ELLIPTIC;    // mjCONE_PYRAMIDAL
+    options->integrator = mjINT_EULER; // mjINT_RK4
+    options->cone = mjCONE_ELLIPTIC;   // mjCONE_PYRAMIDAL
     options->jacobian = mjJAC_AUTO;
-    options->solver = mjSOL_NEWTON;  // mjSOL_CG, mjSOL_PGS
+    options->solver = mjSOL_NEWTON; // mjSOL_CG, mjSOL_PGS
 
-    options->iterations = 50;   // 100
-    options->tolerance = 1e-8;  // 1e-8
+    options->iterations = 50;  // 100
+    options->tolerance = 1e-8; // 1e-8
 
     options->noslip_tolerance = 1e-6;
-    options->noslip_iterations = 0;  // 3
+    options->noslip_iterations = 0; // 3
     options->mpr_tolerance = 1e-6;
 
     // Contact settings.
@@ -80,4 +80,4 @@ struct Settings {
   }
 };
 
-#endif  // SETTINGS_H_
+#endif // SETTINGS_H_

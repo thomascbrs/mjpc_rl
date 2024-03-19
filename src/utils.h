@@ -8,7 +8,6 @@
 
 #include "types.h"
 
-
 // Function to convert enum value to string
 static inline const char *enumToString(mjtObj value) {
   switch (value) {
@@ -81,8 +80,7 @@ inline mjModel *load_model(const char *modelFile) {
   return model;
 }
 
-
-inline void updateMatrix(Matrix3d& mat, double raw_data[9]) {
+inline void updateMatrix(Matrix3d &mat, double raw_data[9]) {
   mat(0, 0) = raw_data[0];
   mat(0, 1) = raw_data[1];
   mat(0, 2) = raw_data[2];
@@ -138,7 +136,7 @@ inline void infos_models(const mjModel *model) {
 }
 
 inline void ParameterIndexes(int indexes[2], const mjModel *model,
-                      const std::string_view name) {
+                             const std::string_view name) {
   int id =
       // mj_name2id(model, mjOBJ_NUMERIC, absl::StrCat("residual_",
       // name).c_str()); Use residual in name.

@@ -4,14 +4,24 @@ import example_robot_data
 import numpy as np
 from time import sleep
 from time import perf_counter as clock
+import os
 
 # robot = example_robot_data.load("a1")
 # robot.initViewer(windowName="mjpc_rl", loadModel=False)
 # robot.loadViewerModel(rootNodeName="robot")
 
-simulator = MujocoSimulator(1, True, True, "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/unitree_a1/task_hill.xml")
+# Path to the parameter file.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "../mjpc_rl/unitree_a1/task_hill.xml"
+filename = os.path.join(current_dir, relative_path)
+# Check if the file exists
+if not os.path.exists(filename):
+    error = "File does not exist: {}".format(filename)
+    raise RuntimeError(error)
+
+simulator = MujocoSimulator(2, False, True, filename)
 # simulator.reset([1.5,0.,0.3,0.,0.,0.])
-simulator.reset([0.,0.,0.3,0.,0.,1.3])
+# simulator.reset([0.,0.,0.3,0.,0.,1.3])
 obs = simulator.getObervation()
 print("lfeet : ", obs.lfeet_pos)
 
@@ -19,22 +29,26 @@ print("lfeet : ", obs.lfeet_pos)
 #                [0.8, 0.0, 0.0, 0.0, -0.15, 0.0], [0.8, 0.0, 0.0, 0.0, -0.15, 0.0], [0.8, 0.0, 0.0, 0.0, -0.15, 0.0],
 #                [0.8, 0.0, 0.0, 0.0, -0.15, 0.0], [0.0, 0.0, 0.0, 0.0, -0.15, 0.0], [0.0, 0.0, 0.0, 0.0, -0.15, 0.0],
 #                [0.0, 0.0, 0.0, 0.0, -0.15, 0.0]]
-list_points = [[0., 0.5, 0.0, 0.0, -0.1, 1.3],
-               [0., 0.5, 0.0, 0.0, -0.15, 1.3],
-               [0., 0.5, 0.0, 0.0, -0.2, 1.3],
-               [0., 0.7, 0.0, 0.0, -0.3, 1.3],
-               [0., 0., 0.0, 0.0, -0.3, 1.3],
-               [0., 0., 0.0, 0.0, -0.4, 1.3],
-               [0., 0., 0.0, 0.0, -0.4, 1.3],
-               [0.0, 0.0, 0.0, 0.0, -0.15, 1.3],
-               [0.0, 0.0, 0.0, 0.0, -0.15, 1.3],
-               [0.0, 0.0, 0.0, 0.0, -0.15, 1.3]]
+list_points = [[0.5, 0., 0.0, 0.0, -0.1, 0.],
+               [0.2, 0., 0.0, 0.0, -0., 0.],
+               [0.2, 0., 0.0, 0.0, -0., 0.],
+               [0.1, 0., 0.0, 0.0, -0., 0.],
+               [0., 0., 0.0, 0.0, -0., 0.],
+               [0., 0., 0.0, 0.0, -0., 0.],
+               [0., 0., 0.0, 0.0, -0., 0.],
+               [0.0, 0.0, 0.0, 0.0, -0., 0.],
+               [0.0, 0.0, 0.0, 0.0, -0., 0.],
+               [0.0, 0.0, 0.0, 0.0, -0., 0.]]
 
 for point in list_points:
     t0 = clock()
     simulator.step(point)
     t1 = clock()
     print("Step function [ms] : ", 1000 * (t1 - t0))
+    obs = simulator.getObervation()
+    print("obs.lvref : " , obs.lvref)
+    print("obs.orientation_ref : ", obs.orientation_ref)
+    
 
 simulator.step(list_points[0])
 simulator.step(list_points[1])
@@ -62,7 +76,9 @@ print(obs.lfeet_pos)
 # simulator.step(list_points[3])
 
 
-filename = "/home/thomas_cbrs/Desktop/edin_23/mjpc_rl/log/tmp.bin"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+relative_path = "../mjpc_rl/logs/logger/ldata.bin"
+filename = os.path.join(current_dir, relative_path)
 simulator.save_logger(filename)
 
 data = loadData(filename)

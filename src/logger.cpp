@@ -1,10 +1,12 @@
 #include "logger.h"
 
-
 #include "pinocchio/math/rpy.hpp"
 #include "pinocchio/spatial/se3.hpp"
-#include <pinocchio/math/quaternion.hpp>
 #include <Eigen/Geometry>
+#include <filesystem> // For C++17 and later
+#include <pinocchio/math/quaternion.hpp>
+
+namespace fs = std::filesystem;
 
 Logger::Logger()
     : filter_pos_(cutoff_vel, fs_vel, order_vel),
@@ -111,8 +113,9 @@ void Logger::logFeetVelocity(const mjModel *model, mjData *data) {
 
 void Logger::logFeetTouch(const mjModel *model, mjData *data) {
   for (const auto &name : foot_names_) {
-    // Disabled to reduce computing time. Each derivative wrt sensor is computed.
-    // const double *touch = mjpc::SensorByName(model, data, name + "_touch");
+    // Disabled to reduce computing time. Each derivative wrt sensor is
+    // computed. const double *touch = mjpc::SensorByName(model, data, name +
+    // "_touch");
     double touch[1];
     touch[0] = 0.;
     if (touch[0] < 0.01) {
@@ -144,17 +147,24 @@ void Logger::logState(const mjModel *model, mjData *data) {
   mjtNum R_data[9];
   mjtNum quat_tmp[4];
   Matrix3d R_tmp;
-  mju_quat2Mat(R_data,&data->qpos[3]);  // Convert quaternion to rotation matrix
+  mju_quat2Mat(R_data, &data->qpos[3]); // Convert quaternion to rotation matrix
   updateMatrix(R_tmp, R_data);
   Vector3d rpy;
-  rpy = pinocchio::rpy::matrixToRpy(Eigen::Quaterniond(data->qpos[3], data->qpos[4], data->qpos[5], data->qpos[6]).toRotationMatrix());
+  rpy = pinocchio::rpy::matrixToRpy(
+      Eigen::Quaterniond(data->qpos[3], data->qpos[4], data->qpos[5],
+                         data->qpos[6])
+          .toRotationMatrix());
 
   std::array<double, 18> qpos_tmp;
   // Reconstruct qpos array with RPY.
-  std::copy(data->qpos, data->qpos + 3, qpos_tmp.begin()); // Copy the first 3 elements from data->qpos
-  std::copy(rpy.data(), rpy.data() + 3, qpos_tmp.begin() + 3); // Copy RPY angles
-  std::copy(data->qpos + 6, data->qpos + 19, qpos_tmp.begin() + 6); // Copy the remaining elements from data->qpos
-  std::array<double,6> tmp_pos = filter_pos_.filter(qpos_tmp);
+  std::copy(data->qpos, data->qpos + 3,
+            qpos_tmp.begin()); // Copy the first 3 elements from data->qpos
+  std::copy(rpy.data(), rpy.data() + 3,
+            qpos_tmp.begin() + 3); // Copy RPY angles
+  std::copy(data->qpos + 6, data->qpos + 19,
+            qpos_tmp.begin() +
+                6); // Copy the remaining elements from data->qpos
+  std::array<double, 6> tmp_pos = filter_pos_.filter(qpos_tmp);
   data_.qpos_fil.emplace_back(tmp_pos);
 
   std::array<double, 18> qvel;
@@ -162,11 +172,22 @@ void Logger::logState(const mjModel *model, mjData *data) {
   data_.qvel.emplace_back(qvel);
 
   // Log qvel filtered
-  std::array<double,6> tmp_test = filter_vel_.filter(qvel);
+  std::array<double, 6> tmp_test = filter_vel_.filter(qvel);
   data_.qvel_fil.emplace_back(tmp_test);
 }
 
 void Logger::saveData(const std::string &fileName) {
+  // Extract directory path from the file path
+  fs::path directoryPath = fs::path(fileName).parent_path();
+
+  // Check if the directory exists
+  if (!fs::exists(directoryPath)) {
+    // Create the directory if it doesn't exist
+    if (!fs::create_directories(directoryPath)) {
+      std::cerr << "Failed to create directory: " << directoryPath << std::endl;
+      return; // Exit the function if directory creation fails
+    }
+  }
   std::ofstream file(fileName,
                      std::ios::out | std::ios::binary | std::ios::trunc);
   if (file.is_open()) {
