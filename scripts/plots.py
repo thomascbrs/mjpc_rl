@@ -900,8 +900,12 @@ if __name__ == "__main__":
 
     # Load the data.
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    relative_path = "../../mjpc_rl/log/tmp.bin"
+    relative_path = "../../mjpc_rl/logs/logger/ldata.bin"
     filename = os.path.join(current_dir, relative_path)
+    # Check if the file exists
+    if not os.path.exists(filename):
+        error = "File does not exist: {}".format(filename) + ". Run simulation with LOGGER boolean turn on."
+        raise RuntimeError(error)
     data = loadData(filename)
 
     wrapper = FilterWrapper(order=1,

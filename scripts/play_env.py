@@ -19,6 +19,10 @@ relative_path = "../../mjpc_rl/logs/models_stream/model_30.zip"
 
 # Construct the absolute path
 filename = os.path.join(current_dir, relative_path)
+# Check if the file exists
+if not os.path.exists(filename):
+    error = "File does not exist: {}".format(filename)
+    raise RuntimeError(error)
 model = PPO.load(filename)
 
 base = BaseEnv(render_mode = "human", logger= True)

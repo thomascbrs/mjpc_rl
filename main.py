@@ -14,6 +14,10 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 relative_path = "../mjpc_rl/unitree_a1/task_hill.xml"
 filename = os.path.join(current_dir, relative_path)
+# Check if the file exists
+if not os.path.exists(filename):
+    error = "File does not exist: {}".format(filename)
+    raise RuntimeError(error)
 
 simulator = MujocoSimulator(2, False, True, filename)
 # simulator.reset([1.5,0.,0.3,0.,0.,0.])
@@ -73,7 +77,7 @@ print(obs.lfeet_pos)
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-relative_path = "../mjpc_rl/log/tmp.bin"
+relative_path = "../mjpc_rl/logs/logger/ldata.bin"
 filename = os.path.join(current_dir, relative_path)
 simulator.save_logger(filename)
 

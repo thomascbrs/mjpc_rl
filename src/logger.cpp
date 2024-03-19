@@ -5,6 +5,9 @@
 #include "pinocchio/spatial/se3.hpp"
 #include <pinocchio/math/quaternion.hpp>
 #include <Eigen/Geometry>
+#include <filesystem>  // For C++17 and later
+
+namespace fs = std::filesystem;
 
 Logger::Logger()
     : filter_pos_(cutoff_vel, fs_vel, order_vel),
@@ -167,6 +170,17 @@ void Logger::logState(const mjModel *model, mjData *data) {
 }
 
 void Logger::saveData(const std::string &fileName) {
+  // Extract directory path from the file path
+  fs::path directoryPath = fs::path(fileName).parent_path();
+
+  // Check if the directory exists
+  if (!fs::exists(directoryPath)) {
+      // Create the directory if it doesn't exist
+      if (!fs::create_directories(directoryPath)) {
+          std::cerr << "Failed to create directory: " << directoryPath << std::endl;
+          return;  // Exit the function if directory creation fails
+      }
+  }
   std::ofstream file(fileName,
                      std::ios::out | std::ios::binary | std::ios::trunc);
   if (file.is_open()) {

@@ -96,6 +96,11 @@ class BaseEnv(gym.Env):
 
     # Construct the absolute path
     filename = os.path.join(current_dir, relative_path)
+    # Check if the file exists
+    if not os.path.exists(filename):
+        toprint = "File does not exist: {}".format(filename)
+        raise RuntimeError("File does not exist: {}".format(filename))
+
     self.RENDERING = (render_mode == "human" )
     self.simulator = MujocoSimulator(2, self.RENDERING, logger, filename)
 

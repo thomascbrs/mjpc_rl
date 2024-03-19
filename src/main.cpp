@@ -90,7 +90,7 @@ int main() {
 
 
   // Save the data.
-  fs::path relative_path_logger = "../../mjpc_rl/log/tmp.bin";
+  fs::path relative_path_logger = "../../mjpc_rl/logs/logger/ldata.bin";
   fs::path filename_logger = current_dir / relative_path_logger;
   mjsimulator.save_logger(filename_logger);
 
