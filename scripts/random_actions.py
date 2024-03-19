@@ -1,4 +1,4 @@
-from build_release.libmjpc_rl_pywrap import MujocoSimulator,loadData
+from build_release.libmjpc_rl_pywrap import MujocoSimulator, loadData
 
 import numpy as np
 from time import sleep
@@ -10,7 +10,7 @@ from envs.BaseEnv import BaseEnv
 # from gymnasium.wrappers import FlattenObservation, RescaleAction
 
 if __name__ == "__main__":
-    env = BaseEnv(render_mode = "human")
+    env = BaseEnv(render_mode="human")
     # observation, info = env.reset()
     for k in range(500):
         actions = env.action_space.sample()
@@ -22,7 +22,6 @@ if __name__ == "__main__":
         if truncated:
             print("Truncated due to end time reached.")
             env.reset()
-
 
     # sleep(2.)
     # observation, reward, terminated, truncated, info = env.step(action)

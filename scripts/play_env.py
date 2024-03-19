@@ -1,4 +1,4 @@
-from build_release.libmjpc_rl_pywrap import MujocoSimulator,loadData
+from build_release.libmjpc_rl_pywrap import MujocoSimulator, loadData
 
 import numpy as np
 from time import sleep
@@ -25,7 +25,7 @@ if not os.path.exists(filename):
     raise RuntimeError(error)
 model = PPO.load(filename)
 
-base = BaseEnv(render_mode = "human", logger= True)
+base = BaseEnv(render_mode="human", logger=True)
 wrapper_env = Wrapper(base)
 
 obs, info = wrapper_env.reset()
@@ -40,36 +40,38 @@ yaw_filt = []
 yaw = []
 
 
-
 def create_r_logger():
     return {
-    "reward":[],
-    "dgoal":[],
-    "r_dgoal":[],
-    "r_bias":[],
-    "vel_toward_goal":[],
-    "r_termination":[],
-    "r_task":[],
-    "timestep":[],
-    "r_height":[],
-    "r_angle":[],
-    "r_vel":[],
-    "r_control":[],
-    "r_stall":[],
-}
+        "reward": [],
+        "dgoal": [],
+        "r_dgoal": [],
+        "r_bias": [],
+        "vel_toward_goal": [],
+        "r_termination": [],
+        "r_task": [],
+        "timestep": [],
+        "r_height": [],
+        "r_angle": [],
+        "r_vel": [],
+        "r_control": [],
+        "r_stall": [],
+    }
+
 
 def register_rewards(r_logger, reward, info):
     r_logger["reward"].append(reward)
-    for key,value in info.items():
+    for key, value in info.items():
         if key in r_logger.keys():
             r_logger[key].append(value)
 
 
 def do_step(obs):
-    action, _ = model.predict(obs, deterministic=True) # Use deterministic=True for deterministic actions according to the policy
+    action, _ = model.predict(
+        obs, deterministic=True)  # Use deterministic=True for deterministic actions according to the policy
     observation, reward, terminated, truncated, info = wrapper_env.step(action)
 
     return observation, reward, terminated, truncated, info, action
+
 
 def run_episode(options=None):
     rewards = []
@@ -97,19 +99,23 @@ def run_episode(options=None):
 
     return r_logger
 
+
 def unscale_obs(obs):
     # obs_unscale = spaces.unflatten(wrapper_env.observation_space, obs)
     obs_unscale = wrapper_env._env2.inverse_observation(obs)
     return spaces.unflatten(wrapper_env.unwrapped.observation_space, obs_unscale)
+
 
 def print_dict(dt):
     for key in dt.keys():
         toprint = key + " = " + str(dt[key])
         print(toprint)
 
+
 def print_obs(obs):
     obs_un = unscale_obs(obs)
     print_dict(obs_un)
+
 
 def plot_reward(r_logger):
     import matplotlib.pyplot as plt
@@ -118,8 +124,9 @@ def plot_reward(r_logger):
 
     for key, value in r_logger.items():
         if key != "timestep":
-            plt.plot(value, label = key)
+            plt.plot(value, label=key)
     plt.legend()
+
 
 if __name__ == "__main__":
 
@@ -141,4 +148,3 @@ if __name__ == "__main__":
     # plot_state_mpc(data)
     # plot_angular_velocities_MPCs(data)
     # plot_angular_position_MPCs(data)
-

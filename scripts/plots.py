@@ -6,6 +6,7 @@ from copy import copy
 from utils_python.Filter import Filter, FilterMean
 import matplotlib.pyplot as plt
 
+
 def plot_contact_MPCs(data):
     """ Plot the main contact status.
     """
@@ -192,21 +193,21 @@ def plot_state_filter(data):
     x = [pos[0] for pos in data.qpos]
     ax.plot(T, x, "bx-", label="x")
     x = [pos[0] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State x ")
 
     ax = plt.subplot(3, 4, order[1])
     x = [pos[1] for pos in data.qpos]
     ax.plot(T, x, "bx-", label="y")
     x = [pos[1] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State y ")
 
     ax = plt.subplot(3, 4, order[2])
     x = [pos[2] for pos in data.qpos]
     ax.plot(T, x, "bx-", label="z")
     x = [pos[2] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State z ")
 
     ###################
@@ -215,23 +216,22 @@ def plot_state_filter(data):
     x = [p[0] for p in rpy]
     ax.plot(T, x, "bx-", label="roll")
     x = [p[3] for p in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="roll-filtered")
     ax.set_title("Roll")
 
     ax = plt.subplot(3, 4, order[4])
     x = [p[1] for p in rpy]
     ax.plot(T, x, "bx-", label="pitch")
     x = [p[4] for p in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="roll-filtered")
     ax.set_title("pitch")
 
     ax = plt.subplot(3, 4, order[5])
     x = [p[2] for p in rpy]
     ax.plot(T, x, "bx-", label="yaw")
     x = [p[5] for p in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="roll-filtered")
     ax.set_title("yaw")
-
 
     filtered_states = data.qvel_fil
 
@@ -241,21 +241,21 @@ def plot_state_filter(data):
     x = [pos[0] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="vel_x")
     x = [pos[0] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State vel_x ")
 
     ax = plt.subplot(3, 4, order[7])
     x = [pos[1] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="vel_y")
     x = [pos[1] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State vel_y ")
 
     ax = plt.subplot(3, 4, order[8])
     x = [pos[2] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="vel_z")
     x = [pos[2] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State vel_z ")
 
     ###############################
@@ -264,21 +264,21 @@ def plot_state_filter(data):
     x = [pos[3] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="wx")
     x = [pos[3] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State wx ")
 
     ax = plt.subplot(3, 4, order[10])
     x = [pos[4] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="wy")
     x = [pos[4] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State wy ")
 
     ax = plt.subplot(3, 4, order[11])
     x = [pos[5] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="wz")
     x = [pos[5] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State wz ")
 
     # Adjust the vertical space between subplots
@@ -307,8 +307,8 @@ def plot_state_filterEval(data, wrapper):
     filter_pos = wrapper.getFilter()
 
     filtered_states = []
-    for i,pos in enumerate(data.qpos):
-        filtered_states.append(filter_pos.filter(np.concatenate([pos[:3],rpy[i]])))
+    for i, pos in enumerate(data.qpos):
+        filtered_states.append(filter_pos.filter(np.concatenate([pos[:3], rpy[i]])))
 
     #################################
     # Position x,y,z first column.
@@ -316,21 +316,21 @@ def plot_state_filterEval(data, wrapper):
     x = [pos[0] for pos in data.qpos]
     ax.plot(T, x, "bx-", label="x")
     x = [pos[0] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State x ")
 
     ax = plt.subplot(3, 4, order[1])
     x = [pos[1] for pos in data.qpos]
     ax.plot(T, x, "bx-", label="y")
     x = [pos[1] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State y ")
 
     ax = plt.subplot(3, 4, order[2])
     x = [pos[2] for pos in data.qpos]
     ax.plot(T, x, "bx-", label="z")
     x = [pos[2] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State z ")
 
     ###################
@@ -339,28 +339,27 @@ def plot_state_filterEval(data, wrapper):
     x = [p[0] for p in rpy]
     ax.plot(T, x, "bx-", label="roll")
     x = [p[3] for p in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="roll-filtered")
     ax.set_title("Roll")
 
     ax = plt.subplot(3, 4, order[4])
     x = [p[1] for p in rpy]
     ax.plot(T, x, "bx-", label="pitch")
     x = [p[4] for p in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="roll-filtered")
     ax.set_title("pitch")
 
     ax = plt.subplot(3, 4, order[5])
     x = [p[2] for p in rpy]
     ax.plot(T, x, "bx-", label="yaw")
     x = [p[5] for p in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="roll-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="roll-filtered")
     ax.set_title("yaw")
-
 
     filter_vel = wrapper.getFilter()
 
     filtered_states = []
-    for i,vel in enumerate(data.qvel):
+    for i, vel in enumerate(data.qvel):
         filtered_states.append(filter_vel.filter(vel[:6]))
 
     ###############################
@@ -369,21 +368,21 @@ def plot_state_filterEval(data, wrapper):
     x = [pos[0] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="vel_x")
     x = [pos[0] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State vel_x ")
 
     ax = plt.subplot(3, 4, order[7])
     x = [pos[1] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="vel_y")
     x = [pos[1] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State vel_y ")
 
     ax = plt.subplot(3, 4, order[8])
     x = [pos[2] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="vel_z")
     x = [pos[2] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State vel_z ")
 
     ###############################
@@ -392,21 +391,21 @@ def plot_state_filterEval(data, wrapper):
     x = [pos[3] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="wx")
     x = [pos[3] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State wx ")
 
     ax = plt.subplot(3, 4, order[10])
     x = [pos[4] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="wy")
     x = [pos[4] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State wy ")
 
     ax = plt.subplot(3, 4, order[11])
     x = [pos[5] for pos in data.qvel]
     ax.plot(T, x, "bx-", label="wz")
     x = [pos[5] for pos in filtered_states]
-    ax.plot(T, x, "r-",linewidth=4, label="x-filtered")
+    ax.plot(T, x, "r-", linewidth=4, label="x-filtered")
     ax.set_title("State wz ")
 
     # Adjust the vertical space between subplots
@@ -416,6 +415,7 @@ def plot_state_filterEval(data, wrapper):
     # Get the figure manager and set the window title
     fig_manager = plt.get_current_fig_manager()
     fig_manager.set_window_title("States")
+
 
 def plot_contact_forces(data):
     fig, axs = plt.subplots(4, 3)
@@ -858,7 +858,9 @@ class BezierRef():
 
         return pitch, wpitch
 
+
 from enum import Enum
+
 
 class FilterType(Enum):
     MOVING_AVERAGE = 1
@@ -866,6 +868,7 @@ class FilterType(Enum):
 
 
 class FilterWrapper:
+
     def __init__(self, order, fc, fs, period, dt, filterType):
         self.order = order
         self.fs = fs
@@ -885,7 +888,7 @@ class FilterWrapper:
 
     def getFilter(self):
         if self.selected_filter == FilterType.LOW_PASS:
-            return Filter([self.fc]*6, self.fs, self.order)
+            return Filter([self.fc] * 6, self.fs, self.order)
         elif self.selected_filter == FilterType.MOVING_AVERAGE:
             return FilterMean(self.period, self.dt)
 
@@ -910,9 +913,9 @@ if __name__ == "__main__":
 
     wrapper = FilterWrapper(order=1,
                             fc=2.,
-                            fs=1/data.dt_simu,
+                            fs=1 / data.dt_simu,
                             period=0.1,
-                            dt = data.dt_simu,
+                            dt=data.dt_simu,
                             filterType=FilterType.LOW_PASS)
 
     # plot_contact_MPCs(data)

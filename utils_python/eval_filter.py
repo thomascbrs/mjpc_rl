@@ -4,8 +4,8 @@ from scipy.signal import butter, filtfilt
 import matplotlib.pyplot as plt
 from build_release.libmjpc_rl_pywrap import loadData
 from utils_python.Filter import Filter, FilterMean
-plt.ion()
 
+plt.ion()
 
 # Load the data.
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,8 +19,9 @@ if not os.path.exists(filename):
     raise RuntimeError(error)
 data = loadData(filename)
 
+
 def online_butter(xs, i):
-    return butter(order, fc / (fs/2), btype="low")
+    return butter(order, fc / (fs / 2), btype="low")
 
 
 # Generate some sample data
@@ -31,7 +32,7 @@ t = np.linspace(0, data.dt_simu * (data.size - 1), data.size)
 order = 1  # Filter order
 fs = 1 / data.dt_simu  # Sampling frequency (Hz)
 fc = [2. for _ in range(6)]  # Cutoff frequency for each axis(Hz)
-filter = Filter(fc, fs,order)
+filter = Filter(fc, fs, order)
 # filter = FilterMean(0.05,data.dt_simu)
 
 filtered_states = []
@@ -43,7 +44,7 @@ for vel in data.qvel:
 
 # Apply the filter to the data
 filtered_data = [x[2] for x in filtered_states]
-y =  [pos[2] for pos in data.qvel]
+y = [pos[2] for pos in data.qvel]
 
 # Plot the original and filtered data
 plt.figure(figsize=(10, 6))
