@@ -2,10 +2,10 @@
 #define MUJOCO_SIMULATOR_H
 
 #include "mujoco/mujoco.h"
+#include <Eigen/Dense>
 #include <GLFW/glfw3.h>
 #include <mujoco/mjvisualize.h>
 #include <vector>
-#include <Eigen/Dense>
 
 #include "mjpc/planners/gradient/planner.h"
 #include "mjpc/planners/ilqg/planner.h"
@@ -13,25 +13,26 @@
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
 
-#include <Eigen/Geometry>
-#include <pinocchio/math/quaternion.hpp>
 #include "pinocchio/math/rpy.hpp"
 #include "pinocchio/spatial/se3.hpp"
+#include <Eigen/Geometry>
+#include <pinocchio/math/quaternion.hpp>
 
-#include "types.h"
-#include "settings.h"
 #include "collision_checker.h"
 #include "contact_data.h"
-#include "observer.h"
-#include "logger.h"
 #include "custom_planner.h"
+#include "logger.h"
+#include "observer.h"
 #include "quadruped_task.h"
+#include "settings.h"
+#include "types.h"
 
 // thread_local Task* QuadrupedTask::task_ = nullptr;
 
 class MujocoSimulator {
 public:
-  MujocoSimulator(int n_threads, bool rendering, bool loggin, const char *modelFile);
+  MujocoSimulator(int n_threads, bool rendering, bool loggin,
+                  const char *modelFile);
   ~MujocoSimulator();
 
   void initialize_viewer();
@@ -61,7 +62,7 @@ private:
   // bool flag_thread_local = true;
   // inline thread_local static QuadrupedTask* task_;
   bool flag_thread_local = false;
-  inline static QuadrupedTask* task_;
+  inline static QuadrupedTask *task_;
 
   mjModel *model;
   mjData *data;
@@ -73,7 +74,7 @@ private:
 
   // Settings.
   Settings settings;
-  Eigen::Matrix<double,19,1 > q0_;
+  Eigen::Matrix<double, 19, 1> q0_;
   std::vector<double> terms_;
   bool allocate_enabled;
   bool plan_enabled;
@@ -102,8 +103,8 @@ private:
 
   // Goal visualisation
   double vz_size[3] = {0.15};
-  double vz_pos[3] = {0.,0.,-0.15};
-  float vz_color[4] = {1.,0.8,0.2,0.4};
+  double vz_pos[3] = {0., 0., -0.15};
+  float vz_color[4] = {1., 0.8, 0.2, 0.4};
 };
 
 #endif // MUJOCO_SIMULATOR_H

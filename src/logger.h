@@ -70,7 +70,7 @@ public:
   void writeToCsvFile(const std::string &fileName);
   void saveData(const std::string &fileName);
   Data loadData(const std::string &fileName);
-  Data getData(){return data_;};
+  Data getData() { return data_; };
 
 private:
   Data data_;

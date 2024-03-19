@@ -1,14 +1,16 @@
 #include "custom_planner.h"
-using mjpc::LogScale;
-using mjpc::GetDuration;
 using mjpc::DataAt;
+using mjpc::GetDuration;
+using mjpc::LogScale;
 
-void CustomiLQGPlanner::OptimizePolicyCustom(int horizon, mjpc::ThreadPool& pool){
+void CustomiLQGPlanner::OptimizePolicyCustom(int horizon,
+                                             mjpc::ThreadPool &pool) {
   this->NominalTrajectoryCustom(horizon, pool);
   this->IterationCustom(horizon, pool);
 }
 
-void CustomiLQGPlanner::NominalTrajectoryCustom(int horizon, mjpc::ThreadPool& pool){
+void CustomiLQGPlanner::NominalTrajectoryCustom(int horizon,
+                                                mjpc::ThreadPool &pool) {
   if (num_trajectory_ == 0) {
     return;
   }
@@ -64,7 +66,7 @@ void CustomiLQGPlanner::NominalTrajectoryCustom(int horizon, mjpc::ThreadPool& p
 }
 
 // single iLQG iteration
-void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool& pool) {
+void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool &pool) {
   // set previous best cost
   double previous_return = candidate_policy[0].trajectory.total_return;
 
@@ -170,7 +172,7 @@ void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool& pool) {
         if (settings.verbose) {
           printf("Backward Pass Failure (%i / %i)\n", regularization_iteration,
                  settings.max_regularization_iterations);
-          printf("  time index: %i\n", t);  // Note
+          printf("  time index: %i\n", t); // Note
           printf("  simulation time: %f\n", time);
           printf("  regularization: %f\n", backward_pass.regularization);
           printf("  regularization factor: %f\n",
@@ -232,7 +234,6 @@ void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool& pool) {
     candidate_policy[j].representation = candidate_policy[0].representation;
   }
 
-
   //////////////////////////////////////////////////////
   // Modify properties of contact.
   // solimp="0.015 0.7 0.04 0.5 2" solref="0.02 1"
@@ -248,7 +249,6 @@ void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool& pool) {
   // model->opt.o_solimp[1] = 0.95;
   // model->opt.o_solimp[2] = 0.001;
   // model->opt.o_margin = 0.001;
-
 
   // feedback rollouts (parallel)
   this->ActionRollouts(horizon, pool);
@@ -321,4 +321,3 @@ void CustomiLQGPlanner::IterationCustom(int horizon, mjpc::ThreadPool& pool) {
   backward_pass_compute_time = backward_pass_time;
   policy_update_compute_time = policy_update_time;
 }
-

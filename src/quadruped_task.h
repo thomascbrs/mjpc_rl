@@ -14,8 +14,8 @@
 
 #include "mjpc/task.h"
 // #include "ndcurves/bezier_curve.h"
-#include "ndcurves/polynomial.h"
 #include "ndcurves/piecewise_curve.h"
+#include "ndcurves/polynomial.h"
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <string>
@@ -42,23 +42,20 @@ public:
       // Create the polynomial curve, constraining the velocity.
       // This trajectory is used only during the put_on_the_floor()
       // reset method.
-      curve_ = Polynomial(
-          cp_pos.begin(), cp_pos.end(),0.,horizon_reset_);
-      lin_velocity_ = Polynomial(
-          cp_lin.begin(), cp_lin.end(),0.,horizon_reset_);
-      ang_rotation_ = Polynomial(
-          cp_rot.begin(), cp_rot.end(),0.,horizon_reset_);
+      curve_ = Polynomial(cp_pos.begin(), cp_pos.end(), 0., horizon_reset_);
+      lin_velocity_ =
+          Polynomial(cp_lin.begin(), cp_lin.end(), 0., horizon_reset_);
+      ang_rotation_ =
+          Polynomial(cp_rot.begin(), cp_rot.end(), 0., horizon_reset_);
       ang_velocity_ = ang_rotation_.compute_derivate(1);
-
 
       pcVel_.add_curve(lin_velocity_);
       pcRot_.add_curve(ang_rotation_);
 
       // Symmetric motion.
-      C2 << 0,1.,0,0,0,0,0,0,0,0,-1., 0,
-            0,0,1.,0,0,0,0,0,0,0, 0,-1.,
-            0,0,0,0,1.,0.,0,-1.,0.,0,0,0,
-            0,0,0,0,0.,1.,0,0.,-1.,0,0,0;
+      C2 << 0, 1., 0, 0, 0, 0, 0, 0, 0, 0, -1., 0, 0, 0, 1., 0, 0, 0, 0, 0, 0,
+          0, 0, -1., 0, 0, 0, 0, 1., 0., 0, -1., 0., 0, 0, 0, 0, 0, 0, 0, 0.,
+          1., 0, 0., -1., 0, 0, 0;
       // Bounding motion.
       // C2 << 0,1,0,   0,0,0,   0,-1,0,   0,0,0,
       //       0,0,1.,  0,0,0,   0,0,-1,   0,0,0.,
@@ -86,9 +83,12 @@ public:
                           const std::string_view name) const;
     /// @brief Update the ref curves
     /// @param param
-    void updateCurvesVEL(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
-    void updateCurvesACC(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
-    void updateCurvesLin(const std::vector<double>::iterator start, const std::vector<double>::iterator end);
+    void updateCurvesVEL(const std::vector<double>::iterator start,
+                         const std::vector<double>::iterator end);
+    void updateCurvesACC(const std::vector<double>::iterator start,
+                         const std::vector<double>::iterator end);
+    void updateCurvesLin(const std::vector<double>::iterator start,
+                         const std::vector<double>::iterator end);
     void reset_curves(const std::vector<double>::iterator start);
 
   private:
@@ -112,8 +112,8 @@ public:
     Polynomial ang_velocity_;
     Polynomial ang_rotation_;
 
-    std::vector<double> try_={0.,1.};
-    Eigen::Matrix<double, 4,12> C2;
+    std::vector<double> try_ = {0., 1.};
+    Eigen::Matrix<double, 4, 12> C2;
 
     // Trajectories
     PieceWise pcVel_;
@@ -122,7 +122,7 @@ public:
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
   // call base-class Reset, save task-related ids
-  void ResetLocked(const mjModel* model) override;
+  void ResetLocked(const mjModel *model) override;
   void SetParameters(const mjModel *model);
 
   // draw task-related geometry in the scene
