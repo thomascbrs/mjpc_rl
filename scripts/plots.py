@@ -3,7 +3,7 @@ import numpy as np
 import pinocchio as pin
 from ndcurves import bezier
 from copy import copy
-from scripts.Filter import Filter, FilterMean
+from utils_python.Filter import Filter, FilterMean
 import matplotlib.pyplot as plt
 
 def plot_contact_MPCs(data):
