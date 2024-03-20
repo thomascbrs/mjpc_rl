@@ -8,6 +8,7 @@ from gymnasium import spaces
 from gymnasium.spaces import Box
 from gymnasium.wrappers import FlattenObservation, RescaleAction, NormalizeReward
 from stable_baselines3 import PPO
+from sb3_contrib import RecurrentPPO
 import torch.nn as nn
 
 # import flax.linen as nn
@@ -143,7 +144,28 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     use_sde = False
 
     tensorboard_log = "logs/tensorboard/"
-    model = PPO("MlpPolicy",
+    # model = PPO("MlpPolicy",
+    #             env,
+    #             verbose=1,
+    #             tensorboard_log=tensorboard_log,
+    #             learning_rate=learning_rate,
+    #             clip_range=clip_range,
+    #             n_epochs=n_epochs,
+    #             batch_size=batch_size,
+    #             ent_coef=ent_coef,
+    #             vf_coef=vf_coef,
+    #             n_steps=n_steps,
+    #             gamma=gamma,
+    #             policy_kwargs=policy_kwargs,
+    #             gae_lambda=gae_lambda,
+    #             clip_range_vf=clip_range_vf,
+    #             normalize_advantage=normalize_advantage,
+    #             target_kl=target_kl,
+    #             use_sde=use_sde,
+    #             max_grad_norm=max_grad_norm,
+    #             device="cuda")
+
+    model = RecurrentPPO("MlpLstmPolicy",
                 env,
                 verbose=1,
                 tensorboard_log=tensorboard_log,
@@ -163,6 +185,7 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
                 use_sde=use_sde,
                 max_grad_norm=max_grad_norm,
                 device="cuda")
+
     # batch_size = int((n_steps * num_cpu) / 4)
     # train_freq = 5
     # gradient_steps = 5
