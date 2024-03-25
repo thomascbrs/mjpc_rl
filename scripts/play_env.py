@@ -9,13 +9,20 @@ import os
 from envs.BaseEnv import BaseEnv
 from envs.wrapper import Wrapper
 from scripts.plots import *
-
-from stable_baselines3 import PPO
-# from sbx import PPO
 from gymnasium import spaces
 
+
+from stable_baselines3 import PPO
+from sb3_contrib import RecurrentPPO
+# from sbx import PPO
+
+# ==============
+# Parameters
+# ==============
+LSTM = False
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
-relative_path = "../../mjpc_rl/logs/models_stream/model_30.zip"
+relative_path = "../../mjpc_rl/logs/models_stream/model_166.zip"
 
 # Construct the absolute path
 filename = os.path.join(current_dir, relative_path)
@@ -23,7 +30,15 @@ filename = os.path.join(current_dir, relative_path)
 if not os.path.exists(filename):
     error = "File does not exist: {}".format(filename)
     raise RuntimeError(error)
-model = PPO.load(filename)
+
+if LSTM:
+    model = RecurrentPPO.load(filename)
+    lstm_states = None
+    num_envs = 1
+    # Episode start signals are used to reset the lstm states
+    episode_starts = np.ones((num_envs,), dtype=bool)
+else:
+    model = PPO.load(filename)
 
 base = BaseEnv(render_mode="human", logger=True)
 wrapper_env = Wrapper(base)
@@ -71,6 +86,33 @@ def do_step(obs):
     observation, reward, terminated, truncated, info = wrapper_env.step(action)
 
     return observation, reward, terminated, truncated, info, action
+
+def run_LSTM(options=None):
+    lstm_states = None
+    num_envs = 1
+    # Episode start signals are used to reset the lstm states
+    episode_starts = np.ones((num_envs,), dtype=bool)
+
+    obs, info = wrapper_env.reset(options=options)
+    done = False
+    truncated = False
+    r_logger = create_r_logger()
+    while done == False and truncated == False and done == False:
+        action, lstm_states = model.predict(obs, state=lstm_states, episode_start=episode_starts, deterministic=True)
+        obs, reward, done, done2, info = wrapper_env.step(action)
+        episode_starts = done
+
+        # Print infos
+        print("reward : ", reward)
+        print("done : ", done)
+        print("action : ", action)
+        print_obs(obs)
+        print_dict(info)
+        # actions.append(action)
+        # infos.append(copy.deepcopy(info))
+        # rewards.append(reward)
+        register_rewards(r_logger, reward, info)
+        print("----\n")
 
 
 def run_episode(options=None):
@@ -133,7 +175,10 @@ if __name__ == "__main__":
     # obs, info = wrapper_env.reset(options=None)
     # obs, reward, done, truncated, info, action = do_step(obs)
 
-    r_logger = run_episode()
+    if LSTM:
+        r_logger = run_LSTM()
+    else:
+        r_logger = run_episode()
 
     # Plotting the logged informations
     data = wrapper_env.unwrapped.simulator.getLoggerData()
