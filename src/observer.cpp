@@ -114,12 +114,19 @@ void Observer::update_final_pose(const mjModel *model, const mjData *data) {
   pos_tmp[2] = 0.;
   // Only considering position and yaw axis.
 
-  mjtNum R_data[9];
-  mjtNum quat_tmp[4];
-  mju_mulQuatAxis(quat_tmp, &data->qpos[3],
-                  axis);          // Convert axis-angle to quaternion
-  mju_quat2Mat(R_data, quat_tmp); // Convert quaternion to rotation matrix
-  updateMatrix(R_tmp, R_data);
+  // Do not get ony yaw component, rotate the quaternion instead mju_mulQuatAxis
+  // mjtNum R_data[9];
+  // mjtNum quat_tmp[4];
+  // mju_mulQuatAxis(quat_tmp, &data->qpos[3],
+  //                 axis);          // Convert axis-angle to quaternion
+  // mju_quat2Mat(R_data, quat_tmp); // Convert quaternion to rotation matrix
+  // updateMatrix(R_tmp, R_data);
+  Eigen::Quaterniond quat(data->qpos[3], data->qpos[4], data->qpos[5], data->qpos[6]); // (w, x, y, z)
+
+  // Convert quaternion to rotation matrix
+  Eigen::Matrix3d rotation_matrix = quat.normalized().toRotationMatrix();
+  Vector3d rpy = pinocchio::rpy::matrixToRpy(rotation_matrix);
+  R_tmp = pinocchio::rpy::rpyToMatrix(0.,0.,rpy(2));
 
   for (const auto &name : odata_.foot_names) {
     // Foot position in local frame
