@@ -10,7 +10,7 @@ from envs.BaseEnv import BaseEnv
 # from gymnasium.wrappers import FlattenObservation, RescaleAction
 
 if __name__ == "__main__":
-    env = BaseEnv(render_mode="human")
+    env = BaseEnv(render_mode="h")
     # observation, info = env.reset()
     for k in range(500):
         actions = env.action_space.sample()

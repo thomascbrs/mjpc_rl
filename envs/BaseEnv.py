@@ -27,8 +27,8 @@ class BaseEnv(gym.Env):
     # self._lb = np.concatenate([lb_vel, lb_ang])
     # self._ub = np.concatenate([ub_vel, ub_ang])
 
-    self._lb = np.array([-0.5,-0.5,-0.5])
-    self._ub = np.array([0.5,0.5,0.5])
+    self._lb = np.array([-0.5,-0.2,-0.4])
+    self._ub = np.array([0.5,0.2,0.4])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
     # Observation.
@@ -389,17 +389,17 @@ class BaseEnv(gym.Env):
     r_height = -0.1 * obs.sq_height[0]
     self.general_infos["r_height"] = r_height
 
-    # r_angle = -0.01 * (obs.sq_angle[0] + obs.sq_angle[1] + obs.sq_angle[2])
-    # self.general_infos["r_angle"] = r_angle
+    r_angle = -0.005 * (obs.sq_angle[0] + obs.sq_angle[1])
+    self.general_infos["r_angle"] = r_angle
 
     # r_vel = -0.001 * np.sum(obs.sq_vel)
-    r_vel = -0.02 * np.sum(obs.sq_vel[2])
+    r_vel = -0.02 * (obs.sq_vel[2])
     self.general_infos["r_vel"] = r_vel
 
     r_control = -0.001 * obs.sq_control[0]
     self.general_infos["r_control"] = r_control
 
-    reward = r_height + r_vel + r_control
+    reward = r_height + r_vel + r_control + r_angle
 
     return reward
 
