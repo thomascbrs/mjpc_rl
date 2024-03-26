@@ -11,17 +11,18 @@ from envs.BaseEnv import BaseEnv
 
 if __name__ == "__main__":
     env = BaseEnv(render_mode="h")
-    # observation, info = env.reset()
-    for k in range(500):
-        actions = env.action_space.sample()
-        observation, reward, terminated, truncated, info = env.step(actions)
-        # print(observation["ori_ref"])
-        if terminated:
-            print("Terminated due to collision")
-            env.reset()
-        if truncated:
-            print("Truncated due to end time reached.")
-            env.reset()
+    for k in range(100):
+        observation, info = env.reset(options=dict({"envId":np.random.randint(6)}))
+        for k in range(2):
+            actions = env.action_space.sample()
+            observation, reward, terminated, truncated, info = env.step(actions)
+            # print(observation["ori_ref"])
+            if terminated:
+                print("Terminated due to collision")
+                observation, info = env.reset()
+            if truncated:
+                print("Truncated due to end time reached.")
+                observation, info = env.reset()
 
     # sleep(2.)
     # observation, reward, terminated, truncated, info = env.step(action)

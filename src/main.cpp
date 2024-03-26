@@ -61,6 +61,14 @@ int main() {
   list_points.push_back(point);
   point = {0., 0.0, 0.0, 0.0, -0., 0.0};
   list_points.push_back(point);
+  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  list_points.push_back(point);
+  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  list_points.push_back(point);
+  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  list_points.push_back(point);
+  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  list_points.push_back(point);
 
   // ProfilerStart("test.prof"); //Start profiling section and save to file
   // HeapProfilerStart("output_inside.heap");
@@ -78,7 +86,7 @@ int main() {
   // Start time before calling function1
 
   // Call function1
-  for (int j = 0; j < 10; j++) {
+  for (int j = 0; j < 14; j++) {
     auto start = std::chrono::high_resolution_clock::now();
     std::cout << "j : " << j << std::endl;
     mjsimulator.step(list_points[j]);

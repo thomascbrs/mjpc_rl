@@ -81,6 +81,10 @@ public:
             "Geometry does not exist in Collision Checker.");
       }
     }
+    // TODO: find a better implementation.
+    if (data->qpos[2] < 0.){
+      is_colliding = true;
+    }
   }
 
 private:

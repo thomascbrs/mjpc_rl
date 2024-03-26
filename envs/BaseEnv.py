@@ -10,6 +10,7 @@ import pinocchio
 import os
 
 from build_release.libmjpc_rl_pywrap import MujocoSimulator
+from envs.environment import Rectangle, create_environment
 
 class BaseEnv(gym.Env):
   metadata = {"render_modes": ["human", "rgb_array", "logger"], "render_fps": 4}
@@ -51,7 +52,8 @@ class BaseEnv(gym.Env):
         "lvref":spaces.Box(-3.,3.,shape=(3,), dtype=np.float32),
         "roll_ref":spaces.Box(-3.14,3.14,shape=(1,), dtype=np.float32),
         "pitch_ref":spaces.Box(-3.14,3.14,shape=(1,), dtype=np.float32),
-        "yaw_ref":spaces.Box(-1.,1.,shape=(2,), dtype=np.float32)
+        "yaw_ref":spaces.Box(-1.,1.,shape=(2,), dtype=np.float32),
+        "heightmap":spaces.Box(-1.,0.,shape=(91,), dtype=np.float32),
         # "time":spaces.Box(0.,11., dtype=np.float32),
         # "vel_b":spaces.Box(-3.,3.,shape=(3,), dtype=np.float32)
     })
@@ -69,7 +71,8 @@ class BaseEnv(gym.Env):
         "r_angle":0.,
         "r_vel":0.,
         "r_control":0.,
-        "r_action":0.
+        "r_action":0.,
+        "envId":0.
     })
 
     self.infos = dict({
@@ -106,7 +109,10 @@ class BaseEnv(gym.Env):
 
     self.bias = True
 
-    # self.reset()
+    # Import environement
+    self.envId = 0 # start at 0.
+    self.counter = 0
+    self.environments, self.start_zones, self.goal_zones = create_environment()
 
   def _get_info(self):
     return self.general_infos
@@ -156,6 +162,7 @@ class BaseEnv(gym.Env):
     pitch_ref = np.clip(obs.orientation_ref[1], -3.14, 3.14, dtype=np.float32).tolist()
     yaw_ref = np.clip([np.cos(obs.orientation_ref[2]), np.sin(obs.orientation_ref[2])], -1., 1., dtype=np.float32).tolist()
 
+    heightmap = np.clip(self.simulator.getHeightmap(), -1.,0., dtype=np.float32)
     observations = {
         "t": np.array([self.infos["t"]],dtype=np.float32),
         "lgoal": np.array(lgoal,dtype=np.float32) ,
@@ -171,6 +178,7 @@ class BaseEnv(gym.Env):
         "roll_ref":np.array([roll_ref], dtype=np.float32),
         "pitch_ref":np.array([pitch_ref], dtype=np.float32),
         "yaw_ref":np.array(yaw_ref, dtype=np.float32),
+        "heightmap":heightmap
         # "time":np.array([self.infos["t"] * 0.01], dtype=np.float32),
         # "gait_info":np.array(self.gait_info, dtype=np.float32),
         # "heightmap":heightmap
@@ -262,19 +270,45 @@ class BaseEnv(gym.Env):
     self.general_infos["timestep"] = 0
 
     # Reset environment around origin.
+    # Environment curriculum
     q = [0.]*6
-    q[0] = -0.1 + (0.2 + 0.1) * self.np_random.random()
-    q[1] = -0.1 + (0.2 + 0.1) * self.np_random.random()
+    if self.infos["goal_reached"] :
+      # Increase the environement.
+      if self.envId == len(self.environments) - 1 :
+        self.envId = self.np_random.integers(0, 5, size=1)[0]
+      else:
+        self.envId += 1
+      self.counter = 0
+    else:
+      self.counter += 1
+      if self.counter == 10 and self.envId != 0:
+        self.envId -= 1
+        self.counter = 0
+
+    # For replay purposes. Bypass the curriculum.
+    if isinstance(options, dict) and "envId" in options:
+      self.envId = options["envId"]
+
+    # Set starting position
+    [[xlim_min, xlim_max],[ylim_min, ylim_max]] = self.start_zones[self.envId].get_boundaries()
+    q = [0.]*6
+    q[0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
+    q[1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
     q[2] = 0.3
     q[4] = -0.1 # Pitch angle
-    q[5] = -1.5 + (1.5 + 1.5) * self.np_random.random()
+    q[5] = -0.5 + (0.5 + 0.5) * self.np_random.random()
     self.infos["robot_pose"] = np.array(q[:3])
-    self.simulator.reset(q)
+    self.simulator.reset(q, self.envId)
 
     # Reset goal position.
+    [[xlim_min, xlim_max],[ylim_min, ylim_max]] = self.goal_zones[self.envId].get_boundaries()
     self.infos["goal"] = np.zeros(6)
-    self.infos["goal"][0] = 0.4 + (2.5 - 0.4) * self.np_random.random()
-    self.infos["goal"][1] = -1. + (1. + 1.) * self.np_random.random()
+    self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
+    self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
+    # Not get a goal too close to the starting point
+    while self.envId == 0 and np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2]) <= 0.3:
+      self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
+      self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
     self.infos["goal"][2] = 0.248
     self.infos["collision_status"] = 0
     self.infos["goal_reached"] = False
@@ -289,6 +323,7 @@ class BaseEnv(gym.Env):
     self.general_infos["r_control"] = 0.
     self.general_infos["r_task"] = 0.
     self.general_infos["r_action"] = 0.
+    self.general_infos["envId"] = self.envId
 
     self._update_infos()
 

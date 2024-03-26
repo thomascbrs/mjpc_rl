@@ -228,7 +228,7 @@ void MujocoSimulator::initialize_viewer() {
   // Adjust camera distance
   cam.azimuth = 70.0;    // Set azimuth angle
   cam.elevation = -20.0; // Set elevation angle
-  cam.distance = 2.;    // Set camera distance to 1.0
+  cam.distance = 6.;    // Set camera distance to 1.0
 }
 
 void MujocoSimulator::update_viewer() {

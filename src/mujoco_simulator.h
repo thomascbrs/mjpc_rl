@@ -56,6 +56,8 @@ public:
   void update_goal_position(std::vector<double> q);
   ObserverData getObervation();
   Data getLoggerData();
+  std::vector<double> getHeightmap(){return heightmap_.get_heightmap();};
+  std::vector<double> getStartZone(){return heightmap_.get_heightmap();}
 
 private:
   // Impossible to get a member thread_local specified only at runtime.

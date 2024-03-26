@@ -18,6 +18,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 import jax
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.logger import TensorBoardOutputFormat
 
 import numpy as np
 
@@ -68,18 +69,19 @@ class TensorboardCallback(BaseCallback):
 
     def _on_step(self) -> bool:
 
-        envId = []
+        envId = [0,0,0,0,0,0]
         # Log scalar value (here a random variable)
         for i in range(len(self.locals.get("infos"))):
             for key, value in self.locals.get("infos")[i].items():
                 self.logger.record("infos/" + key, value)
                 if key == "envId":
-                    envId.append(value)
+                    envId[int(value)] += 1
         for i in range(len(self.locals.get("rewards"))):
             self.logger.record("infos/" + "rewards", self.locals.get("rewards")[i])
 
         # get envId mean:
-        # self.logger.record("infos/" + "envId", np.mean(envId))
+        for i,value in enumerate(envId):
+            self.logger.record("infos/" + "envId" + str(i), value)
 
         # Get average number of steps.
         for i, done in enumerate(self.locals.get("dones")):
