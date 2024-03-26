@@ -1,0 +1,26 @@
+<mujoco model="environment">
+  <worldbody>
+    <!-- Plateform 0 -->
+    <geom name="plateform0" class="prop" pos="0 0 -0.1" size="4. 4. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 1, gap 6cm -->
+    <geom name="plateform1" class="prop" pos="0 8 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform1_1" class="prop" pos="4.06 8 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 2, gap 12cm -->
+    <geom name="plateform2" class="prop" pos="0 14 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform2_1" class="prop" pos="4.12 14 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 3, gap 20cm -->
+    <geom name="plateform3" class="prop" pos="0 22 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform3_1" class="prop" pos="4.2 22 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 4, gap 25cm -->
+    <geom name="plateform4" class="prop" pos="0 28 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform4_1" class="prop" pos="4.25 28 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 5, gap 30cm -->
+    <geom name="plateform5" class="prop" pos="0 34 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform5_1" class="prop" pos="4.3 34 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+  </worldbody>
+</mujoco>

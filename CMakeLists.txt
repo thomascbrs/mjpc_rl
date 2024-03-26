@@ -103,6 +103,7 @@ endif()
 
 # Add the source files to the project
 add_library(mjpc_rl_cpp
+    src/heightmap.h
     src/filter.h
     src/observer.h
     src/observer.cpp

@@ -32,28 +32,28 @@ int main() {
   fs::path filename = current_dir / relative_path;
 
   MujocoSimulator mjsimulator =
-      MujocoSimulator(2, false, true, filename.c_str());
+      MujocoSimulator(2, true, true, filename.c_str());
   // mjsimulator.runSimulation(3000);
   // Add a 2-second sleep
   // std::this_thread::sleep_for(std::chrono::seconds(2));
-  std::vector<double> q0 = {0., 0., 0.3, 0., 0., 1.5};
-  mjsimulator.reset(q0);
+  std::vector<double> q0 = {0., 14., 0.5, 0., 0., 0.};
+  mjsimulator.reset(q0, 2);
 
   std::vector<std::vector<double>> list_points;
   std::vector<double> point;
   point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
   list_points.push_back(point);
-  point = {0.2, 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0.4, 0.0, 0.0, 0.0, -0., 0.1};
   list_points.push_back(point);
-  point = {0.2, 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0.4, 0.0, 0.0, 0.0, -0., 0.2};
   list_points.push_back(point);
-  point = {0.1, 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0.4, 0.0, 0.0, 0.0, -0., 0.3};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0., 0.4};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0., 0.5};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0., 0.5};
   list_points.push_back(point);
   point = {0., 0.0, 0.0, 0.0, -0., 0.0};
   list_points.push_back(point);

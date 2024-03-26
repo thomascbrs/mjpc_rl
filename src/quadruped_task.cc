@@ -145,6 +145,7 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   feet_position[11] = RL[2];
 
   // Copy in the residual.
+  // TODO: Make this cost dependent on the height.
   mju_copy(residual, feet_position, 12);
   res_index += 12;
 

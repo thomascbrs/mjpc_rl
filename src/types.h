@@ -5,7 +5,9 @@
 #include "ndcurves/polynomial.h"
 
 using Matrix3d = Eigen::Matrix<double, 3, 3>;
+using Matrix2d = Eigen::Matrix<double, 2, 2>;
 using Vector3d = Eigen::Matrix<double, 3, 1>;
+using Vector2d = Eigen::Matrix<double, 2, 1>;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::VectorXd VectorXd;
 

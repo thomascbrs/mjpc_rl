@@ -36,7 +36,7 @@
     <!-- <body name="goal" mocap="true" pos="-0.125 -0.625 0.25" quat="0.7071 0 0 -0.7071">
         <geom type="capsule" size="0.1 0.1 0.05" contype="0" conaffinity="0" rgba="0 1 0 .02" fromto="-0.1 0 0 0.1 0 0"/>
     </body> -->
-    <geom name="floor" size="50 50 0.05" pos="0 0 -0.01" type="plane" material="blue_grid"/>
+    <geom name="floor" size="50 50 0.1" pos="0 0 -2." type="plane" material="blue_grid"/>
 
     <!-- <body name="box" mocap="true" pos="-2.5 0 0">
       <geom name="box" class="prop" size="1 1 0.3"/>
@@ -44,10 +44,11 @@
     <!-- <geom name="ramp" class="prop" pos="3.13 2.5 -.18" size="1.6 1 .5" euler="0 -0.2 0"/> -->
     <!-- <geom name="hill" class="prop" pos="0 6 -5.5" size="6" type="sphere"/> -->
 
-    <!-- <geom name="box1" class="prop" pos="0 0 -.4" size="0.47 1 .4" euler="0 0 0" type="box"/>
-    <geom name="box2" class="prop" pos="2.7 0 -.4" size="2. 1 .4" euler="0 0 0" type="box"/> -->
+    <!-- <geom name="box1" class="prop" pos="0 0 0.5" size="1.4 1 0.1" euler="0 0 0" type="box"/> -->
+    <!-- <geom name="box2" class="prop" pos="3.5 0 -0.1" size="2. 1 0.4" euler="0 0 0" type="box"/> -->
   </worldbody>
 
+  <include file="../scene/environment2.xml" />
   <include file="a1.xml" />
 
   <default>

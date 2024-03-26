@@ -18,6 +18,7 @@
 #include <Eigen/Geometry>
 #include <pinocchio/math/quaternion.hpp>
 
+#include "heightmap.h"
 #include "collision_checker.h"
 #include "contact_data.h"
 #include "custom_planner.h"
@@ -44,7 +45,7 @@ public:
    *
    * @param q0 Inital config x6 [x,y,z,r,p,y]
    */
-  void reset(std::vector<double> q0);
+  void reset(std::vector<double> q0, int envId);
   void runSimulation(int numSteps);
   void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);
@@ -105,6 +106,9 @@ private:
   double vz_size[3] = {0.15};
   double vz_pos[3] = {0., 0., -0.15};
   float vz_color[4] = {1., 0.8, 0.2, 0.4};
+
+  // Heightmap
+  Heightmap heightmap_;
 };
 
 #endif // MUJOCO_SIMULATOR_H

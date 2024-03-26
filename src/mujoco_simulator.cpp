@@ -97,6 +97,10 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
   mjcb_control = mycontroller;
   mjcb_sensor = &MujocoSimulator::sensor;
 
+  // Heightmap
+  heightmap_ = Heightmap();
+  heightmap_.create_environment1();
+
   // Initialisation
   planner.UpdateNumTrajectoriesFromGUI();
   put_robot_on_floor(200, q0_.tail(12));
@@ -107,7 +111,7 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
   col.collision(model, data);
 }
 
-void MujocoSimulator::reset(std::vector<double> q) {
+void MujocoSimulator::reset(std::vector<double> q, int envId) {
   if (q.size() != 6) {
     throw std::runtime_error("q0 should be size 6, [x,y,z,r,p,y]");
   }
@@ -125,6 +129,9 @@ void MujocoSimulator::reset(std::vector<double> q) {
   for (int i = 7; i < model->nq; ++i) {
     data->qpos[i] = q0_[i];
   }
+  // Set environement for heightmap
+  heightmap_.setCurrentEnvironment(envId);
+  heightmap_.update_heightmap(model, data);
 
   // Reset task
   task_->Reset(model);
@@ -221,7 +228,7 @@ void MujocoSimulator::initialize_viewer() {
   // Adjust camera distance
   cam.azimuth = 70.0;    // Set azimuth angle
   cam.elevation = -20.0; // Set elevation angle
-  cam.distance = 3.5;    // Set camera distance to 1.0
+  cam.distance = 2.;    // Set camera distance to 1.0
 }
 
 void MujocoSimulator::update_viewer() {
@@ -234,6 +241,7 @@ void MujocoSimulator::update_viewer() {
   // Adjust the camera position based on the trunk body position
   cam.lookat[0] = data->xpos[trunkBodyId * 3];
   cam.lookat[1] = data->xpos[trunkBodyId * 3 + 1];
+  cam.lookat[2] = data->xpos[trunkBodyId * 3 + 2];
   // scn.cam.lookat[2] = data->xpos[trunkBodyId * 3 + 2];
 
   // get framebuffer viewport
@@ -247,6 +255,42 @@ void MujocoSimulator::update_viewer() {
   mjvGeom *geomtest = scn.geoms + scn.ngeom++;
   mjv_initGeom(geomtest, mjGEOM_SPHERE, vz_size, vz_pos, NULL, vz_color);
   scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+
+  // Add heightmap.
+  // if (heightmap_.getCurrentEnvironment() != -1){
+  //   heightmap_.update_heightmap(model, data);
+  // }
+  double vh_size[3] = {0.02};
+  float vh_color[4] = {0., 0.9, 0.1, 0.6};
+  for (int i=0; i < heightmap_.Nx_; i++) {
+    for (int j=0; j < heightmap_.Ny_; j++) {
+      double pos_tmp[3] = {0.,0.,0.};
+      pos_tmp[0] = heightmap_.xx_w(i,j);
+      pos_tmp[1] = heightmap_.yy_w(i,j);
+      // if (i == 3 && j == 4){
+      //     std::cout << "--height--\n" << std::endl;
+      //     std::cout << "pos_w : [" << pos_tmp[0] << "," << pos_tmp[1] << "]" << std::endl;
+      //     std::cout << "--" << std::endl;
+      //   }
+      if (heightmap_.z_(i, j) == 0.){
+        pos_tmp[2] = 0.;
+        vh_color[0] = 0.9;
+        vh_color[1] = 0.0;
+        vh_color[2] = 0.0;
+        vh_color[3] = 0.7;
+      }
+      else{
+        pos_tmp[2] = 0.;
+        vh_color[0] = 1.;
+        vh_color[1] = 1.;
+        vh_color[2] = 1.;
+        vh_color[3] = 0.90;
+      }
+      mjvGeom *geomtmp = scn.geoms + scn.ngeom++;
+      mjv_initGeom(geomtmp, mjGEOM_SPHERE, vh_size, pos_tmp, NULL, vh_color);
+      scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+    }
+  }
 
   // Add visualisation.
   if (data->time > 0.42) {
@@ -433,6 +477,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
 
   observer.update_contact_status(mcontactData);
   observer.update_final_pose(model, data);
+  heightmap_.update_heightmap(model, data);
   n_iteration++;
   return;
 }
