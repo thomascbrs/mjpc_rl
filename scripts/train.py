@@ -133,7 +133,7 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     policy_kwargs = dict(activation_fn=nn.ELU,
                         net_arch=dict(pi=[128,64], vf=[128,64]))
     learning_rate = 0.0005
-    n_steps = 16
+    n_steps = 24
     batch_size = int((n_steps * num_cpu) / 4)
     n_epochs = 5
     gamma = 0.99
@@ -148,32 +148,7 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     use_sde = False
 
     tensorboard_log = "logs/tensorboard/"
-    model = PPO("MlpPolicy",
-                env,
-                verbose=1,
-                tensorboard_log=tensorboard_log,
-                learning_rate=learning_rate,
-                clip_range=clip_range,
-                n_epochs=n_epochs,
-                batch_size=batch_size,
-                ent_coef=ent_coef,
-                vf_coef=vf_coef,
-                n_steps=n_steps,
-                gamma=gamma,
-                policy_kwargs=policy_kwargs,
-                gae_lambda=gae_lambda,
-                clip_range_vf=clip_range_vf,
-                normalize_advantage=normalize_advantage,
-                target_kl=target_kl,
-                use_sde=use_sde,
-                max_grad_norm=max_grad_norm,
-                device="cuda")
-
-    # policy_kwargs = dict(activation_fn=nn.ELU,
-    #                     lstm_hidden_size=128,
-    #                     net_arch=dict(pi=[128,64], vf=[128,64]))
-
-    # model = RecurrentPPO("MlpLstmPolicy",
+    # model = PPO("MlpPolicy",
     #             env,
     #             verbose=1,
     #             tensorboard_log=tensorboard_log,
@@ -193,6 +168,31 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     #             use_sde=use_sde,
     #             max_grad_norm=max_grad_norm,
     #             device="cuda")
+
+    policy_kwargs = dict(activation_fn=nn.ELU,
+                        lstm_hidden_size=256,
+                        net_arch=dict(pi=[128,64], vf=[128,64]))
+
+    model = RecurrentPPO("MlpLstmPolicy",
+                env,
+                verbose=1,
+                tensorboard_log=tensorboard_log,
+                learning_rate=learning_rate,
+                clip_range=clip_range,
+                n_epochs=n_epochs,
+                batch_size=batch_size,
+                ent_coef=ent_coef,
+                vf_coef=vf_coef,
+                n_steps=n_steps,
+                gamma=gamma,
+                policy_kwargs=policy_kwargs,
+                gae_lambda=gae_lambda,
+                clip_range_vf=clip_range_vf,
+                normalize_advantage=normalize_advantage,
+                target_kl=target_kl,
+                use_sde=use_sde,
+                max_grad_norm=max_grad_norm,
+                device="cuda")
 
     # batch_size = int((n_steps * num_cpu) / 4)
     # train_freq = 5

@@ -28,7 +28,7 @@ class BaseEnv(gym.Env):
     # self._lb = np.concatenate([lb_vel, lb_ang])
     # self._ub = np.concatenate([ub_vel, ub_ang])
 
-    self._lb = np.array([-0.5,-0.2,-0.4])
+    self._lb = np.array([-0.2,-0.2,-0.4])
     self._ub = np.array([0.5,0.2,0.4])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
@@ -228,18 +228,19 @@ class BaseEnv(gym.Env):
 
     reward = 0.
     if self.bias:
-      reward += self._reward_bias(2.5)
+      reward += self._reward_bias(1.)
       # reward += self._reward01(0.6)
 
-    reward += self._reward_stall()
-    reward += self._reward_task(0.5)
-    reward += self._reward_action(actions, 0.5)
-    reward += self._reward_behaviour()
+    # reward += self._reward_stall()
+    reward += self._reward_task(Tr=5., T=3.,alpha=1.)
+    # reward += self._reward_action(actions, 0.5)
+    # reward += self._reward_behaviour()
 
     # Early termination
     terminated = False
     if self.infos["collision_status"] > 0:
       terminated = True
+      alpha = 4
       # Negative penalty when colliding with the ground.
       reward -= 5. * ( (5. - self.infos["t"]) / 5.)
       self.general_infos["r_termination"] = - 5. * ( (5. - self.infos["t"]) / 5.) - 1.5
@@ -252,7 +253,7 @@ class BaseEnv(gym.Env):
     if self.infos["goal_reached"]:
       print("goal reached")
       terminated = True
-      reward += 4.
+      reward += 6.
       self.general_infos["r_termination"] = 5.
 
     observation = self._get_obs()
@@ -390,7 +391,9 @@ class BaseEnv(gym.Env):
       reward += min(vel_heading.T @ direction_goal, vref) / vref
     else:
       pass
-
+    
+    reward *= alpha
+    reward = np.clip(reward, -alpha,alpha)
     self.general_infos["r_bias"] = reward
     self.general_infos["vel_toward_goal"] = vel_heading.T @ d_goal # Along the goal direction.
     return reward
@@ -429,7 +432,7 @@ class BaseEnv(gym.Env):
     r_height = -0.1 * obs.sq_height[0]
     self.general_infos["r_height"] = r_height
 
-    r_angle = -0.005 * (obs.sq_angle[0] + obs.sq_angle[1])
+    r_angle = -0.05 * (obs.sq_angle[0] + obs.sq_angle[1])
     self.general_infos["r_angle"] = r_angle
 
     # r_vel = -0.001 * np.sum(obs.sq_vel)

@@ -37,7 +37,7 @@ def create_environment():
     ]
 
     goal_zones = [
-        Rectangle(1.8, 0.0, 1.5, 1.5),      # Environment 0
+        Rectangle(2., 0.0, 0.5, 0.5),      # Environment 0
         Rectangle(3.56, 8.0, 0.5, 0.5),     # Environment 1
         Rectangle(3.62, 14.0, 0.5, 0.5),    # Environment 2
         Rectangle(3.7, 22.0, 0.5, 0.5),     # Environment 3
