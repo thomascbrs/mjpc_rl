@@ -111,7 +111,8 @@ class BaseEnv(gym.Env):
 
     # Import environement
     self.envId = 0 # start at 0.
-    self.counter = 0
+    self.counter_failure = 0
+    self.counter_success = 0
     self.environments, self.start_zones, self.goal_zones = create_environment()
 
   def _get_info(self):
@@ -231,7 +232,7 @@ class BaseEnv(gym.Env):
       # reward += self._reward01(0.6)
 
     reward += self._reward_stall()
-    reward += self._reward_task(0.1)
+    reward += self._reward_task(0.5)
     reward += self._reward_action(actions, 0.5)
     reward += self._reward_behaviour()
 
@@ -241,7 +242,7 @@ class BaseEnv(gym.Env):
       terminated = True
       # Negative penalty when colliding with the ground.
       reward -= 5. * ( (5. - self.infos["t"]) / 5.)
-      self.general_infos["r_termination"] = - 5. * ( (5. - self.infos["t"]) / 5.)
+      self.general_infos["r_termination"] = - 5. * ( (5. - self.infos["t"]) / 5.) - 1.5
 
     truncated = False
     if self.infos["t"] > 5.:
@@ -274,16 +275,20 @@ class BaseEnv(gym.Env):
     q = [0.]*6
     if self.infos["goal_reached"] :
       # Increase the environement.
-      if self.envId == len(self.environments) - 1 :
-        self.envId = self.np_random.integers(0, 5, size=1)[0]
-      else:
-        self.envId += 1
-      self.counter = 0
+      self.counter_success += 1
+      if self.counter_success >= 2:
+        if self.envId == len(self.environments) - 1 :
+          self.envId = self.np_random.integers(0, 5, size=1)[0]
+        else:
+          self.envId += 1
+        self.counter_failure = 0
+        self.counter_success = 0
     else:
-      self.counter += 1
-      if self.counter == 10 and self.envId != 0:
+      self.counter_failure += 1
+      if self.counter_failure > 8 and self.envId != 0:
         self.envId -= 1
-        self.counter = 0
+        self.counter_failure = 0
+        self.counter_success = 0
 
     # For replay purposes. Bypass the curriculum.
     if isinstance(options, dict) and "envId" in options:
