@@ -115,6 +115,13 @@ class BaseEnv(gym.Env):
     self.counter_success = 0
     self.environments, self.start_zones, self.goal_zones = create_environment()
 
+    self.reset_options = {
+      "envId":0,
+      "q0":[0.]*6,
+      "goal":[0.]*2,
+      "mpc":[1.,2.,5.]
+    }
+
   def _get_info(self):
     return self.general_infos
 
@@ -295,30 +302,56 @@ class BaseEnv(gym.Env):
     if isinstance(options, dict) and "envId" in options:
       self.envId = options["envId"]
 
+    # Update reset_options_dict to replay the episode
+    self.reset_options["envId"] = self.envId
+
     # Set starting position
-    [[xlim_min, xlim_max],[ylim_min, ylim_max]] = self.start_zones[self.envId].get_boundaries()
     q = [0.]*6
-    q[0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
-    q[1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
-    q[2] = 0.3
-    q[4] = -0.1 # Pitch angle
-    q[5] = -0.5 + (0.5 + 0.5) * self.np_random.random()
-    self.infos["robot_pose"] = np.array(q[:3])
+    if isinstance(options, dict) and "q0" in options:
+      assert isinstance(options["q0"],list), "q0 attribute should be a list."
+      assert len(options["q0"]) == 6, "q0 should be size 6."
+      q[:] = options["q0"][:]
+    else:
+      [[xlim_min, xlim_max],[ylim_min, ylim_max]] = self.start_zones[self.envId].get_boundaries()
+      q[0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
+      q[1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
+      q[2] = 0.3
+      q[4] = -0.1 # Pitch angle
+      q[5] = -0.5 + (0.5 + 0.5) * self.np_random.random()
+      self.infos["robot_pose"] = np.array(q[:3])
+    # Update reset_options_dict to replay the episode
+    self.reset_options["q0"][:] = q[:] # copy
     self.simulator.reset(q, self.envId)
 
     # Reset goal position.
-    [[xlim_min, xlim_max],[ylim_min, ylim_max]] = self.goal_zones[self.envId].get_boundaries()
     self.infos["goal"] = np.zeros(6)
-    self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
-    self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
-    # Not get a goal too close to the starting point
-    while self.envId == 0 and np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2]) <= 0.3:
+    if isinstance(options, dict) and "goal" in options:
+      assert isinstance(options["goal"],list), "q0 attribute should be a list."
+      assert len(options["goal"]) == 2, "q0 should be size 6."
+      self.infos["goal"][0] = options["goal"][0]
+      self.infos["goal"][1] = options["goal"][1]
+    else:
+      [[xlim_min, xlim_max],[ylim_min, ylim_max]] = self.goal_zones[self.envId].get_boundaries()
       self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
       self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
+      # Not get a goal too close to the starting point
+      while self.envId == 0 and np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2]) <= 0.3:
+        self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
+        self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
     self.infos["goal"][2] = 0.248
     self.infos["collision_status"] = 0
     self.infos["goal_reached"] = False
     self.simulator.update_goal_position(self.infos["goal"].tolist())
+    # Update reset_options_dict to replay the episode
+    self.reset_options["goal"][0] = self.infos["goal"][0] # copy
+    self.reset_options["goal"][1] = self.infos["goal"][1]
+
+    # MPC options
+    if isinstance(options, dict) and "mpc" in options:
+      assert isinstance(options["mpc"], list), "mpc param in option should be a list"
+      assert len(options["mpc"]) == 3, "mpc param should be size 3"
+      self.simulator.set_mpc_params(options["mpc"][0],options["mpc"][1],options["mpc"][2])
+      self.reset_options["mpc"][:] = options["mpc"][:] # copy
 
     # Reset general infos
     self.general_infos["r_termination"] = 0

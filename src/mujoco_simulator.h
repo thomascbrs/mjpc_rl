@@ -54,6 +54,7 @@ public:
   void update_ref_curve(std::vector<double> points);
   void reset_task(std::vector<double> q);
   void update_goal_position(std::vector<double> q);
+  void set_mpc_params(int min, int max, int ratio);
   ObserverData getObervation();
   Data getLoggerData();
   std::vector<double> getHeightmap(){return heightmap_.get_heightmap();};
@@ -111,6 +112,11 @@ private:
 
   // Heightmap
   Heightmap heightmap_;
+
+  // MPC iterations parameters
+  int mpc_min_iteration_ = 1; // Baseline MPC iteration
+  int mpc_max_iteration_ = 2; // Maximum MPC iteration
+  int mpc_ratio_max_iteration_ = 5; // Play 1 over 5 MPC at maximum iterations
 };
 
 #endif // MUJOCO_SIMULATOR_H

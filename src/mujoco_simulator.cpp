@@ -435,16 +435,16 @@ void MujocoSimulator::step(std::vector<double> actions) {
       task_->risk = 0.;
 
       // planner policy
-      int n_max = 1;
-      if (k_mpc_ % 5 == 0) {
-        n_max = 2;
+      int n_max = mpc_min_iteration_; // 1
+      if (k_mpc_ % mpc_ratio_max_iteration_ == 0) {
+        n_max = mpc_max_iteration_;
       }
       for (int i = 0; i < n_max; i++) {
         // Setup model timestep.
         model->opt.timestep = settings.timestep_planner;
         planner.OptimizePolicyCustom(settings.n_steps, plan_pool);
-        k_mpc_++;
       }
+      k_mpc_++;
       // print_planner_timings();
       // Log best OCP trajectory.
       if (LOGGING_) {
@@ -501,3 +501,9 @@ void MujocoSimulator::update_goal_position(std::vector<double> q) {
 }
 
 Data MujocoSimulator::getLoggerData() { return logger_.getData(); }
+
+void MujocoSimulator::set_mpc_params(int min, int max, int ratio){
+  mpc_min_iteration_ = min;
+  mpc_max_iteration_ = max;
+  mpc_ratio_max_iteration_ = ratio;
+}
