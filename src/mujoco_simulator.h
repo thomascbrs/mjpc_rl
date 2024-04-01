@@ -46,7 +46,7 @@ public:
    *
    * @param q0 Inital config x6 [x,y,z,r,p,y]
    */
-  void reset(std::vector<double> q, int envId);
+  void reset0(std::vector<double> q, int envId);
   void reset(std::vector<double> q, int envId, const std::vector<double>& action_init = {0.,0.,0.,0.,0.,0.});
   void runSimulation(int numSteps);
   void first_step(std::vector<double> actions);

@@ -116,7 +116,7 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
   col.collision(model, data);
 }
 
-void MujocoSimulator::reset(std::vector<double> q, int envId) {
+void MujocoSimulator::reset0(std::vector<double> q, int envId) {
     // Function definition with default argument
     reset(q, envId, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
 }
@@ -308,7 +308,7 @@ void MujocoSimulator::update_viewer() {
   }
 
   // Add visualisation.
-  if (data->time > settings.horizon_reset) {
+  if (data->time > settings.horizon_reset + 0.002) {
     task_->ModifyScene(model, data, &scn);
   }
 

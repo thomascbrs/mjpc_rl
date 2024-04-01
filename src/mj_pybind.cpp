@@ -20,7 +20,7 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def(py::init<int, bool, bool, const char *>())
       .def("initialize_viewer", &MujocoSimulator::initialize_viewer)
       .def("reset", (void (MujocoSimulator::*)(const std::vector<double>&, int, const std::vector<double>&)) &MujocoSimulator::reset)
-      .def("reset", (void (MujocoSimulator::*)(const std::vector<double>&, int)) &MujocoSimulator::reset)
+      .def("reset", (void (MujocoSimulator::*)(const std::vector<double>&, int)) &MujocoSimulator::reset0)
       .def("step", &MujocoSimulator::step)
       .def("save_logger", &MujocoSimulator::save_logger)
       .def("update_goal_position", &MujocoSimulator::update_goal_position)
