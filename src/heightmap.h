@@ -1,6 +1,16 @@
+#ifndef MUJOCO_HEIGHTMAP_H
+#define MUJOCO_HEIGHTMAP_H
+
 #include <iostream>
 #include <vector>
 #include "types.h"
+
+
+#include "pinocchio/math/rpy.hpp"
+#include "pinocchio/spatial/se3.hpp"
+#include <Eigen/Geometry>
+#include <pinocchio/math/quaternion.hpp>
+
 
 // Define a structure for a rectangle
 struct Rectangle {
@@ -93,6 +103,21 @@ class Heightmap {
     return double(-1);  // Outside the rectangles of the current environment
   }
 
+  double get_mean_height(double x, double y) const{
+    // List of height values.
+    int nx = 5;
+    int ny = 3;
+    Eigen::VectorXd x_list = Eigen::VectorXd::LinSpaced(nx, x-0.01,x+0.01);
+    Eigen::VectorXd y_list = Eigen::VectorXd::LinSpaced(ny, y-0.01,y+0.01);
+    double mean = 0;
+    for (int i = 0;i < nx;i++){
+      for (int j = 0;j < ny;j++){
+        mean += get_height(x_list(i), y_list(j));
+      }
+    }
+    return abs(mean / (nx * ny));
+  }
+
   std::vector<double> get_heightmap() {
     std::vector<double> sorted_data;
     int index = 0;
@@ -169,3 +194,5 @@ class Heightmap {
     setGoalZones(goal_zones);
   }
 };
+
+#endif // MUJOCO_HEIGHTMAP_H

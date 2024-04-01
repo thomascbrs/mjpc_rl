@@ -9,6 +9,7 @@
 
 #include "mjpc/planners/gradient/planner.h"
 #include "mjpc/planners/ilqg/planner.h"
+#include "mjpc/planners/ilqs/planner.h"
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
@@ -45,8 +46,10 @@ public:
    *
    * @param q0 Inital config x6 [x,y,z,r,p,y]
    */
-  void reset(std::vector<double> q0, int envId);
+  void reset(std::vector<double> q, int envId);
+  void reset(std::vector<double> q, int envId, const std::vector<double>& action_init = {0.,0.,0.,0.,0.,0.});
   void runSimulation(int numSteps);
+  void first_step(std::vector<double> actions);
   void step(std::vector<double> actions);
   static void sensor(const mjModel *model, mjData *data, int stage);
   void save_logger(const std::string &fileName);
@@ -54,11 +57,13 @@ public:
   void update_ref_curve(std::vector<double> points);
   void reset_task(std::vector<double> q);
   void update_goal_position(std::vector<double> q);
-  void set_mpc_params(int min, int max, int ratio);
+  void set_mpc_params(int min, int max, int ratio_iter, int ratio_wbc);
   ObserverData getObervation();
   Data getLoggerData();
   std::vector<double> getHeightmap(){return heightmap_.get_heightmap();};
-  std::vector<double> getStartZone(){return heightmap_.get_heightmap();}
+  std::vector<double> getStartZone(){return heightmap_.get_heightmap();};
+  void set_horizon_nn(double horizon_nn);
+  void set_horizon_reset(double horizon_reset);
 
 private:
   // Impossible to get a member thread_local specified only at runtime.
@@ -103,6 +108,7 @@ private:
 
   mjpc::State state_;
   CustomiLQGPlanner planner;
+  // mjpc::iLQSPlanner planner;
   CollisionChecker col;
 
   // Goal visualisation
@@ -117,6 +123,8 @@ private:
   int mpc_min_iteration_ = 1; // Baseline MPC iteration
   int mpc_max_iteration_ = 2; // Maximum MPC iteration
   int mpc_ratio_max_iteration_ = 5; // Play 1 over 5 MPC at maximum iterations
+  int mpc_ratio_max_wbc_ = 18; // Play 1 over 5 MPC at maximum iterations
+  int k_wbc_=0;
 };
 
 #endif // MUJOCO_SIMULATOR_H

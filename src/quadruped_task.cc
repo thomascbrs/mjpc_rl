@@ -284,7 +284,40 @@ void QuadrupedTask::ResidualFn::Update() {
   if (parameters_[0] == 0.) {
     reset_curves(parameters_.begin() + 7);
     n_update = 0;
+
+    // Environement
+    int envId = int(parameters_[10]);
+    heightmap_.setCurrentEnvironment(envId);
   }
+
+  if (int(parameters_[0]) == int(2)){
+    // residual_nn_horizon
+    set_horizon_nn(parameters_[11]);
+  }
+  if (int(parameters_[0]) == int(3)){
+    // residual_nn_horizon
+    set_horizon_reset(parameters_[11]);
+  }
+}
+
+void QuadrupedTask::ResidualFn::set_horizon_reset(double horizon_reset) {
+  horizon_reset_ = horizon_reset;
+  cp_rot.clear();
+  cp_lin.clear();
+
+  // Define a constant polynomial curve.
+  cp_rot.push_back(Eigen::Vector3d(0.,0.,0.));
+  cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+  for (int i = 1; i < 3; i++) {
+    cp_rot.push_back(Eigen::Vector3d(0., 0., 0.));
+    cp_lin.push_back(Eigen::Vector3d(0., 0., 0.));
+  }
+  lin_velocity_ = Polynomial(cp_lin.begin(), cp_lin.end(), 0., horizon_reset_);
+  ang_rotation_ = Polynomial(cp_rot.begin(), cp_rot.end(), 0., horizon_reset_);
+  pcRot_ = PieceWise();
+  pcVel_ = PieceWise();
+  pcRot_.add_curve(ang_rotation_);
+  pcVel_.add_curve(lin_velocity_);
 }
 
 void QuadrupedTask::ResidualFn::reset_curves(
@@ -502,7 +535,7 @@ void QuadrupedTask::ModifyScene(const mjModel *model, const mjData *data,
   double dt = 0.02;
   int n_points = int(t_max / dt);
 
-  for (int i = 0; i < n_points; i++) {
+  for (int i = 0; i < n_points -1; i++) {
     if (i > 0) {
       pos_previous[0] = pos[0];
       pos_previous[1] = pos[1];

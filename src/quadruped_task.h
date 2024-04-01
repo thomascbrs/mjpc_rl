@@ -90,6 +90,8 @@ public:
     void updateCurvesLin(const std::vector<double>::iterator start,
                          const std::vector<double>::iterator end);
     void reset_curves(const std::vector<double>::iterator start);
+    void set_horizon_nn(double horizon_nn){horizon_nn_ = horizon_nn;};
+    void set_horizon_reset(double horizon_reset);
 
   private:
     friend class QuadrupedTask;

@@ -32,43 +32,75 @@ int main() {
   fs::path filename = current_dir / relative_path;
 
   MujocoSimulator mjsimulator =
-      MujocoSimulator(2, true, true, filename.c_str());
+      MujocoSimulator(2, false, false, filename.c_str());
   // mjsimulator.runSimulation(3000);
   // Add a 2-second sleep
   // std::this_thread::sleep_for(std::chrono::seconds(2));
-  std::vector<double> q0 = {0., 14., 0.5, 0., 0., 0.};
-  mjsimulator.reset(q0, 2);
 
+  // Intereseting behaviour. Warmstart MPC ? Run 2 times
+  // and different behaviour.
+  // std::vector<double> q0 = {0., 14., 0.5, 0., 0., 0.};
+  // mjsimulator.reset(q0, 2);
+  // mjsimulator.set_mpc_params(2,2,4,10);
+  // // mjsimulator.set_mpc_params(1,2,5,18);
+  // std::vector<std::vector<double>> list_points;
+  // std::vector<double> point;
+  // point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
+  // list_points.push_back(point);
+  // point = {0.4, 0.0, 0.0, 0.0, -0., 0.1};
+  // list_points.push_back(point);
+  // point = {0.4, 0.0, 0.0, 0.0, -0., 0.2};
+  // list_points.push_back(point);
+  // point = {0.4, 0.0, 0.0, 0.0, -0., 0.3};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.4};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.5};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.5};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+  // point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  // list_points.push_back(point);
+
+  std::vector<double> q0 = {0., 22., 0.5, 0., 0., 0.};
+  mjsimulator.reset(q0, 3);
+  mjsimulator.set_mpc_params(1,2,5,15);
   std::vector<std::vector<double>> list_points;
   std::vector<double> point;
-  point = {0.5, 0.0, 0.0, 0.0, -0.1, 0.0};
+  point = {0.208, 0.0, 0.0, 0.0, -0.1, 0.0};
   list_points.push_back(point);
-  point = {0.4, 0.0, 0.0, 0.0, -0., 0.1};
+  point = {0.17, 0.0, 0.0, 0.0, -0.1, 0.1};
   list_points.push_back(point);
-  point = {0.4, 0.0, 0.0, 0.0, -0., 0.2};
+  point = {0.33, 0.0, 0.0, 0.0, -0., 0.2};
   list_points.push_back(point);
-  point = {0.4, 0.0, 0.0, 0.0, -0., 0.3};
+  point = {0.2, 0.0, 0.0, 0.0, -0., 0.};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.4};
+  point = {0.17, 0.0, 0.0, 0.0, -0., 0.};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.5};
+  point = {0.17, 0.0, 0.0, 0.0, -0., 0.};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.5};
+  point = {0.17, 0.0, 0.0, 0.0, -0., 0.};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0., 0.};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
+  point = {0., 0.0, 0.0, 0.0, -0., 0.};
   list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
-  list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
-  list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
-  list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
-  list_points.push_back(point);
-  point = {0., 0.0, 0.0, 0.0, -0., 0.0};
-  list_points.push_back(point);
+  for (int i=0;i < 50;i++){
+    point = {0., 0.0, 0.0, 0.0, -0., 0.};
+    list_points.push_back(point);
+  }
 
   // ProfilerStart("test.prof"); //Start profiling section and save to file
   // HeapProfilerStart("output_inside.heap");
@@ -86,7 +118,7 @@ int main() {
   // Start time before calling function1
 
   // Call function1
-  for (int j = 0; j < 14; j++) {
+  for (int j = 0; j < list_points.size(); j++) {
     auto start = std::chrono::high_resolution_clock::now();
     std::cout << "j : " << j << std::endl;
     mjsimulator.step(list_points[j]);

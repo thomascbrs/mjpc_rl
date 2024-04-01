@@ -10,6 +10,8 @@ struct Settings {
   double timestep = 0.002;
   double timestep_planner = 1.0e-2;
   double horizon_planner = 0.24;
+  double horizon_nn = 0.1;
+  double horizon_reset = 0.5;
   double n_steps = horizon_planner / timestep_planner + 1;
   int k_mpc = 10; // Not used for now.
 
@@ -30,14 +32,14 @@ struct Settings {
     options->mpr_tolerance = 1e-6;
 
     // Contact settings.
-    options->enableflags = mjENBL_OVERRIDE;
+    options->enableflags = mjENBL_OVERRIDE; // | mjENBL_SENSORNOISE
     options->o_solimp[0] = 0.28;
     options->o_solimp[1] = 0.65;
     options->o_solimp[2] = 0.02;
     options->o_margin = 0.001;
-    options->o_solref[0] = 0.005;
+    options->o_solref[0] = 0.001;
     options->disableflags =
-        mjDSBL_LIMIT | mjDSBL_EQUALITY | mjDSBL_FILTERPARENT | mjDSBL_MIDPHASE;
+        mjDSBL_LIMIT | mjDSBL_EQUALITY | mjDSBL_FILTERPARENT | mjDSBL_MIDPHASE | mjENBL_FWDINV; // mjDSBL_WARMSTART ;
 
     // Objectives : Break/creates contacts a lot more at slow velocity so that
     // the robot does not fall.

@@ -67,7 +67,7 @@ private:
   PieceWise pcRot_;
 
 public:
-  Observer(const std::vector<std::string> &fnames)
+  Observer(const std::vector<std::string> &fnames, double horizon_nn, double horizon_reset)
       : odata_(), R_tmp(Matrix3d::Identity()),
         pos_tmp(Vector3d::Zero()), axis{0., 0., 1.},
         filter_pos_(cutoff_vel, fs_vel, order_vel),
@@ -78,6 +78,8 @@ public:
       odata_.feet_pos[name] = {0., 0., 0.};
       odata_.contact_status[name] = 1; // Initialisation in contact.
     }
+    horizon_reset_ = horizon_reset;
+    horizon_nn_ = horizon_nn;
     // Initialize the reference trajectories.
     // Update the container of points.
     Matrix3d coeffs = Matrix3d::Zero();

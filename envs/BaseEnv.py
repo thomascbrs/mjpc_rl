@@ -119,7 +119,7 @@ class BaseEnv(gym.Env):
       "envId":0,
       "q0":[0.]*6,
       "goal":[0.]*2,
-      "mpc":[1.,2.,5.]
+      "mpc":[1,2,5,18]
     }
 
   def _get_info(self):
@@ -349,8 +349,8 @@ class BaseEnv(gym.Env):
     # MPC options
     if isinstance(options, dict) and "mpc" in options:
       assert isinstance(options["mpc"], list), "mpc param in option should be a list"
-      assert len(options["mpc"]) == 3, "mpc param should be size 3"
-      self.simulator.set_mpc_params(options["mpc"][0],options["mpc"][1],options["mpc"][2])
+      assert len(options["mpc"]) == 4, "mpc param should be size 4"
+      self.simulator.set_mpc_params(options["mpc"][0],options["mpc"][1],options["mpc"][2],options["mpc"][3])
       self.reset_options["mpc"][:] = options["mpc"][:] # copy
 
     # Reset general infos

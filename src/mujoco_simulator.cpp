@@ -15,7 +15,8 @@ void mycontroller(const mjModel *m, mjData *d) {
 MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
                                  const char *modelFile)
     : model(nullptr), data(nullptr), foot_names_{"FR", "FL", "HR", "HL"},
-      mcontactData(foot_names_, 0.002), observer(foot_names_),
+      observer(foot_names_, settings.horizon_nn, settings.horizon_reset),
+      mcontactData(foot_names_, 0.002),
       plan_pool(n_threads) {
   if (n_threads == 1 && !flag_thread_local) {
     throw std::runtime_error("1 thread selected. Flag thread only should be "
@@ -101,9 +102,13 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
   heightmap_ = Heightmap();
   heightmap_.create_environment1();
 
+  // Setup task horizons.
+  set_horizon_nn(settings.horizon_nn);
+  set_horizon_reset(settings.horizon_reset);
+
   // Initialisation
   planner.UpdateNumTrajectoriesFromGUI();
-  put_robot_on_floor(200, q0_.tail(12));
+  put_robot_on_floor(int(settings.horizon_reset / settings.timestep), q0_.tail(12));
   std::vector<double> q(6, 0.0);
   observer.reset(q);
   observer.update_final_pose(model, data);
@@ -112,8 +117,16 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
 }
 
 void MujocoSimulator::reset(std::vector<double> q, int envId) {
+    // Function definition with default argument
+    reset(q, envId, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+}
+
+void MujocoSimulator::reset(std::vector<double> q, int envId,const std::vector<double>& action_init /*={0.,0.,0.,0.,0.,0.}*/) {
   if (q.size() != 6) {
     throw std::runtime_error("q0 should be size 6, [x,y,z,r,p,y]");
+  }
+  if (action_init.size() != 6) {
+    throw std::runtime_error("action_init should be size 6, [vx,vy,vz,r,p,y]");
   }
   mj_resetData(model, data); // reset Data
   data->qpos[0] = q.at(0);   // x
@@ -152,7 +165,7 @@ void MujocoSimulator::reset(std::vector<double> q, int envId) {
   }
 
   // Fix time 198. 200 not working, do a round approx.
-  put_robot_on_floor(200, q0_.tail(12));
+  put_robot_on_floor(int(settings.horizon_reset / settings.timestep), q0_.tail(12));
   col.resetCollisionStatus();
   observer.reset(q);
   observer.update_final_pose(model, data);
@@ -164,6 +177,8 @@ void MujocoSimulator::reset(std::vector<double> q, int envId) {
   // Reset iteration
   n_iteration = 0;
   k_mpc_ = 0;
+  k_wbc_ = 0;
+  first_step(action_init);
 }
 
 MujocoSimulator::~MujocoSimulator() {
@@ -176,20 +191,20 @@ MujocoSimulator::~MujocoSimulator() {
     delete task_;
 }
 
-void MujocoSimulator::print_planner_timings() {
-  std::cout << "\nTotal time [ms] : " << 1e-3 * planner.nominal_compute_time
-            << std::endl;
-  std::cout << "Model derivative [ms] : "
-            << 1e-3 * planner.model_derivative_compute_time << std::endl;
-  std::cout << "Cost derivative [ms] : "
-            << 1e-3 * planner.cost_derivative_compute_time << std::endl;
-  std::cout << "Rollout [ms] : " << 1e-3 * planner.rollouts_compute_time
-            << std::endl;
-  std::cout << "Backward pass [ms] : "
-            << 1e-3 * planner.backward_pass_compute_time << std::endl;
-  std::cout << "Policy update [ms] : "
-            << 1e-3 * planner.policy_update_compute_time << std::endl;
-}
+// void MujocoSimulator::print_planner_timings() {
+//   std::cout << "\nTotal time [ms] : " << 1e-3 * planner.nominal_compute_time
+//             << std::endl;
+//   std::cout << "Model derivative [ms] : "
+//             << 1e-3 * planner.model_derivative_compute_time << std::endl;
+//   std::cout << "Cost derivative [ms] : "
+//             << 1e-3 * planner.cost_derivative_compute_time << std::endl;
+//   std::cout << "Rollout [ms] : " << 1e-3 * planner.rollouts_compute_time
+//             << std::endl;
+//   std::cout << "Backward pass [ms] : "
+//             << 1e-3 * planner.backward_pass_compute_time << std::endl;
+//   std::cout << "Policy update [ms] : "
+//             << 1e-3 * planner.policy_update_compute_time << std::endl;
+// }
 
 // sensor callback
 void MujocoSimulator::sensor(const mjModel *model, mjData *data, int stage) {
@@ -228,7 +243,7 @@ void MujocoSimulator::initialize_viewer() {
   // Adjust camera distance
   cam.azimuth = 70.0;    // Set azimuth angle
   cam.elevation = -20.0; // Set elevation angle
-  cam.distance = 6.;    // Set camera distance to 1.0
+  cam.distance = 2.5;    // Set camera distance to 1.0
 }
 
 void MujocoSimulator::update_viewer() {
@@ -257,9 +272,9 @@ void MujocoSimulator::update_viewer() {
   scn.geoms[scn.ngeom].category = mjCAT_DECOR;
 
   // Add heightmap.
-  // if (heightmap_.getCurrentEnvironment() != -1){
-  //   heightmap_.update_heightmap(model, data);
-  // }
+  if (heightmap_.getCurrentEnvironment() != -1){
+    heightmap_.update_heightmap(model, data);
+  }
   double vh_size[3] = {0.02};
   float vh_color[4] = {0., 0.9, 0.1, 0.6};
   for (int i=0; i < heightmap_.Nx_; i++) {
@@ -293,7 +308,7 @@ void MujocoSimulator::update_viewer() {
   }
 
   // Add visualisation.
-  if (data->time > 0.42) {
+  if (data->time > settings.horizon_reset) {
     task_->ModifyScene(model, data, &scn);
   }
 
@@ -377,6 +392,10 @@ void MujocoSimulator::reset_task(std::vector<double> q) {
   task_->parameters[indexes[0] + 1] = q[4];
   task_->parameters[indexes[0] + 2] = q[5];
 
+  // Update environement
+  ParameterIndexes(indexes, model, "residual_nn_envId");
+  task_->parameters[indexes[0]] = heightmap_.getCurrentEnvironment();
+
   // Update task
   task_->UpdateResidual();
 
@@ -385,32 +404,47 @@ void MujocoSimulator::reset_task(std::vector<double> q) {
   task_->parameters[indexes[0]] = -1.;
 }
 
+void MujocoSimulator::first_step(std::vector<double> actions){
+  observer.update_filter(model, data);
+  observer.update_collision_status(col.getCollisionStatus());
+  observer.update_contact_status(mcontactData);
+  observer.update_final_pose(model, data);
+
+  // Trick Here. TODO: Use a horizon variable to update_ref_curve.
+  set_horizon_nn(settings.horizon_planner);
+  // Update task
+  task_->UpdateResidual();
+  update_ref_curve(actions); // Extend reference curve with point.
+  set_horizon_nn(settings.horizon_nn);
+  task_->UpdateResidual();
+}
+
 void MujocoSimulator::step(std::vector<double> actions) {
   if (actions.size() != 6) {
     throw std::runtime_error("Action size should be 6.");
   }
   update_ref_curve(actions); // Extend reference curve with point.
 
-  if (n_iteration == 0) {
-    // Robot initilized with put_on_floor function.
-    // Extend horizon with actions.
-    observer.update_filter(model, data);
-    observer.update_collision_status(col.getCollisionStatus());
-    observer.update_contact_status(mcontactData);
-    observer.update_final_pose(model, data);
-    n_iteration++;
-    return;
-  }
+  // if (n_iteration == 0) {
+  //   // Robot initilized with put_on_floor function.
+  //   // Extend horizon with actions.
+  //   observer.update_filter(model, data);
+  //   observer.update_collision_status(col.getCollisionStatus());
+  //   observer.update_contact_status(mcontactData);
+  //   observer.update_final_pose(model, data);
+  //   n_iteration++;
+  //   return;
+  // }
 
-  for (int k_wbc = 0; k_wbc < settings.horizon_planner / settings.timestep;
-       k_wbc++) {
+  for (int kk = 0; kk < settings.horizon_nn / settings.timestep;
+       kk++) {
     // Reset the contact status to 0.
     mcontactData.update(model, data);
     if (LOGGING_) {
       logger_.log(model, data, &mcontactData);
     }
 
-    if (k_wbc % 18 == 0) {
+    if (k_wbc_ % mpc_ratio_max_wbc_ == 0) {
       int indexes[2];
       std::string prefix = "residual_air_time_";
       for (const auto &name : foot_names_) {
@@ -443,6 +477,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
         // Setup model timestep.
         model->opt.timestep = settings.timestep_planner;
         planner.OptimizePolicyCustom(settings.n_steps, plan_pool);
+        // planner.OptimizePolicy(settings.n_steps, plan_pool);
       }
       k_mpc_++;
       // print_planner_timings();
@@ -463,6 +498,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
 
     // Simulation step.
     mj_step(model, data);
+    k_wbc_++;
 
     // Update filtered for observations.
     observer.update_filter(model, data);
@@ -502,8 +538,43 @@ void MujocoSimulator::update_goal_position(std::vector<double> q) {
 
 Data MujocoSimulator::getLoggerData() { return logger_.getData(); }
 
-void MujocoSimulator::set_mpc_params(int min, int max, int ratio){
+void MujocoSimulator::set_mpc_params(int min, int max, int ratio_iter, int ratio_wbc){
   mpc_min_iteration_ = min;
   mpc_max_iteration_ = max;
-  mpc_ratio_max_iteration_ = ratio;
+  mpc_ratio_max_iteration_ = ratio_iter;
+  mpc_ratio_max_wbc_ = ratio_wbc;
+}
+
+void MujocoSimulator::set_horizon_nn(double horizon_nn){
+  // Reset the reference curve inside task planner.
+  int indexes[2];
+  ParameterIndexes(indexes, model, "residual_nn_horizon");
+  task_->parameters[indexes[0]] = horizon_nn; // Boolean for horizon switch
+
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = 2.; // Boolean for update horizon nn.
+
+    // Update task
+  task_->UpdateResidual();
+
+  // Reset boolean to not update curve on next Update().
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = -1.;
+}
+
+void MujocoSimulator::set_horizon_reset(double horizon_reset){
+  // Reset the reference curve inside task planner.
+  int indexes[2];
+  ParameterIndexes(indexes, model, "residual_nn_horizon");
+  task_->parameters[indexes[0]] = horizon_reset; // Boolean for horizon switch
+
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = 3.; // Boolean for update horizon nn.
+
+    // Update task
+  task_->UpdateResidual();
+
+  // Reset boolean to not update curve on next Update().
+  ParameterIndexes(indexes, model, "residual_nn_updated");
+  task_->parameters[indexes[0]] = -1.;
 }
