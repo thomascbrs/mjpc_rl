@@ -19,9 +19,10 @@
 #include <absl/strings/match.h>
 #include <mujoco/mujoco.h>
 #include <string>
-
 #include "types.h"
 #include "utils.h"
+#include "heightmap.h"
+#include "pinocchio/math/rpy.hpp"
 
 class QuadrupedTask : public mjpc::Task {
 public:
@@ -66,6 +67,10 @@ public:
       //       0,0,1,   0,0,-1,   0,0,0,   0,0,0,
       //       0,0,0,   0,0,0,    0,1,0,   0,-1,0,
       //       0,0,0,   0,0,0,    0,0,1,   0,0,-1.;
+
+      // Heightmap
+      heightmap_ = Heightmap();
+      heightmap_.create_environment1();
     }
 
     // --------------------- Residuals for quadruped task --------------------
@@ -120,6 +125,8 @@ public:
     // Trajectories
     PieceWise pcVel_;
     PieceWise pcRot_;
+
+    Heightmap heightmap_;
   };
   QuadrupedTask() : residual_(this) {}
   void TransitionLocked(mjModel *model, mjData *data) override;
