@@ -63,6 +63,7 @@ public:
   std::vector<double> getHeightmap(){return heightmap_.get_heightmap();};
   std::vector<double> getStartZone(){return heightmap_.get_heightmap();};
   void set_horizon_nn(double horizon_nn);
+  double get_horizon_nn(){return settings.horizon_nn;};
   void set_horizon_reset(double horizon_reset);
 
 private:

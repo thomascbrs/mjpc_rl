@@ -27,6 +27,7 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def("getLoggerData", &MujocoSimulator::getLoggerData)
       .def("getHeightmap", &MujocoSimulator::getHeightmap)
       .def("set_mpc_params", &MujocoSimulator::set_mpc_params)
+      .def("get_horizon_nn", &MujocoSimulator::get_horizon_nn)
       .def("getObervation", &MujocoSimulator::getObervation);
 
   py::class_<Data>(m, "Data")

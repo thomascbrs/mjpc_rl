@@ -29,20 +29,20 @@ def create_environment():
 
     start_zones = [
         Rectangle(0.0, 0.0, 0.25, 0.25),   # Environment 0
-        Rectangle(0.5, 8.0, 0.5, 0.5),      # Environment 1
-        Rectangle(0.5, 14.0, 0.5, 0.5),     # Environment 2
-        Rectangle(0.5, 22.0, 0.5, 0.5),     # Environment 3
-        Rectangle(0.5, 28.0, 0.5, 0.5),     # Environment 4
-        Rectangle(0.5, 34.0, 0.5, 0.5)      # Environment 5
+        Rectangle(1., 8.0, 0.5, 0.5),      # Environment 1
+        Rectangle(1., 14.0, 0.5, 0.5),     # Environment 2
+        Rectangle(1., 22.0, 0.5, 0.5),     # Environment 3
+        Rectangle(1., 28.0, 0.5, 0.5),     # Environment 4
+        Rectangle(1., 34.0, 0.5, 0.5)      # Environment 5
     ]
 
     goal_zones = [
         Rectangle(2., 0.0, 0.5, 0.5),      # Environment 0
-        Rectangle(3.56, 8.0, 0.5, 0.5),     # Environment 1
-        Rectangle(3.62, 14.0, 0.5, 0.5),    # Environment 2
-        Rectangle(3.7, 22.0, 0.5, 0.5),     # Environment 3
-        Rectangle(3.75, 28.0, 0.5, 0.5),    # Environment 4
-        Rectangle(3.8, 34.0, 0.5, 0.5)      # Environment 5
+        Rectangle(3.06, 8.0, 0.5, 0.5),     # Environment 1
+        Rectangle(3.12, 14.0, 0.5, 0.5),    # Environment 2
+        Rectangle(3.2, 22.0, 0.5, 0.5),     # Environment 3
+        Rectangle(3.55, 28.0, 0.5, 0.5),    # Environment 4
+        Rectangle(3.3, 34.0, 0.5, 0.5)      # Environment 5
     ]
 
     return environments, start_zones, goal_zones

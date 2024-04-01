@@ -28,16 +28,18 @@ class BaseEnv(gym.Env):
     # self._lb = np.concatenate([lb_vel, lb_ang])
     # self._ub = np.concatenate([ub_vel, ub_ang])
 
-    self._lb = np.array([-0.2,-0.2,-0.4])
-    self._ub = np.array([0.5,0.2,0.4])
+    self._lb = np.array([-0.3,-0.1,-0.2])
+    self._ub = np.array([0.3,0.1,0.2])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
     # Observation.
     lb = np.zeros(4)
     ub = np.ones(4)
-     # TODO: in local frame wrt shoulder position ?
+    # TODO: in local frame wrt shoulder position ?
     lb_feet = np.tile([-0.4, -0.4, -0.4], 4)
     ub_feet = np.tile([0.4, 0.4, 0.4], 4)
+    self.N_previous = 2
+    self.previous_actions = []
     self.observation_space = spaces.Dict({
         "t":spaces.Box(0.,10.,shape=(1,), dtype=np.float32),
         "lgoal": spaces.Box(-3.5, 3.5, shape=(2, ), dtype=np.float32),
@@ -53,6 +55,7 @@ class BaseEnv(gym.Env):
         "roll_ref":spaces.Box(-3.14,3.14,shape=(1,), dtype=np.float32),
         "pitch_ref":spaces.Box(-3.14,3.14,shape=(1,), dtype=np.float32),
         "yaw_ref":spaces.Box(-1.,1.,shape=(2,), dtype=np.float32),
+        "previous":spaces.Box(np.tile(self._lb,self.N_previous),np.tile(self._ub,self.N_previous), dtype=np.float32),
         "heightmap":spaces.Box(-1.,0.,shape=(91,), dtype=np.float32),
         # "time":spaces.Box(0.,11., dtype=np.float32),
         # "vel_b":spaces.Box(-3.,3.,shape=(3,), dtype=np.float32)
@@ -72,7 +75,9 @@ class BaseEnv(gym.Env):
         "r_vel":0.,
         "r_control":0.,
         "r_action":0.,
-        "envId":0.
+        "envId":0.,
+        "r_yaw_track":0.,
+        "r_pitch":0.,
     })
 
     self.infos = dict({
@@ -101,8 +106,8 @@ class BaseEnv(gym.Env):
     filename = os.path.join(current_dir, relative_path)
     # Check if the file exists
     if not os.path.exists(filename):
-        toprint = "File does not exist: {}".format(filename)
-        raise RuntimeError("File does not exist: {}".format(filename))
+      toprint = "File does not exist: {}".format(filename)
+      raise RuntimeError("File does not exist: {}".format(filename))
 
     self.RENDERING = (render_mode == "human" )
     self.simulator = MujocoSimulator(2, self.RENDERING, logger, filename)
@@ -121,6 +126,12 @@ class BaseEnv(gym.Env):
       "goal":[0.]*2,
       "mpc":[1,2,5,18]
     }
+
+  def update_previous_actions(self,action):
+    assert isinstance(action,list), "action in uptate_previous should be a list."
+    assert len(action) == 3, "action in uptate_previous should be size 3."
+    self.previous_actions.insert(0,action)
+    self.previous_actions.pop()
 
   def _get_info(self):
     return self.general_infos
@@ -171,6 +182,7 @@ class BaseEnv(gym.Env):
     yaw_ref = np.clip([np.cos(obs.orientation_ref[2]), np.sin(obs.orientation_ref[2])], -1., 1., dtype=np.float32).tolist()
 
     heightmap = np.clip(self.simulator.getHeightmap(), -1.,0., dtype=np.float32)
+    previous = np.array(self.previous_actions).flatten().tolist()
     observations = {
         "t": np.array([self.infos["t"]],dtype=np.float32),
         "lgoal": np.array(lgoal,dtype=np.float32) ,
@@ -186,6 +198,7 @@ class BaseEnv(gym.Env):
         "roll_ref":np.array([roll_ref], dtype=np.float32),
         "pitch_ref":np.array([pitch_ref], dtype=np.float32),
         "yaw_ref":np.array(yaw_ref, dtype=np.float32),
+        "previous":np.array(previous, dtype=np.float32),
         "heightmap":heightmap
         # "time":np.array([self.infos["t"] * 0.01], dtype=np.float32),
         # "gait_info":np.array(self.gait_info, dtype=np.float32),
@@ -199,7 +212,7 @@ class BaseEnv(gym.Env):
 
   def _update_infos(self):
 
-    self.infos["t"] += 0.24
+    self.infos["t"] += self.simulator.get_horizon_nn()
     self.general_infos["timestep"] += 1
 
     obs = self.simulator.getObervation()
@@ -232,14 +245,16 @@ class BaseEnv(gym.Env):
 
     # Update new infos based on the internal observer.
     self._update_infos()
+    self.update_previous_actions([actions[0],actions[1],actions[2]])
 
     reward = 0.
     if self.bias:
       reward += self._reward_bias(1.)
-      # reward += self._reward01(0.6)
+      reward += self._reward01(0.6)
+      reward += self._reward02(0.6)
 
     # reward += self._reward_stall()
-    reward += self._reward_task(Tr=5., T=3.,alpha=1.)
+    reward += self._reward_task(Tr=5., T=3.5,alpha=1.)
     # reward += self._reward_action(actions, 0.5)
     # reward += self._reward_behaviour()
 
@@ -277,6 +292,9 @@ class BaseEnv(gym.Env):
 
     self.infos["t"] = 0.
     self.general_infos["timestep"] = 0
+    self.previous_actions.clear()
+    self.previous_actions.append([0.,0.,0.])
+    self.previous_actions.append([0.,0.,0.])
 
     # Reset environment around origin.
     # Environment curriculum
@@ -316,12 +334,17 @@ class BaseEnv(gym.Env):
       q[0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
       q[1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
       q[2] = 0.3
-      q[4] = -0.1 # Pitch angle
+      q[4] = 0. # Pitch angle
       q[5] = -0.5 + (0.5 + 0.5) * self.np_random.random()
       self.infos["robot_pose"] = np.array(q[:3])
     # Update reset_options_dict to replay the episode
     self.reset_options["q0"][:] = q[:] # copy
-    self.simulator.reset(q, self.envId)
+    # Setup a random initial action for the horizon.
+    init_actions = [0.]*6
+    init_actions[0] = 0. + (0.1 - 0.) * self._np_random.random()
+    # init_actions[5] = self._np_random.random()
+    self.simulator.reset(q, self.envId,init_actions)
+    self.update_previous_actions([init_actions[0],0.,0.])
 
     # Reset goal position.
     self.infos["goal"] = np.zeros(6)
@@ -363,6 +386,10 @@ class BaseEnv(gym.Env):
     self.general_infos["r_task"] = 0.
     self.general_infos["r_action"] = 0.
     self.general_infos["envId"] = self.envId
+    self.general_infos["r_yaw_track"] = 0.
+    self.general_infos["r_pitch"] = 0.
+    self.general_infos["r_bias"] = 0.
+    self.general_infos["vel_toward_goal"] = 0.
 
     self._update_infos()
 
@@ -424,7 +451,7 @@ class BaseEnv(gym.Env):
       reward += min(vel_heading.T @ direction_goal, vref) / vref
     else:
       pass
-    
+
     reward *= alpha
     reward = np.clip(reward, -alpha,alpha)
     self.general_infos["r_bias"] = reward
@@ -432,7 +459,7 @@ class BaseEnv(gym.Env):
     return reward
 
   def _reward01(self, alpha=1.):
-    """ Positive reward for tracking a reference velocity.
+    """ Reward to penalise yaw orientation.
     """
     reward = 0
     # TODO : Avoid using getObservation, make common interface instead
@@ -444,6 +471,21 @@ class BaseEnv(gym.Env):
     reward += r
 
     return reward
+
+  def _reward02(self, alpha=1.):
+    """ Reward to penalise pitch orientation.
+    """
+    obs = self.simulator.getObervation()
+    pitch = np.clip(obs.filtered_pose[4], -3.14, 3.14, dtype=np.float32).tolist()
+    reward = 0
+    # TODO : Avoid using getObservation, make common interface instead
+    r = -(alpha) * (1 - np.exp(-10. * pitch**2))
+    # r =  alpha * np.exp(- 5 * yaw_diff**2)
+    self.general_infos["r_pitch"] = r
+    reward += r
+
+    return reward
+
 
   def _reward_stall(self):
     """ Penalty waiting while being far away from the target as described in
@@ -485,14 +527,14 @@ class BaseEnv(gym.Env):
     """
     # Reward on x,y axis.
     if self.infos["t"] > T:
-        # reward = (1 / (Tr*self._T_nodes)) / (1 + np.linalg.norm(self._goal[:2] - self._robot_pose[:2], 2))
-        reward = alpha / (1 + np.linalg.norm(2 * (self.infos["lgoal"]), 2))
-        # reward = (1 / (Tr*self._T_nodes)) * self.function_n(np.linalg.norm(self._goal[:2] - self._robot_pose[:2])  )
-        self.general_infos["r_task"] = reward
-        return reward
+      # reward = (1 / (Tr*self._T_nodes)) / (1 + np.linalg.norm(self._goal[:2] - self._robot_pose[:2], 2))
+      reward = alpha / (1 + np.linalg.norm(2 * (self.infos["lgoal"]), 2))
+      # reward = (1 / (Tr*self._T_nodes)) * self.function_n(np.linalg.norm(self._goal[:2] - self._robot_pose[:2])  )
+      self.general_infos["r_task"] = reward
+      return reward
     else:
-        self.general_infos["r_task"] = 0.
-        return 0.
+      self.general_infos["r_task"] = 0.
+      return 0.
 
   def _reward_action(self,actions,alpha = 1.):
     reward = - alpha * np.linalg.norm(actions)

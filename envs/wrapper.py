@@ -123,6 +123,7 @@ class Wrapper(gym.Wrapper[WrapperObsType, WrapperActType, ObsType, ActType]):
         # d_timings = np.tile([7, 7], 4)
         # d_vel = [11, 11, 11]
         # discretization = np.concatenate([d_gait, d_timings, d_vel])
+        # discretization = np.array([11,5,5])
         # self._env2 = MultiDiscretizeActionWrapper(self._env2, discretization)  # Discretize after rescaling
 
         # gym.ActionWrapper.__init__(self, self._env)

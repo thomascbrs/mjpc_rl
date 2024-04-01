@@ -166,10 +166,6 @@ void MujocoSimulator::reset(std::vector<double> q, int envId,const std::vector<d
 
   // Fix time 198. 200 not working, do a round approx.
   put_robot_on_floor(int(settings.horizon_reset / settings.timestep), q0_.tail(12));
-  col.resetCollisionStatus();
-  observer.reset(q);
-  observer.update_final_pose(model, data);
-  observer.update_filter(model, data);
 
   reset_task(q); // Warning q is size 6 and rpy are the last 3 elements.
   simstart = data->time;
@@ -179,6 +175,11 @@ void MujocoSimulator::reset(std::vector<double> q, int envId,const std::vector<d
   k_mpc_ = 0;
   k_wbc_ = 0;
   first_step(action_init);
+
+  col.resetCollisionStatus();
+  observer.reset(q);
+  observer.update_final_pose(model, data);
+  observer.update_filter(model, data);
 }
 
 MujocoSimulator::~MujocoSimulator() {
