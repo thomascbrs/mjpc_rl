@@ -2,10 +2,8 @@
 
 class CustomiLQGPlanner : public mjpc::iLQGPlanner {
 
-private:
-  int num_trajectory_;
-
 public:
+  int num_trajectory_;
   void InitializeCustom(mjModel *model, const mjpc::Task &task) {
     num_trajectory_ = mjpc::GetNumberOrDefault(10, model, "ilqg_num_rollouts");
     this->Initialize(model, task);

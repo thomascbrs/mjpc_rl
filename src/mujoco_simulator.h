@@ -13,6 +13,7 @@
 #include "mjpc/planners/sampling/planner.h"
 #include "mjpc/states/state.h"
 #include "mjpc/threadpool.h"
+#include "mjpc/trajectory.h"
 
 #include "pinocchio/math/rpy.hpp"
 #include "pinocchio/spatial/se3.hpp"
@@ -30,6 +31,31 @@
 #include "types.h"
 
 // thread_local Task* QuadrupedTask::task_ = nullptr;
+
+struct stateNode
+{
+  mjtNum* state;
+  mjpc::iLQGPolicy policy;
+  mjpc::iLQGBackwardPass backward_pass;
+
+  int k_wbc;
+  int k_mpc;
+  int n_iteration;
+  std::vector<double> q0;
+  std::vector<std::vector<double>> actions;
+
+  // mjpc::iLQGPolicy previous_policy;
+  // mjpc::iLQGPolicy candidate_policy[mjpc::kMaxTrajectory];
+  // mjpc::Trajectory trajectory[mjpc::kMaxTrajectory];
+  // mjpc::BoxQP boxqp;
+  // int winner;
+  // double action_step;
+  // double feedback_scaling;
+  // double improvement;
+  // double expected;
+  // double surprise;
+};
+
 
 class MujocoSimulator {
 public:
@@ -65,6 +91,10 @@ public:
   void set_horizon_nn(double horizon_nn);
   double get_horizon_nn(){return settings.horizon_nn;};
   void set_horizon_reset(double horizon_reset);
+  void set_node(stateNode node);
+  stateNode get_node();
+
+  CustomiLQGPlanner planner;
 
 private:
   // Impossible to get a member thread_local specified only at runtime.
@@ -108,7 +138,7 @@ private:
   Logger logger_;
 
   mjpc::State state_;
-  CustomiLQGPlanner planner;
+  // CustomiLQGPlanner planner;
   // mjpc::iLQSPlanner planner;
   CollisionChecker col;
 
@@ -126,6 +156,9 @@ private:
   int mpc_ratio_max_iteration_ = 5; // Play 1 over 5 MPC at maximum iterations
   int mpc_ratio_max_wbc_ = 18; // Play 1 over 5 MPC at maximum iterations
   int k_wbc_=0;
+
+  std::vector<std::vector<double>> h_actions; // history of actions
+  std::vector<double> h_q0; // history of restart state
 };
 
 #endif // MUJOCO_SIMULATOR_H

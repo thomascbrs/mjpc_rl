@@ -142,6 +142,10 @@ void MujocoSimulator::reset(std::vector<double> q, int envId,const std::vector<d
   for (int i = 7; i < model->nq; ++i) {
     data->qpos[i] = q0_[i];
   }
+  // Keep track of actions and q0
+  h_actions.clear();
+  h_actions.push_back(action_init);
+  h_q0 = q;
   // Set environement for heightmap
   heightmap_.setCurrentEnvironment(envId);
   heightmap_.update_heightmap(model, data);
@@ -425,6 +429,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     throw std::runtime_error("Action size should be 6.");
   }
   update_ref_curve(actions); // Extend reference curve with point.
+  h_actions.push_back(actions);
 
   // if (n_iteration == 0) {
   //   // Robot initilized with put_on_floor function.
@@ -446,6 +451,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     }
 
     if (k_wbc_ % mpc_ratio_max_wbc_ == 0) {
+      std::cout << "data->time MPC : " << data->time << std::endl;
       int indexes[2];
       std::string prefix = "residual_air_time_";
       for (const auto &name : foot_names_) {
@@ -578,4 +584,148 @@ void MujocoSimulator::set_horizon_reset(double horizon_reset){
   // Reset boolean to not update curve on next Update().
   ParameterIndexes(indexes, model, "residual_nn_updated");
   task_->parameters[indexes[0]] = -1.;
+}
+
+void MujocoSimulator::set_node(stateNode node){
+  // TODO : Set logger.
+  if (LOGGING_){
+    throw std::runtime_error("Cannot use get_node() with logger active.");
+  }
+
+  // Restart only necessary structures.
+  mj_resetData(model, data); // reset Data
+  h_actions.clear();
+  h_actions = node.actions;
+  h_q0 = node.q0;
+  // Reset task
+  task_->Reset(model);
+  task_->SetParameters(model);
+
+  // Reset state
+  state_.Reset();
+  state_.Set(model, data);
+
+  // Reset planner
+  planner.Reset(settings.n_steps);
+  task_->UpdateResidual();
+  mj_forward(model, data);
+  reset_task(node.q0); // Warning q is size 6 and rpy are the last 3 elements.
+
+  for (int j = 0; j < node.actions.size(); j++) {
+    if (j == 0) {
+      first_step(node.actions.at(j));
+    } else {
+      update_ref_curve(node.actions.at(j));
+    }
+  }
+
+  col.resetCollisionStatus();
+  observer.reset(node.q0);
+  observer.update_final_pose(model, data);
+  observer.update_filter(model, data);
+
+  unsigned int spec = mjSTATE_INTEGRATION;
+  mj_setState(model,data,node.state,spec);
+  mj_forward(model, data);
+  planner.policy.CopyFrom(node.policy, settings.n_steps);
+  std::cout << "data->time set_node : " << data->time << std::endl;
+// 
+  // planner.previous_policy.CopyFrom(node.previous_policy, settings.n_steps);
+// 
+  // for (int i = 0; i < planner.num_trajectory_; i++) {
+    // planner.candidate_policy[i].CopyFrom(node.candidate_policy[i], settings.n_steps);
+    // planner.candidate_policy[i].representation = node.candidate_policy[i].representation;
+    // planner.trajectory[i] = node.trajectory[i]; // candidate trajectories
+  // }
+  // planner.winner = node.winner;
+  // planner.action_step = node.action_step;
+  // planner.feedback_scaling = node.feedback_scaling;
+  // planner.improvement = node.improvement;
+  // planner.expected = node.expected;
+  // planner.surprise = node.surprise;
+  planner.backward_pass = node.backward_pass;
+  // planner.boxqp = node.boxqp;
+
+  simstart = data->time;
+  k_mpc_ = node.k_mpc;
+  k_wbc_ = node.k_wbc;
+  n_iteration = node.n_iteration;
+  if (RENDERING_){
+    update_viewer();
+  }
+}
+
+stateNode MujocoSimulator::get_node(){
+  // TODO : Set logger.
+  if (LOGGING_){
+    throw std::runtime_error("Cannot use get_node() with logger active.");
+  }
+
+  unsigned int spec = mjSTATE_INTEGRATION;
+  int stateSize = mj_stateSize(model, spec);
+  // mjtNum* state = new mjtNum[stateSize]; // Allocate memory for state.
+
+  // Print memory
+  // Calculate the memory in bytes.
+  // size_t memoryInBytes = stateSize * sizeof(mjtNum);
+  // double memoryInMB = static_cast<double>(memoryInBytes) / (1024.0 * 1024.0); // Convert to megabytes.
+  // std::cout << "State takes approximately " << memoryInMB << " MB of memory." << std::endl;
+
+  // Creating an instance of stateNode
+  stateNode node;
+
+  // Allocating memory for state
+  node.state = new mjtNum[stateSize];
+  node.k_wbc = k_wbc_;
+  node.k_mpc = k_mpc_;
+  node.n_iteration = n_iteration;
+  node.q0 = h_q0;
+  node.actions = h_actions;
+  node.policy.Allocate(model, *task_, mjpc::kMaxTrajectoryHorizon);
+  node.policy.CopyFrom(planner.policy, settings.n_steps);
+
+  // node.previous_policy.Allocate(model, *task_, mjpc::kMaxTrajectoryHorizon);
+  // node.previous_policy.CopyFrom(planner.previous_policy, settings.n_steps);
+  // node.winner = planner.winner;
+  // node.action_step = planner.action_step;
+  // node.feedback_scaling = planner.feedback_scaling;
+  // node.improvement = planner.improvement;
+  // node.expected = planner.expected;
+  // node.surprise = planner.surprise;
+
+
+
+  // dimensions
+  // dimensions
+  int dim_state = model->nq + model->nv + model->na;  // state dimension
+  int dim_state_derivative =
+      2 * model->nv + model->na;    // state derivative dimension
+  int dim_action = model->nu;           // action dimension
+  int dim_sensor = model->nsensordata;  // number of sensor values
+  int dim_max =
+      mju_max(mju_max(mju_max(dim_state, dim_state_derivative), dim_action),
+              model->nuser_sensor);
+  // for (int i = 0; i < planner.num_trajectory_; i++) {
+  //     node.candidate_policy[i].Allocate(model, *task_, mjpc::kMaxTrajectoryHorizon);
+  //     node.candidate_policy[i].CopyFrom(planner.candidate_policy[i], settings.n_steps);
+  //     node.candidate_policy[i].representation = planner.candidate_policy[i].representation;
+  //     node.trajectory[i].Initialize(dim_state, dim_action, task_->num_residual,
+  //                            task_->num_trace, mjpc::kMaxTrajectoryHorizon);
+  //     node.trajectory[i].Allocate(mjpc::kMaxTrajectoryHorizon);
+  //     node.trajectory[i] = planner.trajectory[i]; // candidate trajectories
+  // }
+  node.backward_pass.Allocate(dim_state_derivative, dim_action,
+                         mjpc::kMaxTrajectoryHorizon);
+  node.backward_pass = planner.backward_pass;
+  // node.boxqp.Allocate(dim_action);
+  // node.boxqp = planner.boxqp;
+
+  mj_getState(model, data, node.state, spec);
+
+
+  size_t memoryInBytes = sizeof(node);
+  double memoryInMB = static_cast<double>(memoryInBytes) / (1024.0 * 1024.0); // Convert to megabytes.
+  std::cout << "State takes approximately " << memoryInMB << " MB of memory." << std::endl;
+
+  return node;
 }

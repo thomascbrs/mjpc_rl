@@ -16,6 +16,9 @@ Data loadDataWithoutInstance(const std::string &fileName) {
 PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
   m.doc() = "MuJoCo Simulator";
 
+  py::class_<stateNode>(m, "stateNode")
+      .def(py::init<>());
+
   py::class_<MujocoSimulator>(m, "MujocoSimulator")
       .def(py::init<int, bool, bool, const char *>())
       .def("initialize_viewer", &MujocoSimulator::initialize_viewer)
@@ -28,6 +31,8 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def("getHeightmap", &MujocoSimulator::getHeightmap)
       .def("set_mpc_params", &MujocoSimulator::set_mpc_params)
       .def("get_horizon_nn", &MujocoSimulator::get_horizon_nn)
+      .def("get_node", &MujocoSimulator::get_node)
+      .def("set_node", &MujocoSimulator::set_node)
       .def("getObervation", &MujocoSimulator::getObervation);
 
   py::class_<Data>(m, "Data")
