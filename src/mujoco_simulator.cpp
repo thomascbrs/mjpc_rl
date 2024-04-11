@@ -591,6 +591,7 @@ void MujocoSimulator::set_node(stateNode node){
   if (LOGGING_){
     throw std::runtime_error("Cannot use get_node() with logger active.");
   }
+  std::cout << "node.q0 : " << node.q0[0] << std::endl;
 
   // Restart only necessary structures.
   mj_resetData(model, data); // reset Data
@@ -628,10 +629,15 @@ void MujocoSimulator::set_node(stateNode node){
   mj_setState(model,data,node.state,spec);
   mj_forward(model, data);
   planner.policy.CopyFrom(node.policy, settings.n_steps);
-  std::cout << "data->time set_node : " << data->time << std::endl;
-// 
+
+  // Backward pass parameters.
+  planner.backward_pass.regularization = node.regularization;  // regularization
+  planner.backward_pass.regularization_rate =
+      node.regularization_rate;  // regularization_rate
+  planner.backward_pass.regularization_factor =
+      node.regularization_factor;  // regularization_factor
+
   // planner.previous_policy.CopyFrom(node.previous_policy, settings.n_steps);
-// 
   // for (int i = 0; i < planner.num_trajectory_; i++) {
     // planner.candidate_policy[i].CopyFrom(node.candidate_policy[i], settings.n_steps);
     // planner.candidate_policy[i].representation = node.candidate_policy[i].representation;
@@ -643,7 +649,7 @@ void MujocoSimulator::set_node(stateNode node){
   // planner.improvement = node.improvement;
   // planner.expected = node.expected;
   // planner.surprise = node.surprise;
-  planner.backward_pass = node.backward_pass;
+  // planner.backward_pass = node.backward_pass;
   // planner.boxqp = node.boxqp;
 
   simstart = data->time;
@@ -660,19 +666,11 @@ stateNode MujocoSimulator::get_node(){
   if (LOGGING_){
     throw std::runtime_error("Cannot use get_node() with logger active.");
   }
+  stateNode node;
 
   unsigned int spec = mjSTATE_INTEGRATION;
   int stateSize = mj_stateSize(model, spec);
-  // mjtNum* state = new mjtNum[stateSize]; // Allocate memory for state.
-
-  // Print memory
-  // Calculate the memory in bytes.
-  // size_t memoryInBytes = stateSize * sizeof(mjtNum);
-  // double memoryInMB = static_cast<double>(memoryInBytes) / (1024.0 * 1024.0); // Convert to megabytes.
-  // std::cout << "State takes approximately " << memoryInMB << " MB of memory." << std::endl;
-
-  // Creating an instance of stateNode
-  stateNode node;
+  node.state_size = stateSize;
 
   // Allocating memory for state
   node.state = new mjtNum[stateSize];
@@ -684,6 +682,13 @@ stateNode MujocoSimulator::get_node(){
   node.policy.Allocate(model, *task_, mjpc::kMaxTrajectoryHorizon);
   node.policy.CopyFrom(planner.policy, settings.n_steps);
 
+  // Backward pass parameters.
+  node.regularization = planner.backward_pass.regularization;  // regularization
+  node.regularization_rate =
+      planner.backward_pass.regularization_rate;  // regularization_rate
+  node.regularization_factor =
+      planner.backward_pass.regularization_factor;  // regularization_factor
+
   // node.previous_policy.Allocate(model, *task_, mjpc::kMaxTrajectoryHorizon);
   // node.previous_policy.CopyFrom(planner.previous_policy, settings.n_steps);
   // node.winner = planner.winner;
@@ -693,9 +698,6 @@ stateNode MujocoSimulator::get_node(){
   // node.expected = planner.expected;
   // node.surprise = planner.surprise;
 
-
-
-  // dimensions
   // dimensions
   int dim_state = model->nq + model->nv + model->na;  // state dimension
   int dim_state_derivative =
@@ -705,6 +707,11 @@ stateNode MujocoSimulator::get_node(){
   int dim_max =
       mju_max(mju_max(mju_max(dim_state, dim_state_derivative), dim_action),
               model->nuser_sensor);
+
+  node.nq = model->nq;
+  node.na = model->na;
+  node.nv = model->nv;
+  node.nu = model->nu;
   // for (int i = 0; i < planner.num_trajectory_; i++) {
   //     node.candidate_policy[i].Allocate(model, *task_, mjpc::kMaxTrajectoryHorizon);
   //     node.candidate_policy[i].CopyFrom(planner.candidate_policy[i], settings.n_steps);
@@ -714,18 +721,18 @@ stateNode MujocoSimulator::get_node(){
   //     node.trajectory[i].Allocate(mjpc::kMaxTrajectoryHorizon);
   //     node.trajectory[i] = planner.trajectory[i]; // candidate trajectories
   // }
-  node.backward_pass.Allocate(dim_state_derivative, dim_action,
-                         mjpc::kMaxTrajectoryHorizon);
-  node.backward_pass = planner.backward_pass;
+  // node.backward_pass.Allocate(dim_state_derivative, dim_action,
+  //                        mjpc::kMaxTrajectoryHorizon);
+  // node.backward_pass = planner.backward_pass;
   // node.boxqp.Allocate(dim_action);
   // node.boxqp = planner.boxqp;
 
   mj_getState(model, data, node.state, spec);
 
 
-  size_t memoryInBytes = sizeof(node);
-  double memoryInMB = static_cast<double>(memoryInBytes) / (1024.0 * 1024.0); // Convert to megabytes.
-  std::cout << "State takes approximately " << memoryInMB << " MB of memory." << std::endl;
+  // size_t memoryInBytes = sizeof(node);
+  // double memoryInMB = static_cast<double>(memoryInBytes) / (1024.0 * 1024.0); // Convert to megabytes.
+  // std::cout << "State takes approximately " << memoryInMB << " MB of memory." << std::endl;
 
   return node;
 }

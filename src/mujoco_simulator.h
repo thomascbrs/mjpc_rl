@@ -35,14 +35,25 @@
 struct stateNode
 {
   mjtNum* state;
+  int state_size;
   mjpc::iLQGPolicy policy;
-  mjpc::iLQGBackwardPass backward_pass;
+  // mjpc::Trajectory trajectory;
+  // mjpc::iLQGBackwardPass backward_pass;
+  // Backward pass parameters
+  double regularization;          // regularization
+  double regularization_rate;     // regularization_rate
+  double regularization_factor;   // regularization_factor
 
   int k_wbc;
   int k_mpc;
   int n_iteration;
   std::vector<double> q0;
   std::vector<std::vector<double>> actions;
+
+  int nq;
+  int nv;
+  int na;
+  int nu;
 
   // mjpc::iLQGPolicy previous_policy;
   // mjpc::iLQGPolicy candidate_policy[mjpc::kMaxTrajectory];
