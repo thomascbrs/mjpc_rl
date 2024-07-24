@@ -167,7 +167,11 @@ class Heightmap {
         {Rectangle(0.0, 28.0, 2., 2.),
          Rectangle(4.25, 28.0, 2., 2.)},  // Environment 4
         {Rectangle(0.0, 34.0, 2., 2.),
-         Rectangle(4.3, 34.0, 2., 2.)}  // Environment 5
+         Rectangle(4.3, 34.0, 2., 2.)},  // Environment 5
+        {Rectangle(0.0, 40.0, 2., 2.),
+         Rectangle(4.5, 40.0, 2., 2.)},  // Environment 6
+        {Rectangle(0.0, 46.0, 2., 2.),
+         Rectangle(4., 46.0, 2., 2.)}  // Environment 7
     };
 
     std::vector<Rectangle> start_zones = {
