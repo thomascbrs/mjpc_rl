@@ -11,6 +11,7 @@ struct Settings {
   double timestep_planner = 1.0e-2;
   double horizon_planner = 0.24;
   double horizon_nn = 0.24;
+  // double horizon_nn = 0.4; MCTS
   double horizon_reset = 0.5;
   double n_steps = horizon_planner / timestep_planner + 1;
   int k_mpc = 10; // Not used for now.
