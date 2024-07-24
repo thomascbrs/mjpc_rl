@@ -27,23 +27,23 @@ public:
     // TODO: scrapping from .xml
     // Modify behaviour when dealing with multiple environment.
     // Trunk collision objects.
-    body_objects["trunk_01"] = new hpp::fcl::Box(0.125, 0.04, 0.057);
-    body_objects["trunk_02"] = new hpp::fcl::Cylinder(0.058, 0.125);
-    body_objects["trunk_03"] = new hpp::fcl::Cylinder(0.058, 0.125);
-    body_objects["trunk_04"] = new hpp::fcl::Box(0.005, 0.06, 0.05);
+    body_objects["trunk_01"] = new hpp::fcl::Box(0.13, 0.06, 0.06);
+    body_objects["trunk_02"] = new hpp::fcl::Cylinder(0.06, 0.13);
+    body_objects["trunk_03"] = new hpp::fcl::Cylinder(0.06, 0.13);
+    body_objects["trunk_04"] = new hpp::fcl::Box(0.007, 0.07, 0.06);
 
     // Hip collision objects.
-    body_objects["FR_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
-    body_objects["FL_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
-    body_objects["HR_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
-    body_objects["HL_hip"] = new hpp::fcl::Cylinder(0.04, 0.04);
+    body_objects["FR_hip"] = new hpp::fcl::Cylinder(0.05, 0.05);
+    body_objects["FL_hip"] = new hpp::fcl::Cylinder(0.05, 0.05);
+    body_objects["HR_hip"] = new hpp::fcl::Cylinder(0.05, 0.05);
+    body_objects["HL_hip"] = new hpp::fcl::Cylinder(0.05, 0.05);
 
     tf1_ = hpp::fcl::Transform3f::Identity(); // Bodies.
     tf2_ = hpp::fcl::Transform3f::Identity(); // Environment.
 
     // Environment
-    env_objects["floor"] = new hpp::fcl::Box(50., 50., 0.1);
-    tf2_.setTranslation(hpp::fcl::Vec3f(0., 0., -0.1));
+    env_objects["floor"] = new hpp::fcl::Box(200., 200., 0.1);
+    tf2_.setTranslation(hpp::fcl::Vec3f(0., 0., 0.05));
 
     // use distance function in hppfcl
     request_distance_ = hpp::fcl::DistanceRequest(false, 0., 0.);
