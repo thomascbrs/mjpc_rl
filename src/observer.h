@@ -63,10 +63,12 @@ private:
   // Reference trajectories, copies from Quadruped_Task
   // Cannot access due to the trhead system. Need to modify ResidualFn
   // otherwise.
-  PieceWise pcVel_;
-  PieceWise pcRot_;
+  // PieceWise pcVel_;
+  // PieceWise pcRot_;
 
 public:
+  PieceWise pcVel_;
+  PieceWise pcRot_;
   Observer(const std::vector<std::string> &fnames, double horizon_nn, double horizon_reset)
       : odata_(), R_tmp(Matrix3d::Identity()),
         pos_tmp(Vector3d::Zero()), axis{0., 0., 1.},
