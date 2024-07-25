@@ -122,6 +122,8 @@ class BaseEnv(gym.Env):
     self.counter_success = 0
     self.environments, self.start_zones, self.goal_zones = create_environment_baseline()
 
+    self.DREACH = 0.3
+
     self.reset_options = {
       "envId":0,
       "q0":[0.]*6,
@@ -231,7 +233,7 @@ class BaseEnv(gym.Env):
     self.infos["dgoal"] = np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2])
     self.general_infos["dgoal"] = self.infos["dgoal"]
 
-    self.infos["goal_reached"] = self.infos["dgoal"] < 0.3
+    self.infos["goal_reached"] = self.infos["dgoal"] < self.DREACH
 
     # Update general info to terminate episode if necessary
     if obs.collision_status > 0.:
@@ -364,7 +366,7 @@ class BaseEnv(gym.Env):
       self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
       self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
       # Not get a goal too close to the starting point
-      while self.envId == 0 and np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2]) <= 0.3:
+      while self.envId == 0 and np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2]) <= self.DREACH:
         self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
         self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
     self.infos["goal"][2] = 0.248

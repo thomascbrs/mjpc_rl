@@ -71,8 +71,8 @@ def create_environment_baseline():
     ]
 
     goal_zones = [
-        Rectangle(0.8, 0.0, 0.5, 0.5),   # Environment 0
-        Rectangle(0.8, 0.0, 0.5, 2.),   # Environment 1
+        Rectangle(0.3, 0.0, 0.5, 0.5),   # Environment 0
+        Rectangle(0.7, 0.0, 0.5, 2.),   # Environment 1
         Rectangle(2., 0.0, 0.5, 2.),   # Environment 2
     ]
 

@@ -100,7 +100,8 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
 
   // Heightmap
   heightmap_ = Heightmap();
-  heightmap_.create_environment1();
+  // heightmap_.create_environment1();
+  heightmap_.create_environment_baseline();
 
   // Setup task horizons.
   set_horizon_nn(settings.horizon_nn);

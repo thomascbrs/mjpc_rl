@@ -197,6 +197,33 @@ class Heightmap {
     setStartZones(start_zones);
     setGoalZones(goal_zones);
   }
+
+  void create_environment_baseline() {
+    // Define environments with rectangles
+    std::vector<std::vector<Rectangle>> environments = {
+        {Rectangle(0.0, 0.0, 4.0, 4.0)},  // Environment 0
+        {Rectangle(0.0, 0.0, 4.0, 4.0)},  // Environment 0
+        {Rectangle(0.0, 0.0, 4.0, 4.0)},  // Environment 0
+    };
+
+    std::vector<Rectangle> start_zones = {
+        Rectangle(0.0, 0.0, 0.25, 0.25),  // Environment 0
+        Rectangle(0.0, 0.0, 0.25, 0.25),  // Environment 0
+        Rectangle(0.0, 0.0, 0.25, 0.25),  // Environment 0
+    };
+
+    std::vector<Rectangle> goal_zones = {
+        Rectangle(0.3, 0.0, 0.5, 0.5),    // Environment 0
+        Rectangle(0.7, 0., 0.5, 0.2),   // Environment 1
+        Rectangle(2.,  0., 0.5, 2.),  // Environment 2
+    };
+
+    // Set environments for the heightmap
+    setEnvironments(environments);
+    setStartZones(start_zones);
+    setGoalZones(goal_zones);
+  }
+
 };
 
 #endif // MUJOCO_HEIGHTMAP_H
