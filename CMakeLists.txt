@@ -175,6 +175,11 @@ add_executable(main_example src/main.cpp)
 target_link_libraries(main_example PRIVATE mjpc_rl_cpp)
 target_link_libraries(main_example PRIVATE GL dl)
 
+add_executable(main_debug src/main_debug.cpp)
+target_link_libraries(main_debug PRIVATE mjpc_rl_cpp)
+target_link_libraries(main_debug PRIVATE GL dl)
+
+
 ###############################
 # Create benchmark executable.
 ###############################

@@ -315,6 +315,8 @@ void MujocoSimulator::update_viewer() {
   // Add visualisation.
   if (data->time > settings.horizon_reset + 0.002) {
     task_->ModifyScene(model, data, &scn);
+    // print_traj();
+    print_tree();
   }
 
   // Add contact-related geoms to the visualization scene
@@ -327,6 +329,192 @@ void MujocoSimulator::update_viewer() {
 
   // process pending GUI events, call GLFW callbacks
   glfwPollEvents();
+}
+
+void MujocoSimulator::print_traj(){
+    double size[3] = {0.01};
+  double pos[3];
+  pos[0] = data->qpos[0];
+  pos[1] = data->qpos[1];
+  pos[2] = data->qpos[2] + 0.05;
+  double pos_previous[3] = {pos[0], pos[1], pos[2]};
+
+  // color
+  float color[4];
+  color[0] = 1.;
+  color[1] = 1.0;
+  color[2] = 1.;
+  color[3] = 0.7;
+
+  // At time data-time, get rotationmatrix for world frame velocity reference.
+  const mjtNum axis[3] = {0., 0., 1.}; // z-axis (yaw)
+  Matrix3d R_tmp = Matrix3d::Zero();
+  mjtNum R_data[9];
+  mjtNum quat_tmp[4];
+  // Get quaternion projected on z-axis (only yaw component).
+  mju_mulQuatAxis(quat_tmp, &data->qpos[3],
+                  axis);          // Convert axis-angle to quaternion
+  mju_quat2Mat(R_data, quat_tmp); // Convert quaternion to rotation matrix
+  updateMatrix(R_tmp, R_data);
+
+  Vector3d vel_world = Vector3d::Zero();
+  Vector3d vel_tmp = Vector3d::Zero();
+  Vector3d dx = Vector3d::Zero();
+  Matrix3d dR = Matrix3d::Zero();
+
+  double t_min = data->time;
+  double t_max = observer.pcVel_.max() - t_min;
+  double dt = 0.02;
+  int n_points = int(t_max / dt);
+  // int n_points = 6;
+  std::cout << "data->time : " << data->time << std::endl;
+  std::cout << "observer.pcVel_.max() : " << observer.pcVel_.max() << std::endl;
+
+  for (int i = 0; i < n_points -1; i++) {
+    if (i > 0) {
+      pos_previous[0] = pos[0];
+      pos_previous[1] = pos[1];
+      pos_previous[2] = pos[2];
+    }
+    double t = t_min + t_max * (float(i) / float(n_points));
+
+    vel_tmp = observer.pcVel_(t);
+
+    // Vector3d rot = observer.pcRot_.derivate(t,1);
+    Vector3d rot = observer.pcRot_(t);
+    // R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., rot(2));
+    vel_world = vel_tmp;
+
+    dR = pinocchio::rpy::rpyToMatrix(rot(0), rot(1), rot(2));
+    Vector3d dx = dR * dt * vel_world;
+    pos[0] = pos[0] + dx(0);
+    pos[1] = pos[1] + dx(1);
+    pos[2] = pos[2] + dx(2);
+
+    mjvGeom *geomtest = scn.geoms + scn.ngeom++;
+    mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
+    scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+
+    if (i > 0) {
+      // mjvGeom* geomtest2 = scn.geoms + scn.ngeom++;
+      // make connector geom
+      mjvGeom *geomtest2 = scn.geoms + scn.ngeom++;
+      mjv_initGeom(geomtest2, mjGEOM_LINE,
+                   /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, color);
+      scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+      double *from = pos_previous;
+      double *to = pos;
+      mjv_makeConnector(geomtest2, mjGEOM_LINE, 2, from[0], from[1], from[2],
+                        to[0], to[1], to[2]);
+    }
+  }
+}
+
+void MujocoSimulator::print_tree() {
+  float color[4] = {1.,1.,1.,0.9};
+  double size[3] = {0.01};
+  double pos[3];
+  // Iterate over each trajectory in the vector
+  for (const auto &traj : trajectories_) {
+    // Iterate over each trajectory point in the trajectory
+    for (const auto &point : traj) {
+      // Print the trajectory point
+      if (point.is_connector) {
+        // Handle connector points differently
+        // Print connector point...
+        mjvGeom *geomtest2 = scn.geoms + scn.ngeom++;
+        mjv_initGeom(geomtest2, mjGEOM_LINE,
+                    /*size=*/nullptr, /*pos=*/nullptr, /*mat=*/nullptr, color);
+        scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+        const double *from = point.from;
+        const double *to = point.pos;
+        mjv_makeConnector(geomtest2, mjGEOM_LINE, 2, from[0], from[1], from[2],
+                        to[0], to[1], to[2]);
+      } else {
+        pos[0] = point.pos[0];
+        pos[1] = point.pos[1];
+        pos[2] = point.pos[2];
+        mjvGeom *geomtest = scn.geoms + scn.ngeom++;
+        mjv_initGeom(geomtest, mjGEOM_SPHERE, size, pos, NULL, color);
+        scn.geoms[scn.ngeom].category = mjCAT_DECOR;
+      }
+    }
+  }
+}
+
+void MujocoSimulator::store_trajectory(){
+  double size[3] = {0.01};
+  double pos[3];
+  pos[0] = data->qpos[0];
+  pos[1] = data->qpos[1];
+  pos[2] = data->qpos[2] + 0.05;
+  double pos_previous[3] = {pos[0], pos[1], pos[2]};
+
+  // At time data-time, get rotationmatrix for world frame velocity reference.
+  const mjtNum axis[3] = {0., 0., 1.}; // z-axis (yaw)
+  Matrix3d R_tmp = Matrix3d::Zero();
+  mjtNum R_data[9];
+  mjtNum quat_tmp[4];
+  // Get quaternion projected on z-axis (only yaw component).
+  mju_mulQuatAxis(quat_tmp, &data->qpos[3],
+                  axis);          // Convert axis-angle to quaternion
+  mju_quat2Mat(R_data, quat_tmp); // Convert quaternion to rotation matrix
+  updateMatrix(R_tmp, R_data);
+
+  Vector3d vel_world = Vector3d::Zero();
+  Vector3d vel_tmp = Vector3d::Zero();
+  Vector3d dx = Vector3d::Zero();
+  Matrix3d dR = Matrix3d::Zero();
+
+  double t_min = data->time;
+  double t_max = observer.pcVel_.max() - t_min;
+  double dt = 0.02;
+  int n_points = int(t_max / dt);
+  int ratio_prints = 4;
+  std::vector<TrajectoryPoint> traj_points;
+
+  for (int i = 0; i < n_points -1; i++) {
+    if (i > 0) {
+      pos_previous[0] = pos[0];
+      pos_previous[1] = pos[1];
+      pos_previous[2] = pos[2];
+    }
+    double t = t_min + t_max * (-0.001 + float(i+1) / float(n_points));
+    vel_tmp = observer.pcVel_(t);
+
+    // Vector3d rot = observer.pcRot_.derivate(t,1);
+    Vector3d rot = observer.pcRot_(t);
+    // R_tmp = pinocchio::rpy::rpyToMatrix(0., 0., rot(2));
+    vel_world = vel_tmp;
+
+    dR = pinocchio::rpy::rpyToMatrix(rot(0), rot(1), rot(2));
+    Vector3d dx = dR * dt * vel_world;
+    pos[0] = pos[0] + dx(0);
+    pos[1] = pos[1] + dx(1);
+    pos[2] = pos[2] + dx(2);
+
+    // Store trajectory point in traj_points vector
+    TrajectoryPoint point;
+    // Set point properties (pos, color, etc.)
+    point.pos[0] = pos[0];
+    point.pos[1] = pos[1];
+    point.pos[2] = pos[2];
+    point.from[0] = pos[0];
+    point.from[1] = pos[1];
+    point.from[2] = pos[2];
+
+    if (i % ratio_prints == 0 || i == n_points - 2){
+      if (i > 0) {
+        // std::cout << traj_points.back().from[0] << std::endl;
+        point.from[0] = traj_points.back().pos[0];
+        point.from[1] = traj_points.back().pos[1];
+        point.from[2] = traj_points.back().pos[2];
+        point.is_connector = true;
+      }
+      traj_points.push_back(point);
+    }
+  }
+  trajectories_.push_back(traj_points);
 }
 
 void MujocoSimulator::put_robot_on_floor(int n_steps, VectorXd qref) {
@@ -430,6 +618,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
   }
   update_ref_curve(actions); // Extend reference curve with point.
   h_actions.push_back(actions);
+  store_trajectory();
 
   // if (n_iteration == 0) {
   //   // Robot initilized with put_on_floor function.
@@ -451,7 +640,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
     }
 
     if (k_wbc_ % mpc_ratio_max_wbc_ == 0) {
-      std::cout << "data->time MPC : " << data->time << std::endl;
+      // std::cout << "data->time MPC : " << data->time << std::endl;
       int indexes[2];
       std::string prefix = "residual_air_time_";
       for (const auto &name : foot_names_) {
@@ -586,12 +775,16 @@ void MujocoSimulator::set_horizon_reset(double horizon_reset){
   task_->parameters[indexes[0]] = -1.;
 }
 
+void MujocoSimulator::activate_rendering(){
+  RENDERING_ = true;
+}
+
 void MujocoSimulator::set_node(stateNode node){
   // TODO : Set logger.
   if (LOGGING_){
     throw std::runtime_error("Cannot use get_node() with logger active.");
   }
-  std::cout << "node.q0 : " << node.q0[0] << std::endl;
+  // std::cout << "node.q0 : " << node.q0[0] << std::endl;
 
   // Restart only necessary structures.
   mj_resetData(model, data); // reset Data
@@ -612,6 +805,11 @@ void MujocoSimulator::set_node(stateNode node){
   mj_forward(model, data);
   reset_task(node.q0); // Warning q is size 6 and rpy are the last 3 elements.
 
+  col.resetCollisionStatus();
+  observer.reset(node.q0);
+  observer.update_final_pose(model, data);
+  observer.update_filter(model, data);
+
   for (int j = 0; j < node.actions.size(); j++) {
     if (j == 0) {
       first_step(node.actions.at(j));
@@ -620,10 +818,6 @@ void MujocoSimulator::set_node(stateNode node){
     }
   }
 
-  col.resetCollisionStatus();
-  observer.reset(node.q0);
-  observer.update_final_pose(model, data);
-  observer.update_filter(model, data);
 
   unsigned int spec = mjSTATE_INTEGRATION;
   mj_setState(model,data,node.state,spec);

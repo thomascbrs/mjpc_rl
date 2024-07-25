@@ -222,6 +222,7 @@ PYBIND11_MODULE(libmjpc_rl_pywrap, m) {
       .def("get_horizon_nn", &MujocoSimulator::get_horizon_nn)
       .def("get_node", &MujocoSimulator::get_node)
       .def("set_node", &MujocoSimulator::set_node)
+      .def("activate_rendering", &MujocoSimulator::activate_rendering)
       .def("getObervation", &MujocoSimulator::getObervation);
 
   py::class_<Data>(m, "Data")

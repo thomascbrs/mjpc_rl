@@ -67,6 +67,16 @@ struct stateNode
   // double surprise;
 };
 
+// Define a struct to represent a trajectory point
+struct TrajectoryPoint {
+    double pos[3];  // Position
+    double color[4];  // Color
+    bool is_connector;  // Indicates if this point is a connector
+    double from[3];  // Position of the start of the connector
+    // Constructor to initialize all members to zero
+    TrajectoryPoint() : pos{0.0, 0.0, 0.0}, color{1.0, 0.0, 0.0, 0.0}, is_connector(false), from{0.0, 0.0, 0.0} {}
+};
+
 
 class MujocoSimulator {
 public:
@@ -103,6 +113,10 @@ public:
   double get_horizon_nn(){return settings.horizon_nn;};
   void set_horizon_reset(double horizon_reset);
   void set_node(stateNode node);
+  void activate_rendering();
+  void print_traj();
+  void print_tree();
+  void store_trajectory();
   stateNode get_node();
 
   CustomiLQGPlanner planner;
@@ -170,6 +184,8 @@ private:
 
   std::vector<std::vector<double>> h_actions; // history of actions
   std::vector<double> h_q0; // history of restart state
+
+  std::vector<std::vector<TrajectoryPoint>> trajectories_;
 };
 
 #endif // MUJOCO_SIMULATOR_H

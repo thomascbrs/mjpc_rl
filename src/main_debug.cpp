@@ -118,76 +118,23 @@ int main() {
   // Start time before calling function1
 
   // Call function1
-  stateNode node;
-  for (int j = 0; j < 10; j++) {
-    auto start = std::chrono::high_resolution_clock::now();
-    std::cout << "j : " << j << std::endl;
-    if (j == 3){
-      mjsimulator.planner.settings.verbose = 1;
-    }
-    else{
-      mjsimulator.planner.settings.verbose = 0;
-    }
-    mjsimulator.step(list_points[j]);
-    if (j == 2){
-      node = mjsimulator.get_node();
-    }
-    // End time after calling function1
-    auto end = std::chrono::high_resolution_clock::now();
-    // Calculate the duration taken by function1
-    auto duration1 =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Step function [ms] : " << duration1.count() << std::endl;
-  }
+  mjsimulator.step(list_points[0]);
+  stateNode node0 = mjsimulator.get_node();
 
-  // mjsimulator.reset(q0, 4);
-  // for (int j = 0; j < 10; j++) {
-  //   auto start = std::chrono::high_resolution_clock::now();
-  //   std::cout << "j : " << j << std::endl;
-  //   if (j == 3){
-  //     mjsimulator.planner.settings.verbose = 1;
-  //   }
-  //   else{
-  //     mjsimulator.planner.settings.verbose = 0;
-  //   }
-  //   mjsimulator.step(list_points[j]);
-  //   if (j == 2){
-  //     node = mjsimulator.get_node();
-  //   }
-  //   // End time after calling function1
-  //   auto end = std::chrono::high_resolution_clock::now();
-  //   // Calculate the duration taken by function1
-  //   auto duration1 =
-  //       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  //   std::cout << "Step function [ms] : " << duration1.count() << std::endl;
-  // }
+  mjsimulator.step(list_points[1]);
+  mjsimulator.set_node(node0);
+  // mjsimulator.set_node(node0);
+  // mjsimulator.set_node(node0);
+  std::cout << "ICI ok" << std::endl;
 
+  mjsimulator.step(list_points[2]);
+  stateNode node1 = mjsimulator.get_node();
 
-  mjsimulator.set_node(node);
-  for (int j = 3; j < 10; j++) {
-    std::cout << "j : " << j << std::endl;
-    if (j == 3){
-      mjsimulator.planner.settings.verbose = 1;
-    }
-    else{
-      mjsimulator.planner.settings.verbose = 0;
-    }
-    mjsimulator.step(list_points[j]);
-  }
+  mjsimulator.set_node(node1);
+  std::cout << "ICI2 ok" << std::endl;
 
-  // mjsimulator.set_node(node);
-  // for (int j = 3; j < 10; j++) {
-  //   std::cout << "j : " << j << std::endl;
-  //   mjsimulator.step(list_points[j]);
-  //   if (j == 3){
-  //     mjsimulator.planner.settings.verbose = 1;
-  //   }
-  //   else{
-  //     mjsimulator.planner.settings.verbose = 0;
-  //   }
-  //   mjsimulator.step(list_points[j]);
-  // }
-
+  mjsimulator.step(list_points[3]);
+  mjsimulator.set_node(node1);
 
   // Save the data.
   fs::path relative_path_logger = "../../mjpc_rl/logs/logger/ldata.bin";
