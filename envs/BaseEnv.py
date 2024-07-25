@@ -28,7 +28,9 @@ class BaseEnv(gym.Env):
     # self._lb = np.concatenate([lb_vel, lb_ang])
     # self._ub = np.concatenate([ub_vel, ub_ang])
 
-    self._lb = np.array([-0.3,-0.1,-0.2])
+    # self._lb = 10*np.array([-0.3,-0.1,-0.2])
+    # self._ub = 10*np.array([0.3,0.1,0.2])
+    self._lb = np.array([-0.1,-0.1,-0.2])
     self._ub = np.array([0.3,0.1,0.2])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
@@ -229,7 +231,7 @@ class BaseEnv(gym.Env):
     self.infos["dgoal"] = np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2])
     self.general_infos["dgoal"] = self.infos["dgoal"]
 
-    self.infos["goal_reached"] = self.infos["dgoal"] < 0.2
+    self.infos["goal_reached"] = self.infos["dgoal"] < 0.3
 
     # Update general info to terminate episode if necessary
     if obs.collision_status > 0.:
@@ -251,10 +253,10 @@ class BaseEnv(gym.Env):
     if self.bias:
       reward += self._reward_bias(1.)
       reward += self._reward01(0.6)
-      reward += self._reward02(0.6)
+      # reward += self._reward02(0.6)
 
     # reward += self._reward_stall()
-    reward += self._reward_task(Tr=5., T=3.5,alpha=1.)
+    # reward += self._reward_task(Tr=5., T=3.5,alpha=1.)
     # reward += self._reward_action(actions, 0.5)
     # reward += self._reward_behaviour()
 
@@ -341,7 +343,11 @@ class BaseEnv(gym.Env):
     self.reset_options["q0"][:] = q[:] # copy
     # Setup a random initial action for the horizon.
     init_actions = [0.]*6
-    init_actions[0] = 0. + (0.1 - 0.) * self._np_random.random()
+    if isinstance(options, dict) and "init_action" in options:
+      assert len(init_actions) == 6, "init action should be size 6"
+      init_actions[:] = options["init_action"]
+    else:
+      init_actions[0] = 0. + (0.1 - 0.) * self._np_random.random()
     # init_actions[5] = self._np_random.random()
     self.simulator.reset(q, self.envId,init_actions)
     self.update_previous_actions([init_actions[0],0.,0.])
@@ -540,3 +546,6 @@ class BaseEnv(gym.Env):
     reward = - alpha * np.linalg.norm(actions)
     self.general_infos["r_action"] = reward
     return reward
+
+  def get_reset_options(self):
+    return self.reset_options

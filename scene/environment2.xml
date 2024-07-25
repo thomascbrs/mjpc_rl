@@ -22,5 +22,14 @@
     <!-- Plateform 5, gap 30cm -->
     <geom name="plateform5" class="prop" pos="0 34 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
     <geom name="plateform5_1" class="prop" pos="4.3 34 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 6, gap 50cm -->
+    <geom name="plateform6" class="prop" pos="0 40 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform6_1" class="prop" pos="4.5 40 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
+    <!-- Plateform 7, stairs -->
+    <geom name="plateform7" class="prop" pos="0 46 -0.1" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+    <geom name="plateform7_1" class="prop" pos="4. 46 -0.0" size="2. 2. 0.1" euler="0 0 0" type="box"/>
+
   </worldbody>
 </mujoco>
