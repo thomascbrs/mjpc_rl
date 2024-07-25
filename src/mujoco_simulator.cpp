@@ -248,7 +248,7 @@ void MujocoSimulator::initialize_viewer() {
   // Adjust camera distance
   cam.azimuth = 70.0;    // Set azimuth angle
   cam.elevation = -20.0; // Set elevation angle
-  cam.distance = 2.5;    // Set camera distance to 1.0
+  cam.distance = 10.;    // Set camera distance to 1.0
 }
 
 void MujocoSimulator::update_viewer() {
@@ -316,7 +316,7 @@ void MujocoSimulator::update_viewer() {
   if (data->time > settings.horizon_reset + 0.002) {
     task_->ModifyScene(model, data, &scn);
     // print_traj();
-    print_tree();
+    // print_tree();
   }
 
   // Add contact-related geoms to the visualization scene
@@ -618,7 +618,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
   }
   update_ref_curve(actions); // Extend reference curve with point.
   h_actions.push_back(actions);
-  store_trajectory();
+  // store_trajectory();
 
   // if (n_iteration == 0) {
   //   // Robot initilized with put_on_floor function.

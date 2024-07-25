@@ -10,7 +10,7 @@ import pinocchio
 import os
 
 from build_release.libmjpc_rl_pywrap import MujocoSimulator
-from envs.environment import Rectangle, create_environment
+from envs.environment import Rectangle, create_environment, create_environment_baseline
 
 class BaseEnv(gym.Env):
   metadata = {"render_modes": ["human", "rgb_array", "logger"], "render_fps": 4}
@@ -120,7 +120,7 @@ class BaseEnv(gym.Env):
     self.envId = 0 # start at 0.
     self.counter_failure = 0
     self.counter_success = 0
-    self.environments, self.start_zones, self.goal_zones = create_environment()
+    self.environments, self.start_zones, self.goal_zones = create_environment_baseline()
 
     self.reset_options = {
       "envId":0,
@@ -306,7 +306,7 @@ class BaseEnv(gym.Env):
       self.counter_success += 1
       if self.counter_success >= 2:
         if self.envId == len(self.environments) - 1 :
-          self.envId = self.np_random.integers(0, 5, size=1)[0]
+          self.envId = self.np_random.integers(0, len(self.environments) - 1, size=1)[0]
         else:
           self.envId += 1
         self.counter_failure = 0

@@ -50,7 +50,7 @@
     <!-- <geom name="box2" class="prop" pos="3.5 0 -0.1" size="2. 1 0.4" euler="0 0 0" type="box"/> -->
   </worldbody>
 
-  <include file="../scene/environment2.xml" />
+  <include file="../scene/environment2_baseline.xml" />
   <include file="a1.xml" />
 
   <default>

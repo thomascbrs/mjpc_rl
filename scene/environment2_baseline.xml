@@ -1,0 +1,7 @@
+<mujoco model="environment">
+  <worldbody>
+    <!-- Plateform 0 -->
+    <geom name="plateform0" class="prop" pos="0 0 -0.1" size="4. 4. 0.1" euler="0 0 0" type="box"/>
+
+  </worldbody>
+</mujoco>
