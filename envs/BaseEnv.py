@@ -30,8 +30,8 @@ class BaseEnv(gym.Env):
 
     # self._lb = 10*np.array([-0.3,-0.1,-0.2])
     # self._ub = 10*np.array([0.3,0.1,0.2])
-    self._lb = np.array([-0.1,-0.1,-0.2])
-    self._ub = np.array([0.3,0.1,0.2])
+    self._lb = np.array([-0.2,-0.1,-0.2])
+    self._ub = np.array([0.2,0.1,0.2])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
     # Observation.
@@ -254,11 +254,11 @@ class BaseEnv(gym.Env):
     reward = 0.
     if self.bias:
       reward += self._reward_bias(1.)
-      reward += self._reward01(0.6)
-      # reward += self._reward02(0.6)
+      reward += self._reward01(0.5)
+      reward += self._reward02(0.5)
 
     # reward += self._reward_stall()
-    # reward += self._reward_task(Tr=5., T=3.5,alpha=1.)
+    reward += self._reward_task(Tr=5., T=3.5,alpha=1.)
     # reward += self._reward_action(actions, 0.5)
     # reward += self._reward_behaviour()
 
@@ -274,13 +274,13 @@ class BaseEnv(gym.Env):
     truncated = False
     if self.infos["t"] > 5.:
       terminated = True
-      self.general_infos["r_termination"] = -1.
+      # self.general_infos["r_termination"] = -1.
 
     if self.infos["goal_reached"]:
       print("goal reached")
       terminated = True
-      reward += 6.
-      self.general_infos["r_termination"] = 5.
+      reward += 4.
+      self.general_infos["r_termination"] = 4.
 
     observation = self._get_obs()
     info = self._get_info()
@@ -306,7 +306,7 @@ class BaseEnv(gym.Env):
     if self.infos["goal_reached"] :
       # Increase the environement.
       self.counter_success += 1
-      if self.counter_success >= 2:
+      if self.counter_success >= 6:
         if self.envId == len(self.environments) - 1 :
           self.envId = self.np_random.integers(0, len(self.environments) - 1, size=1)[0]
         else:
@@ -339,7 +339,7 @@ class BaseEnv(gym.Env):
       q[1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
       q[2] = 0.3
       q[4] = 0. # Pitch angle
-      q[5] = -0.5 + (0.5 + 0.5) * self.np_random.random()
+      q[5] = -1.2 + (1.2 + 1.2) * self.np_random.random()
       self.infos["robot_pose"] = np.array(q[:3])
     # Update reset_options_dict to replay the episode
     self.reset_options["q0"][:] = q[:] # copy

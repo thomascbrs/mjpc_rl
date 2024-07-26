@@ -9,6 +9,7 @@ from gymnasium.spaces import Box
 from gymnasium.wrappers import FlattenObservation, RescaleAction, NormalizeReward
 from stable_baselines3 import PPO
 from sb3_contrib import RecurrentPPO
+from stable_baselines3 import TD3
 import torch.nn as nn
 
 # import flax.linen as nn
@@ -19,6 +20,9 @@ import jax
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.logger import TensorBoardOutputFormat
+from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
+from stable_baselines3 import TD3
+
 
 import numpy as np
 
@@ -130,9 +134,8 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     #     # activation_fn=nn.elu # SBX
     #     activation_fn=nn.ELU  # torch
     # )
-    policy_kwargs = dict(activation_fn=nn.ELU,
-                        net_arch=dict(pi=[128,64], vf=[128,64]))
-    learning_rate = 0.0005
+  
+    learning_rate = 0.0003
     n_steps = 24
     batch_size = int((n_steps * num_cpu) / 4)
     n_epochs = 5
@@ -147,33 +150,11 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     max_grad_norm = 0.5
     use_sde = False
 
-    tensorboard_log = "logs/tensorboard/"
-    # model = PPO("MlpPolicy",
-    #             env,
-    #             verbose=1,
-    #             tensorboard_log=tensorboard_log,
-    #             learning_rate=learning_rate,
-    #             clip_range=clip_range,
-    #             n_epochs=n_epochs,
-    #             batch_size=batch_size,
-    #             ent_coef=ent_coef,
-    #             vf_coef=vf_coef,
-    #             n_steps=n_steps,
-    #             gamma=gamma,
-    #             policy_kwargs=policy_kwargs,
-    #             gae_lambda=gae_lambda,
-    #             clip_range_vf=clip_range_vf,
-    #             normalize_advantage=normalize_advantage,
-    #             target_kl=target_kl,
-    #             use_sde=use_sde,
-    #             max_grad_norm=max_grad_norm,
-    #             device="cuda")
-
     policy_kwargs = dict(activation_fn=nn.ELU,
-                        lstm_hidden_size=256,
-                        net_arch=dict(pi=[128,64], vf=[128,64]))
+                        net_arch=dict(pi=[256,128,64], vf=[256,128,64]))
 
-    model = RecurrentPPO("MlpLstmPolicy",
+    tensorboard_log = "logs/tensorboard/"
+    model = PPO("MlpPolicy",
                 env,
                 verbose=1,
                 tensorboard_log=tensorboard_log,
@@ -194,6 +175,31 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
                 max_grad_norm=max_grad_norm,
                 device="cuda")
 
+    # policy_kwargs = dict(activation_fn=nn.ELU,
+    #                     lstm_hidden_size=256,
+    #                     net_arch=dict(pi=[128,64], vf=[128,64]))
+
+    # model = RecurrentPPO("MlpLstmPolicy",
+    #             env,
+    #             verbose=1,
+    #             tensorboard_log=tensorboard_log,
+    #             learning_rate=learning_rate,
+    #             clip_range=clip_range,
+    #             n_epochs=n_epochs,
+    #             batch_size=batch_size,
+    #             ent_coef=ent_coef,
+    #             vf_coef=vf_coef,
+    #             n_steps=n_steps,
+    #             gamma=gamma,
+    #             policy_kwargs=policy_kwargs,
+    #             gae_lambda=gae_lambda,
+    #             clip_range_vf=clip_range_vf,
+    #             normalize_advantage=normalize_advantage,
+    #             target_kl=target_kl,
+    #             use_sde=use_sde,
+    #             max_grad_norm=max_grad_norm,
+    #             device="cuda")
+
     # batch_size = int((n_steps * num_cpu) / 4)
     # train_freq = 5
     # gradient_steps = 5
@@ -207,8 +213,26 @@ def main(num_cpu=1, mode="rgb_array", timesteps=20000, model_log="logs/models/mo
     #             gradient_steps=gradient_steps,
     #             batch_size=batch_size,
     #             tensorboard_log=tensorboard_log, device="cpu")
-    model.learn(total_timesteps=timesteps, callback=TensorboardCallback(timesteps, int(timesteps / 4000), model_log))
-    model.save(model_log)
+
+    # policy_kwargs = dict(activation_fn=nn.ELU,
+    #                     net_arch=dict(pi=[256,128,64], vf=[256,128,64]))
+
+    # The noise objects for TD3
+    
+    # n_actions = env.action_space.shape[-1]
+    # action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.05 * np.ones(n_actions))
+    # learning_rate = 0.0005
+    # buffer_size = 200000
+    # batch_size = num_cpu * 24
+    # train_freq = 5
+
+    # model = TD3("MlpPolicy", env, 
+    #             tensorboard_log=tensorboard_log,
+    #             learning_rate = learning_rate,
+    #             action_noise=action_noise, verbose=1)
+
+    model.learn(total_timesteps=timesteps, callback=TensorboardCallback(timesteps, 400, model_log))
+    # model.save(model_log)
 
 
 if __name__ == '__main__':
