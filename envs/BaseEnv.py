@@ -30,8 +30,8 @@ class BaseEnv(gym.Env):
 
     # self._lb = 10*np.array([-0.3,-0.1,-0.2])
     # self._ub = 10*np.array([0.3,0.1,0.2])
-    self._lb = np.array([-0.2,-0.1,-0.2])
-    self._ub = np.array([0.2,0.1,0.2])
+    self._lb = np.array([-0.25,-0.1,-0.45])
+    self._ub = np.array([0.25,0.1,0.45])
     self.action_space = spaces.Box(low=self._lb, high=self._ub, dtype=np.float32)
 
     # Observation.

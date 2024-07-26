@@ -240,7 +240,7 @@ if __name__ == '__main__':
     # freeze_support()
 
     # Parameters of training.
-    num_cpu = 40  # Nb of processes to use (nb * 4, mpc uses 4 cpus).
+    num_cpu = 30  # Nb of processes to use (nb * 4, mpc uses 4 cpus).
     mode = ""  # or mode = "human"
     timesteps = 4000000
     # n_steps = int(2048 / num_cpu)
