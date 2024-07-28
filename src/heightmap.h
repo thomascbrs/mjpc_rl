@@ -11,6 +11,17 @@
 #include <Eigen/Geometry>
 #include <pinocchio/math/quaternion.hpp>
 
+// Define a structure for a hole
+struct Hole {
+    double centerX, centerY;  // Center coordinates
+    double size;             // Radius of the hole
+
+    // Constructor to initialize the hole with center coordinates and size
+    Hole(double cx, double cy, double s)
+        : centerX(cx), centerY(cy), size(s) {}
+};
+
+
 
 // Define a structure for a rectangle
 struct Rectangle {
@@ -28,6 +39,7 @@ class Heightmap {
  public:
   std::vector<std::vector<Rectangle>>
       environments;                   // Vector of vectors of rectangles
+  std::vector<std::vector<Hole>> holes = {};  // Vector of holes
   std::vector<Rectangle> startZones;  // limits for reset method.
   std::vector<Rectangle> goalZones;   // limits for reset method.
   int currentEnvironment;             // Current environment flag
@@ -62,6 +74,11 @@ class Heightmap {
     environments = envs;
   }
 
+  // Function to set the holes
+  void setHoles(const std::vector<std::vector<Hole>>& envs) {
+    holes = envs;
+  }
+
   // Function to set the starting zones
   void setStartZones(const std::vector<Rectangle>& zones) {
     startZones = zones;
@@ -80,6 +97,16 @@ class Heightmap {
     }
   }
 
+    // Function to check if a point is inside any hole
+  bool is_inside_hole(double x, double y, Hole hole) const {
+    double dist = std::sqrt((hole.centerX - x) * (hole.centerX - x) +
+                            (hole.centerY - y) * (hole.centerY - y));
+      if (dist <= hole.size) {
+        return true;
+      }
+    return false;
+  }
+
   // Function to get the current environment
   int getCurrentEnvironment() const { return currentEnvironment; }
 
@@ -91,16 +118,23 @@ class Heightmap {
       return -1;
     }
 
+    double height = -1.;
     for (const Rectangle& rect : environments[currentEnvironment]) {
       if (x >= rect.centerX - rect.halfWidth &&
           x <= rect.centerX + rect.halfWidth &&
           y >= rect.centerY - rect.halfHeight &&
           y <= rect.centerY + rect.halfHeight) {
-        return double(0.);  // Inside the rectangle of the current environment
+        height = double(0.);  // Inside the rectangle of the current environment
       }
     }
 
-    return double(-1);  // Outside the rectangles of the current environment
+    for (const Hole& hole : holes[currentEnvironment]) {
+      if (is_inside_hole(x, y, hole)) {
+        height = double(-1.);
+      }
+    }
+
+    return height;  // Outside the rectangles of the current environment
   }
 
   double get_mean_height(double x, double y) const{
@@ -192,10 +226,23 @@ class Heightmap {
         Rectangle(3.8, 34.0, 0.5, 0.5),   // Environment 5
     };
 
+
+    // Create and set holes for different environments
+    std::vector<std::vector<Hole>> holes = {
+        {Hole(100,100,5)},  // Fake hole,  // Environment 0
+        {Hole(100,100,5)},  // Fake hole,  // Env1
+        {Hole(100,100,5)},  // Fake hole, // Env 2
+        {Hole(100,100,5)},  // Fake hole,  // Environment 3
+        {Hole(100,100,5)},  // Fake hole,  // Env4
+        {Hole(100,100,5)},  // Fake hole, // Env 5
+    };
+
     // Set environments for the heightmap
     setEnvironments(environments);
     setStartZones(start_zones);
     setGoalZones(goal_zones);
+    std::cout << "OOOH" << std::endl;
+    setHoles(holes);
   }
 
   void create_environment_baseline() {
@@ -218,10 +265,75 @@ class Heightmap {
         Rectangle(2.,  0., 0.5, 2.),  // Environment 2
     };
 
+    // Create and set holes for different environments
+    std::vector<std::vector<Hole>> holes = {
+        {Hole(100,100,5)},  // Fake hole,  // Environment 0
+        {Hole(100,100,5)},  // Fake hole,  // Env1
+        {Hole(100,100,5)},  // Fake hole, // Env 2
+        {Hole(100,100,5)},  // Fake hole,  // Environment 3
+        {Hole(100,100,5)},  // Fake hole,  // Env4
+        {Hole(100,100,5)},  // Fake hole, // Env 5
+    };
+
     // Set environments for the heightmap
     setEnvironments(environments);
     setStartZones(start_zones);
     setGoalZones(goal_zones);
+    setHoles(holes);
+  }
+
+  void create_environment_baseline_holes() {
+    // Define environments with rectangles
+    std::vector<std::vector<Rectangle>> environments = {
+        {Rectangle(0.0, -1.0, 4.0, 4.0)},  // Environment 0
+        {Rectangle(0.0, -1.0, 4.0, 4.0)},  // Environment 0
+        {Rectangle(0.0, 8.06, 4.0, 4.0)},  // Environment 0
+    };
+
+    std::vector<Rectangle> start_zones = {
+        Rectangle(0.0, -1.0, 0.25, 0.25),  // Environment 0
+        Rectangle(0.0, -1.0, 0.25, 0.25),  // Environment 0
+        Rectangle(0.0, 8.06, 0.25, 0.25),  // Environment 0
+    };
+
+    std::vector<Rectangle> goal_zones = {
+        Rectangle(0.3, -1.0, 0.5, 0.5),    // Environment 0
+        Rectangle(0.7, -1., 0.5, 0.2),   // Environment 1
+        Rectangle(2.,  8.06, 0.5, 2.),  // Environment 2
+    };
+
+    // Create and set holes for different environments
+    std::vector<std::vector<Hole>> holes = {
+        {Hole(100,100,5)},  // Environment 0
+        {Hole(100,100,5)},  // Env1
+        {
+        Hole(-1.0, 9.26, 0.2),
+        Hole(0.8, 10.06, 0.4),
+        Hole(-2.0, 10.06, 0.28),
+        Hole(-1.0, 11.06, 0.44),
+        Hole(3.0, 8.86, 0.48),
+        Hole(2.08, 10.18, 0.24),
+        Hole(1.48, 8.06, 0.32),
+        Hole(-2.12, 8.54, 0.4),
+        Hole(-1.96, 6.18, 0.4),
+        Hole(2.88, 6.66, 0.32),
+        Hole(0.6, 4.66, 0.4),
+        Hole(-0.88, 5.42, 0.2),
+        Hole(2.4, 5.5, 0.32),
+        Hole(-2.0, 5.06, 0.32),
+        Hole(1.0, 6.46, 0.28),
+        // Hole(0.48, 8.86, 0.2),
+        Hole(-0.8, 9.86, 0.2),
+        Hole(-2.8, 7.06, 0.4),
+        Hole(1.2, 9.06, 0.2)
+    }, // Env 2
+    };
+
+    // Set environments for the heightmap
+    setEnvironments(environments);
+    setStartZones(start_zones);
+    setGoalZones(goal_zones);
+    setHoles(holes);
   }
 
 };

@@ -154,29 +154,29 @@ void QuadrupedTask::ResidualFn::Residual(const mjModel *model,
   // Define the feet array for easier access
   double *feet[4] = {FR, FL, RR, RL};
 
-  if (heightmap_.getCurrentEnvironment() != -1) {
-    double hlim = 0.055;  // Define the height limit
+  // if (heightmap_.getCurrentEnvironment() != -1) {
+  //   double hlim = 0.055;  // Define the height limit
 
-    // Iterate over all feet
-    for (int i = 0; i < 4; ++i) {
-      // Check if the foot is below the height limit and the terrain is below 0
-      if (heightmap_.get_height(feet[i][0], feet[i][1]) < 0 &&
-          feet[i][2] < hlim) {
-        // Compute the difference between the foot height and the limit
-        double height_diff = hlim - feet[i][2];
-        double factor = heightmap_.get_mean_height(feet[i][0], feet[i][1]);
-        // std::cout << "height_mean : " <<
-        // heightmap_.get_mean_height(feet[i][0], feet[i][1]) << std::endl;
+  //   // Iterate over all feet
+  //   for (int i = 0; i < 4; ++i) {
+  //     // Check if the foot is below the height limit and the terrain is below 0
+  //     if (heightmap_.get_height(feet[i][0], feet[i][1]) < 0 &&
+  //         feet[i][2] < hlim) {
+  //       // Compute the difference between the foot height and the limit
+  //       double height_diff = hlim - feet[i][2];
+  //       double factor = heightmap_.get_mean_height(feet[i][0], feet[i][1]);
+  //       // std::cout << "height_mean : " <<
+  //       // heightmap_.get_mean_height(feet[i][0], feet[i][1]) << std::endl;
 
-        // Update the feet height if necessary
-        if (height_diff > 0) {
-          feet_height[i] = factor * height_diff;
-        }
-      }
-    }
-  }
-  mju_copy(residual + res_index, feet_height, 4);
-  res_index += 4;
+  //       // Update the feet height if necessary
+  //       if (height_diff > 0) {
+  //         feet_height[i] = factor * height_diff;
+  //       }
+  //     }
+  //   }
+  // }
+  // mju_copy(residual + res_index, feet_height, 4);
+  // res_index += 4;
 
   // ---------- Residual (1) ----------
   // Control.

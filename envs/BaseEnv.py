@@ -10,7 +10,7 @@ import pinocchio
 import os
 
 from build_release.libmjpc_rl_pywrap import MujocoSimulator
-from envs.environment import Rectangle, create_environment, create_environment_baseline
+from envs.environment import Rectangle, create_environment, create_environment_baseline,create_environment_baseline_holes, is_inside_holes, intersect_holes
 
 class BaseEnv(gym.Env):
   metadata = {"render_modes": ["human", "rgb_array", "logger"], "render_fps": 4}
@@ -120,7 +120,7 @@ class BaseEnv(gym.Env):
     self.envId = 0 # start at 0.
     self.counter_failure = 0
     self.counter_success = 0
-    self.environments, self.start_zones, self.goal_zones = create_environment_baseline()
+    self.environments, self.start_zones, self.goal_zones, self.holes = create_environment_baseline_holes()
 
     self.DREACH = 0.3
 
@@ -369,6 +369,20 @@ class BaseEnv(gym.Env):
       while self.envId == 0 and np.linalg.norm(self.infos["robot_pose"][:2] - self.infos["goal"][:2]) <= self.DREACH:
         self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
         self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
+
+      if len(self.holes) > 0:
+        if self.holes[self.envId]:
+          intersection = intersect_holes(self.infos["goal"][0], self.infos["goal"][1], self.holes[self.envId], 0.15)
+          dist = np.linalg.norm(np.array([0.,8.06]) - self.infos["goal"][:2]) < 2.
+          print("dist : ", dist)
+          print("intersection : ", intersection)
+          while intersection or dist :
+            self.infos["goal"][0] = xlim_min + (xlim_max - xlim_min) * self.np_random.random()
+            self.infos["goal"][1] = ylim_min + (ylim_max - ylim_min) * self.np_random.random()
+            intersection = intersect_holes(self.infos["goal"][0], self.infos["goal"][1], self.holes[self.envId], 0.15)
+            dist = np.linalg.norm(np.array([0.,8.06]) - self.infos["goal"][:2]) < 2.
+
+
     self.infos["goal"][2] = 0.248
     self.infos["collision_status"] = 0
     self.infos["goal_reached"] = False

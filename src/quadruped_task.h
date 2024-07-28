@@ -54,9 +54,10 @@ public:
       pcRot_.add_curve(ang_rotation_);
 
       // Symmetric motion.
-      C2 << 0, 1., 0, 0, 0, 0, 0, 0, 0, 0, -1., 0, 0, 0, 1., 0, 0, 0, 0, 0, 0,
-          0, 0, -1., 0, 0, 0, 0, 1., 0., 0, -1., 0., 0, 0, 0, 0, 0, 0, 0, 0.,
-          1., 0, 0., -1., 0, 0, 0;
+      C2 << 0,1.,0,  0,0,0,    0,0,0,     0,-1.,0,
+            0,0,1.,  0,0,0,    0,0,0,     0, 0,-1.,
+            0,0,0,   0,1.,0,   0,-1.,0,   0, 0,0,
+            0,0,0,   0,0.,1.,  0,0, -1.,  0, 0,0;
       // Bounding motion.
       // C2 << 0,1,0,   0,0,0,   0,-1,0,   0,0,0,
       //       0,0,1.,  0,0,0,   0,0,-1,   0,0,0.,
@@ -70,7 +71,7 @@ public:
 
       // Heightmap
       heightmap_ = Heightmap();
-      heightmap_.create_environment1();
+      heightmap_.create_environment_baseline();
     }
 
     // --------------------- Residuals for quadruped task --------------------

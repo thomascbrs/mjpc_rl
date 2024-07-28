@@ -101,7 +101,8 @@ MujocoSimulator::MujocoSimulator(int n_threads, bool rendering, bool logging,
   // Heightmap
   heightmap_ = Heightmap();
   // heightmap_.create_environment1();
-  heightmap_.create_environment_baseline();
+  // heightmap_.create_environment_baseline();
+  heightmap_.create_environment_baseline_holes();
 
   // Setup task horizons.
   set_horizon_nn(settings.horizon_nn);
@@ -635,7 +636,7 @@ void MujocoSimulator::step(std::vector<double> actions) {
   for (int kk = 0; kk < settings.horizon_nn / settings.timestep;
        kk++) {
     // Reset the contact status to 0.
-    mcontactData.update(model, data);
+    // mcontactData.update(model, data);
     if (LOGGING_) {
       logger_.log(model, data, &mcontactData);
     }
