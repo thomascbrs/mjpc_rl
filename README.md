@@ -3,6 +3,10 @@
 Project using mujoco and mujoco_mpc for high-level planning strategies.
 
 
+##### Custom Mujoco_mpc
+https://github.com/thomascbrs/mujoco_mpc/tree/topic-devel
+
+
 ##### New cost :
 ```
 <!-- Params for fly-high : 3 -->
