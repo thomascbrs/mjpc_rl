@@ -4,6 +4,7 @@ Project using mujoco and mujoco_mpc for high-level planning strategies.
 ###########
 Use this version of mujoco_mpc
 
+
 https://github.com/thomascbrs/mujoco_mpc/tree/topic-devel
 
 ##### New cost :
